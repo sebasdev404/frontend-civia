@@ -1,0 +1,65 @@
+@use '../../styles/mixins' as *;
+
+.topbar {
+  height: 62px;
+  width: 100%;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  @include flex(row, center, space-between, 1rem);
+  flex-shrink: 0;
+  transition: background 200ms ease, border-color 200ms ease;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+.topbar-left {
+  @include flex(row, center, flex-start, 12px);
+}
+
+.system-status {
+  @include flex(row, center, flex-start, 8px);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--emerald-500);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.topbar-right {
+  @include flex(row, center, flex-end, 1rem);
+  margin-left: auto;
+}
+
+.user-profile {
+  @include flex(row, center, flex-start, 8px);
+  padding: 4px 10px 4px 4px;
+  border-radius: var(--radius-full);
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+}
+
+.user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  @include flex(row, center, center, 0);
+}
+
+.user-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+

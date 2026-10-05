@@ -1,0 +1,97 @@
+@use '../../styles/mixins' as *;
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+
+  @media (min-width: 640px)  { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 1024px) { grid-template-columns: repeat(4, 1fr); }
+}
+
+.stat-card {
+  padding: 1.5rem;
+  @include card;
+}
+
+.stat-title {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.citizens-table-card {
+  overflow-x: auto;
+  @include card;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table-head {
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border);
+
+  th {
+    padding: 0.875rem 1.25rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.table-body {
+  tr {
+    border-bottom: 1px solid var(--border);
+    transition: background var(--transition);
+
+    &:last-child { border-bottom: none; }
+    &:hover { background: var(--bg-hover); }
+  }
+
+  td {
+    padding: 1rem 1.25rem;
+    color: var(--text-secondary);
+    vertical-align: middle;
+  }
+}
+
+.citizen-info {
+  @include flex(row, center, flex-start, 10px);
+}
+
+.citizen-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: var(--blue-600);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.875rem;
+  @include flex(row, center, center, 0);
+  flex-shrink: 0;
+}
+
+.citizen-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.citizen-handle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}

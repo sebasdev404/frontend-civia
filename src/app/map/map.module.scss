@@ -1,0 +1,381 @@
+@use '../../styles/mixins' as *;
+
+.map-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  flex: 1;
+  height: calc(100vh - 11rem);
+  min-height: 700px;
+
+  @media (min-width: 1024px) {
+    flex-direction: row;
+  }
+}
+
+// ─── Barra lateral de Filtros Avanzados ─────────────────────────
+.map-sidebar {
+  width: 100%;
+  padding: 1.5rem;
+  overflow-y: auto;
+  @include flex(column, flex-start, flex-start, 1.25rem);
+  @include card;
+
+  @media (min-width: 1024px) {
+    width: 380px;
+    flex-shrink: 0;
+  }
+}
+
+.sidebar-header {
+  @include flex(row, center, space-between, 0);
+  width: 100%;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-title {
+  @include flex(row, center, flex-start, 8px);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  color: var(--blue-600);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+
+  &:hover {
+    background: var(--bg-hover);
+    text-decoration: underline;
+  }
+}
+
+// Banner de Tiempo Real (Radar / Operaciones)
+.live-banner {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  @include flex(row, center, space-between, 12px);
+}
+
+.live-indicator {
+  @include flex(row, center, flex-start, 8px);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--emerald-500);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: radarPulse 1.8s infinite;
+}
+
+@keyframes radarPulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.sim-button {
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--blue-600);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition);
+
+  &:hover {
+    background: var(--blue-700);
+  }
+}
+
+// Grupos de Filtros
+.filter-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.search-input-wrap {
+  position: relative;
+  width: 100%;
+
+  svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  input {
+    @include input-base;
+    padding-left: 40px;
+    font-size: 0.8125rem;
+  }
+}
+
+// Botones de Prioridad en Cuadrícula 2x2
+.priority-pills {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.pill-btn {
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  @include flex(row, center, space-between, 6px);
+
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-input);
+  }
+
+  &.active {
+    background: var(--blue-600);
+    color: #fff;
+    border-color: var(--blue-600);
+
+    .pill-count {
+      background: rgba(255, 255, 255, 0.25);
+      color: #fff;
+    }
+  }
+
+  &.alta.active {
+    background: var(--red-600);
+    border-color: var(--red-600);
+  }
+
+  &.media.active {
+    background: var(--amber-600);
+    border-color: var(--amber-600);
+  }
+
+  &.baja.active {
+    background: var(--emerald-600);
+    border-color: var(--emerald-600);
+  }
+}
+
+.pill-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+}
+
+.filter-select {
+  @include input-base;
+  padding: 9px 12px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.legend-box {
+  width: 100%;
+  margin-top: auto;
+  padding: 1rem;
+  background: var(--bg-muted);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+
+  .legend-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    display: block;
+  }
+}
+
+.legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.75rem;
+
+  span {
+    @include flex(row, center, flex-start, 6px);
+  }
+}
+
+// ─── Área del Mapa y Controles Flotantes ────────────────────────
+.map-content {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  min-height: 520px;
+  background: var(--bg-card);
+}
+
+.map-stats-bar {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 400;
+  padding: 10px 16px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xl);
+  color: #fff;
+  @include flex(row, center, space-between, 12px);
+  flex-wrap: wrap;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+.stats-badges {
+  @include flex(row, center, flex-start, 14px);
+  flex-wrap: wrap;
+
+  span {
+    @include flex(row, center, flex-start, 6px);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+}
+
+// Tarjeta flotante de incidente seleccionado
+.incident-card {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  right: 24px;
+  max-width: 440px;
+  z-index: 500;
+  padding: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.35);
+  animation: slideUp 200ms ease;
+
+  @media (max-width: 640px) {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    padding: 1rem;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.incident-card-header {
+  @include flex(row, center, space-between, 10px);
+  margin-bottom: 0.6rem;
+}
+
+.incident-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+
+.incident-card-desc {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-bottom: 0.875rem;
+}
+
+.incident-card-footer {
+  @include flex(row, center, space-between, 12px);
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.close-card-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color var(--transition);
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+  }
+}
+
+.map-loading {
+  width: 100%;
+  height: 100%;
+  @include flex(row, center, center, 10px);
+  background: var(--bg-muted);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}

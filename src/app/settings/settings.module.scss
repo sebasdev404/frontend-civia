@@ -1,0 +1,74 @@
+@use '../../styles/mixins' as *;
+
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 860px;
+}
+
+.settings-card {
+  padding: 1.75rem;
+  @include card;
+}
+
+.card-title {
+  @include flex(row, center, flex-start, 0.5rem);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+
+  label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  input, select {
+    @include input-base;
+  }
+}
+
+.helper-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.social-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.social-item {
+  @include flex(row, center, space-between, 1rem);
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+
+  h3 {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  p {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
