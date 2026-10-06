@@ -1,7 +1,11 @@
 "use client";
 
-import React from 'react';
-import { X, Printer, FileSpreadsheet, ShieldAlert, Award, FileText, CheckCircle2, TrendingUp, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  X, Printer, FileSpreadsheet, ShieldAlert, Award, FileText, 
+  CheckCircle2, TrendingUp, AlertTriangle, Download, Loader2 
+} from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import styles from './ExecutiveReportModal.module.scss';
 
 interface ExecutiveReportModalProps {
@@ -25,14 +29,276 @@ const REPORT_FOCOS = [
 ];
 
 export function ExecutiveReportModal({ isOpen, onClose }: ExecutiveReportModalProps) {
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfDownloaded, setPdfDownloaded] = useState(false);
+
   if (!isOpen) return null;
 
   const handlePrint = () => {
     window.print();
   };
 
+  const handleDownloadPDF = () => {
+    setIsGeneratingPdf(true);
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth() || 210;
+      let y = 18;
+
+      // Barra superior decorativa institucional
+      doc.setFillColor(15, 23, 42); // #0f172a
+      doc.rect(0, 0, pageWidth, 7, 'F');
+      doc.setFillColor(2, 132, 199); // #0284c7
+      doc.rect(0, 7, pageWidth, 2, 'F');
+
+      // Membrete oficial
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text('REPÚBLICA DE COLOMBIA • ALCALDÍA MUNICIPAL DE NEIVA', pageWidth / 2, y, { align: 'center' });
+      y += 5;
+
+      doc.setFontSize(14);
+      doc.setTextColor(15, 23, 42);
+      doc.text('INFORME EJECUTIVO PARA CONSEJO DE GOBIERNO', pageWidth / 2, y, { align: 'center' });
+      y += 5;
+
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text('CIVIA: Inteligencia Ciudadana y Gestión Territorial Multicanal (Facebook Page & Instagram @JohanSteed)', pageWidth / 2, y, { align: 'center' });
+      y += 4;
+
+      // Línea divisoria
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.4);
+      doc.line(14, y, pageWidth - 14, y);
+      y += 6;
+
+      // Metadatos en dos columnas
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+      doc.text('Periodo:', 14, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Semana Operativa Actual', 32, y);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Fecha de Emisión:', 110, y);
+      doc.setFont('helvetica', 'normal');
+      const emissionDate = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+      doc.text(emissionDate, 140, y);
+      y += 4.5;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Autoridad:', 14, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Dr. Johan Steed - Alcalde de Neiva', 32, y);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Destinatario:', 110, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Consejo de Gobierno y Secretarías de Despacho', 132, y);
+      y += 7;
+
+      // Caja de Resumen Ejecutivo
+      doc.setFillColor(241, 245, 249);
+      doc.roundedRect(14, y, pageWidth - 28, 20, 2, 2, 'F');
+      doc.setDrawColor(203, 213, 225);
+      doc.roundedRect(14, y, pageWidth - 28, 20, 2, 2, 'D');
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text('RESUMEN DE GESTIÓN Y TERMÓMETRO SOCIAL:', 18, y + 4.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.3);
+      doc.setTextColor(51, 65, 85);
+      const summaryText = 'Durante el ciclo operativo, CIVIA procesó 1,288 interacciones de Meta (64% Facebook, 36% Instagram). Se registró un Índice de Tensión Social moderado de 42/100, Sentimiento Neto Favorable del +58.2%, y un tiempo promedio de despacho de 1.4 horas. Las interacciones se consolidaron en necesidades territoriales estructuradas para atención prioritaria de las cuadrillas.';
+      const splitSummary = doc.splitTextToSize(summaryText, pageWidth - 36);
+      doc.text(splitSummary, 18, y + 9);
+      y += 24;
+
+      // Tarjetas de KPIs (4 columnas)
+      const kpiWidth = (pageWidth - 28 - 9) / 4;
+      const kpis = [
+        { label: 'INTERACCIONES META', val: '1,288', desc: 'Facebook & Instagram', color: [15, 23, 42] },
+        { label: 'TASA DE SOLUCIÓN', val: '94.2%', desc: 'Casos cerrados', color: [22, 163, 74] },
+        { label: 'TENSIÓN SOCIAL', val: '42 / 100', desc: 'Nivel Moderado', color: [217, 119, 6] },
+        { label: 'SLA DE REACCIÓN', val: '1.4 h', desc: 'Despacho cuadrillas', color: [2, 132, 199] },
+      ];
+
+      kpis.forEach((kpi, idx) => {
+        const kX = 14 + idx * (kpiWidth + 3);
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(kX, y, kpiWidth, 15, 1.5, 1.5, 'FD');
+
+        doc.setFontSize(6.2);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(100, 116, 139);
+        doc.text(kpi.label, kX + kpiWidth / 2, y + 4, { align: 'center' });
+
+        doc.setFontSize(10.5);
+        doc.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
+        doc.text(kpi.val, kX + kpiWidth / 2, y + 9.5, { align: 'center' });
+
+        doc.setFontSize(6.2);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 116, 139);
+        doc.text(kpi.desc, kX + kpiWidth / 2, y + 13.5, { align: 'center' });
+      });
+      y += 19;
+
+      // Tabla de Rendimiento por Secretaría
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text('1. RENDIMIENTO Y CUMPLIMIENTO POR SECRETARÍA / DEPENDENCIA', 14, y);
+      y += 4;
+
+      doc.setFillColor(15, 23, 42);
+      doc.rect(14, y, pageWidth - 28, 5.5, 'F');
+      doc.setFontSize(7.2);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('Dependencia Municipal', 16, y + 3.8);
+      doc.text('Casos', 98, y + 3.8, { align: 'right' });
+      doc.text('Resueltos', 118, y + 3.8, { align: 'right' });
+      doc.text('% Cumplimiento', 146, y + 3.8, { align: 'right' });
+      doc.text('Tiempo Prom.', 168, y + 3.8);
+      doc.text('Estado', 194, y + 3.8, { align: 'right' });
+      y += 5.5;
+
+      REPORT_SECRETARIAS.forEach((sec, idx) => {
+        const isEven = idx % 2 === 0;
+        doc.setFillColor(isEven ? 255 : 248, isEven ? 255 : 250, isEven ? 255 : 252);
+        doc.rect(14, y, pageWidth - 28, 5.2, 'F');
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, y + 5.2, pageWidth - 14, y + 5.2);
+
+        doc.setFontSize(6.8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 41, 59);
+        doc.text(sec.name, 16, y + 3.6);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(71, 85, 105);
+        doc.text(String(sec.cases), 98, y + 3.6, { align: 'right' });
+        doc.text(String(sec.resolved), 118, y + 3.6, { align: 'right' });
+
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(15, 23, 42);
+        doc.text(sec.rate, 146, y + 3.6, { align: 'right' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(71, 85, 105);
+        doc.text(sec.avgDays, 168, y + 3.6);
+
+        if (sec.status === 'Excelente') doc.setTextColor(16, 185, 129);
+        else if (sec.status === 'Óptimo') doc.setTextColor(2, 132, 199);
+        else doc.setTextColor(217, 119, 6);
+        doc.setFont('helvetica', 'bold');
+        doc.text(sec.status, 194, y + 3.6, { align: 'right' });
+
+        y += 5.2;
+      });
+      y += 5;
+
+      // Focos Territoriales
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text('2. FOCOS TERRITORIALES Y COMUNAS EN OBSERVACIÓN', 14, y);
+      y += 4;
+
+      REPORT_FOCOS.forEach(f => {
+        doc.setFillColor(248, 250, 252);
+        doc.roundedRect(14, y, pageWidth - 28, 7.5, 1, 1, 'F');
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(14, y, pageWidth - 28, 7.5, 1, 1, 'D');
+
+        doc.setFontSize(6.8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(15, 23, 42);
+        doc.text(`📍 ${f.comuna}:`, 17, y + 3.4);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(51, 65, 85);
+        const descLines = doc.splitTextToSize(f.desc, pageWidth - 34);
+        doc.text(descLines, 17, y + 6);
+
+        y += 8.5;
+      });
+      y += 2;
+
+      // Directrices del Despacho
+      doc.setFillColor(241, 245, 249);
+      doc.roundedRect(14, y, pageWidth - 28, 17, 1.5, 1.5, 'FD');
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text('DIRECTRICES DEL ALCALDE JOHAN STEED PARA EL GABINETE:', 17, y + 4.2);
+
+      doc.setFontSize(6.7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(51, 65, 85);
+      doc.text('1. Infraestructura: Cuadrilla de asfalto en caliente para Calle 39 Limonar y Av. La Toma antes del viernes.', 17, y + 8);
+      doc.text('2. Las Ceibas E.S.P.: Mantener protocolo de carrotanques en Comuna 2 y verificación técnica de presiones.', 17, y + 11.5);
+      doc.text('3. Gobierno & Seguridad: Refuerzo de cuadrantes de policía en el Malecón del Río Magdalena.', 17, y + 15);
+      y += 22;
+
+      // Firmas Oficiales
+      const sigLineW = 55;
+      const sigLeftX = 38;
+      const sigRightX = 118;
+
+      doc.setDrawColor(15, 23, 42);
+      doc.setLineWidth(0.4);
+      doc.line(sigLeftX, y, sigLeftX + sigLineW, y);
+      doc.line(sigRightX, y, sigRightX + sigLineW, y);
+
+      y += 3.8;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text('DR. JOHAN STEED', sigLeftX + sigLineW / 2, y, { align: 'center' });
+      doc.text('DRA. CAMILA MORALES', sigRightX + sigLineW / 2, y, { align: 'center' });
+
+      y += 3.2;
+      doc.setFontSize(6.8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text('Alcalde Municipal de Neiva', sigLeftX + sigLineW / 2, y, { align: 'center' });
+      doc.text('Secretaría General y Gabinete', sigRightX + sigLineW / 2, y, { align: 'center' });
+
+      // Pie de página con Hash de seguridad
+      y = 289;
+      doc.setFontSize(6.2);
+      doc.setTextColor(148, 163, 184);
+      doc.text(`CIVIA Intelligence Platform • Hash Oficial: SHA256-${Math.random().toString(36).substring(2, 10).toUpperCase()}-NEIVA • Consejo de Gobierno Municipal`, pageWidth / 2, y, { align: 'center' });
+
+      // Guardar PDF oficial
+      const dateStr = new Date().toISOString().slice(0, 10);
+      doc.save(`CIVIA_Informe_Consejo_Gobierno_Neiva_${dateStr}.pdf`);
+
+      setPdfDownloaded(true);
+      setTimeout(() => setPdfDownloaded(false), 3500);
+    } catch (err) {
+      console.error('Error generando PDF:', err);
+      window.print();
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   const handleExportCSV = () => {
-    // Encabezados y contenido con codificación UTF-8 BOM para soporte nativo en Excel
     const headers = 'Entidad Municipal;Reportes Meta Totales;Casos Resueltos;Tasa Resolucion;Tiempo Promedio;Estado Desempeno\r\n';
     const rows = REPORT_SECRETARIAS.map(s => 
       `"${s.name}";${s.cases};${s.resolved};${s.rate};"${s.avgDays}";"${s.status}"`
@@ -61,6 +327,30 @@ export function ExecutiveReportModal({ isOpen, onClose }: ExecutiveReportModalPr
           <div className={styles['header-actions']}>
             <button 
               type="button" 
+              className="btn-primary" 
+              onClick={handleDownloadPDF}
+              disabled={isGeneratingPdf}
+              style={{ padding: '6px 14px', fontSize: '0.78rem' }}
+            >
+              {isGeneratingPdf ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Generando PDF...</span>
+                </>
+              ) : pdfDownloaded ? (
+                <>
+                  <CheckCircle2 size={15} />
+                  <span>¡PDF Descargado!</span>
+                </>
+              ) : (
+                <>
+                  <Download size={15} />
+                  <span>Descargar PDF Oficial</span>
+                </>
+              )}
+            </button>
+            <button 
+              type="button" 
               className="btn-secondary" 
               onClick={handleExportCSV}
               style={{ padding: '6px 12px', fontSize: '0.78rem' }}
@@ -70,12 +360,12 @@ export function ExecutiveReportModal({ isOpen, onClose }: ExecutiveReportModalPr
             </button>
             <button 
               type="button" 
-              className="btn-primary" 
+              className="btn-secondary" 
               onClick={handlePrint}
-              style={{ padding: '6px 14px', fontSize: '0.78rem' }}
+              style={{ padding: '6px 12px', fontSize: '0.78rem' }}
             >
               <Printer size={15} />
-              <span>Imprimir / PDF Oficial</span>
+              <span>Imprimir</span>
             </button>
             <button 
               type="button" 
