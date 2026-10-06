@@ -116,12 +116,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return loggedUser;
     } catch (err: any) {
       // Si el backend estuviera offline, permitimos autenticación de prueba local
-      if (email === 'alcalde@civia.gov.co' && password === 'civia2026') {
-        setUser(DEFAULT_DEMO_USER);
-        setToken('demo-token-alcalde');
-        localStorage.setItem('civia_token', 'demo-token-alcalde');
-        localStorage.setItem('civia_user', JSON.stringify(DEFAULT_DEMO_USER));
-        return DEFAULT_DEMO_USER;
+      const roleMatch = Object.values(DEMO_ACCOUNTS).find(acc => acc.email.toLowerCase() === email.toLowerCase());
+      if (roleMatch && password === 'civia2026') {
+        setUser(roleMatch);
+        const demoToken = `demo-token-${roleMatch.role.toLowerCase()}`;
+        setToken(demoToken);
+        localStorage.setItem('civia_token', demoToken);
+        localStorage.setItem('civia_user', JSON.stringify(roleMatch));
+        return roleMatch;
       }
       throw err;
     }
