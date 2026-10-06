@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { API } from '@/lib/api/client';
 
-export type UserRole = 'ALCALDE' | 'SECRETARIO' | 'OPERADOR';
+export type UserRole = 'ADMIN' | 'ALCALDE' | 'SECRETARIO' | 'OPERADOR';
 
 export interface AuthUser {
   id: string;
@@ -30,6 +30,16 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const DEMO_ACCOUNTS: Record<UserRole, AuthUser> = {
+  ADMIN: {
+    id: 'USR-000',
+    email: 'admin@civia.gov.co',
+    full_name: 'Ing. Sofía Valderrama',
+    role: 'ADMIN',
+    department: 'Dirección de Tecnologías y Seguridad TI',
+    avatar_url: null,
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
   ALCALDE: {
     id: 'USR-001',
     email: 'alcalde@civia.gov.co',

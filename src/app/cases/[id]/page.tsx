@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { 
   ArrowLeft, MapPin, Clock, MessageSquare, AlertTriangle, Send, Share2, 
   Flame, CheckCircle2, ShieldAlert, Building2, UserCheck, Check,
-  FileText, CornerDownRight, RefreshCw, Sparkles, MessageCircle
+  FileText, CornerDownRight, RefreshCw, Sparkles, MessageCircle, Layers
 } from 'lucide-react';
 import { API } from '@/lib/api/client';
 import { useAuth, UserRole } from '@/context/AuthContext';
@@ -616,6 +616,37 @@ export default function CaseDetailPage() {
                   <img src={caseData.imageUrl} alt="Evidencia ciudadana reportada" />
                 </div>
               )}
+
+              {/* Lista de Comentarios Meta Agrupados en esta Problemática */}
+              <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Layers size={14} style={{ color: 'var(--blue-600)' }} />
+                  <span>Comentarios Meta Agrupados en esta Problemática (4 interacciones)</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ padding: '8px 12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', fontSize: '0.78rem', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{caseData.author} • {caseData.source}</span>
+                      <span>{caseData.dateTime}</span>
+                    </div>
+                    <div>"{caseData.content.slice(0, 120)}..."</div>
+                  </div>
+                  <div style={{ padding: '8px 12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', fontSize: '0.78rem', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>@ciudadano_neiva • {caseData.source === 'Facebook' ? 'Instagram' : 'Facebook'}</span>
+                      <span>Hace 40 min</span>
+                    </div>
+                    <div>"Apoyo total al reporte, en este mismo sector los vecinos estamos afectados por la misma situación."</div>
+                  </div>
+                  <div style={{ padding: '8px 12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', fontSize: '0.78rem', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>@veeduria_comunal • {caseData.source}</span>
+                      <span>Hace 1 hora</span>
+                    </div>
+                    <div>"Como junta comunal respaldamos esta solicitud y pedimos intervención técnica de la secretaría."</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

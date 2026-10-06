@@ -173,6 +173,16 @@ export function TopBar({ onToggleMenu }: TopBarProps) {
               </div>
               <button
                 type="button"
+                className={[styles['role-switch-btn'], roleLabel === 'ADMIN' ? styles.active : ''].join(' ')}
+                onClick={() => {
+                  switchDemoUser('ADMIN');
+                  setDropdownOpen(false);
+                }}
+              >
+                ⚙️ Admin (Ing. Sofía Valderrama)
+              </button>
+              <button
+                type="button"
                 className={[styles['role-switch-btn'], roleLabel === 'ALCALDE' ? styles.active : ''].join(' ')}
                 onClick={() => {
                   switchDemoUser('ALCALDE');
