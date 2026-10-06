@@ -8,8 +8,8 @@ import { AppShell } from "@/components/ui/AppShell";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CIVIA",
-  description: "Citizen Voice and Intelligence Analytics",
+  title: "CIVIA - Plataforma de Inteligencia Ciudadana",
+  description: "Citizen Voice and Intelligence Analytics - Neiva, Huila",
 };
 
 export default function RootLayout({
@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning style={{ width: '100vw', minHeight: '100vh', margin: 0, padding: 0 }}>
+      <body className={inter.className} suppressHydrationWarning style={{ width: '100vw', minHeight: '100vh', margin: 0, padding: 0, overflowX: 'hidden' }}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
             <AppShell>
@@ -31,3 +31,4 @@ export default function RootLayout({
     </html>
   );
 }
+

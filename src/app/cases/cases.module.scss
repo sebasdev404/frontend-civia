@@ -493,8 +493,10 @@
 
 .compact-card {
   @include card;
-  padding: 1.25rem;
-  @include flex(column, flex-start, space-between, 12px);
+  & {
+    padding: 1.25rem;
+    @include flex(column, flex-start, space-between, 12px);
+  }
 }
 
 .compact-thumb {
@@ -549,9 +551,11 @@
 
 .list-row {
   @include card;
-  padding: 1rem 1.25rem;
-  @include flex(row, center, space-between, 1rem);
-  transition: all var(--transition);
+  & {
+    padding: 1rem 1.25rem;
+    @include flex(row, center, space-between, 1rem);
+    transition: all var(--transition);
+  }
 
   &:hover {
     border-color: var(--blue-500);
@@ -605,7 +609,9 @@
 // ─── Vista: Tabla ───────────────────────────────────────────
 .table-container {
   @include card;
-  overflow-x: auto;
+  & {
+    overflow-x: auto;
+  }
 }
 
 .table {
@@ -667,9 +673,11 @@
 
 .empty-state {
   @include card;
-  padding: 3rem 1.5rem;
-  text-align: center;
-  color: var(--text-muted);
+  & {
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+  }
   
   h3 {
     font-size: 1.1rem;

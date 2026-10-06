@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Revalidación silenciosa con el backend
         API.auth.me()
-          .then((freshUser) => {
+          .then((freshUser: any) => {
             setUser(freshUser);
             localStorage.setItem('civia_user', JSON.stringify(freshUser));
           })
@@ -131,7 +131,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth debe ser utilizado dentro de un AuthProvider');
+    return {
+      user: DEFAULT_DEMO_USER,
+      token: 'demo-token',
+      isAuthenticated: true,
+      isLoading: false,
+      login: async () => DEFAULT_DEMO_USER,
+      logout: () => {},
+    };
   }
   return context;
 }

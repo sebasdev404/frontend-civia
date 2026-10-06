@@ -26,24 +26,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
 
   return (
     <aside className={[styles.sidebar, isMobileOpen ? styles['mobile-open'] : ''].join(' ').trim()}>
-      <div className={styles['sidebar-header']}>
-        <div className={styles['sidebar-logo']}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--blue-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
-            C
-          </div>
-          <span>CIVIA</span>
-        </div>
-        {onClose && (
-          <button 
-            type="button"
-            className={styles['sidebar-close-btn']} 
-            onClick={onClose}
-            aria-label="Cerrar navegación"
-          >
-            <X size={20} />
-          </button>
-        )}
-      </div>
+      
       
       <div className={styles['sidebar-nav']}>
         <div className={styles['sidebar-label']}>PRINCIPAL</div>
@@ -72,3 +55,4 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
     </aside>
   );
 }
+

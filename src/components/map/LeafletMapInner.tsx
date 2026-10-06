@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 export interface MapIncident {
@@ -127,8 +127,9 @@ export default function LeafletMapInner({
       center={center}
       zoom={zoom}
       style={{ height: '100%', width: '100%', background: isDark ? '#090d16' : '#f1f5f9' }}
-      zoomControl={true}
+      zoomControl={false}
     >
+      <ZoomControl position="bottomright" />
       <MapController center={center} zoom={zoom} selectedIncident={selectedIncident} />
 
       <TileLayer

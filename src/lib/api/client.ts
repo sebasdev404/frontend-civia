@@ -1,5 +1,6 @@
 /**
- * CIVIA API Client — Integración con FastAPI y PostgreSQL
+ * Configuración base para el cliente de API que se conectará con FastAPI.
+ * Utiliza fetch nativo (o puedes cambiarlo a Axios) para realizar peticiones.
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -7,20 +8,18 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/a
 export async function fetcher(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   
-  let token = null;
-  if (typeof window !== 'undefined') {
-    token = localStorage.getItem('civia_token');
-  }
-
-  const headers: Record<string, string> = {
+  const defaultHeaders = {
     'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    ...(options.headers as Record<string, string> || {}),
+    // Aquí podrías inyectar el token de autenticación (Ej. JWT)
+    // 'Authorization': `Bearer ${token}`
   };
 
   const response = await fetch(url, {
     ...options,
-    headers,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
   });
 
   if (!response.ok) {
@@ -33,43 +32,25 @@ export async function fetcher(endpoint: string, options: RequestInit = {}) {
 
 export const API = {
   auth: {
-    login: (credentials: { email: string; password: string }) => 
+    login: (credentials: { email: string; password: string }) =>
       fetcher('/auth/login', {
         method: 'POST',
         body: JSON.stringify(credentials),
       }),
-    me: () => fetcher('/auth/me'),
+    me: () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('civia_token') : null;
+      return fetcher('/auth/me', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    },
   },
   cases: {
-    getAll: (params?: Record<string, string>) => {
-      const query = params ? '?' + new URLSearchParams(params).toString() : '';
-      return fetcher(`/cases${query}`);
-    },
+    getAll: () => fetcher('/cases'),
     getById: (id: string) => fetcher(`/cases/${id}`),
-    update: (id: string, data: any) => 
-      fetcher(`/cases/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      }),
-    create: (data: any) => 
-      fetcher('/cases', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
-  },
-  map: {
-    getIncidents: (params?: Record<string, string>) => {
-      const query = params ? '?' + new URLSearchParams(params).toString() : '';
-      return fetcher(`/map/incidents${query}`);
-    },
-    getZones: () => fetcher('/map/zones'),
-    createIncident: (data: any) => 
-      fetcher('/map/incidents', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+    // updateStatus: (id: string, status: string) => fetcher(`/cases/${id}`, { method: 'PUT', body: JSON.stringify({ status }) })
   },
   analytics: {
-    getSummary: () => fetcher('/analytics/summary'),
-  },
+    getSentiment: () => fetcher('/analytics/sentiment'),
+    getMapPoints: () => fetcher('/analytics/map-points'),
+  }
 };
