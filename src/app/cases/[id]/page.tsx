@@ -94,7 +94,7 @@ const FALLBACK_CASES: Record<string, CaseDetailData> = {
   },
   'CASO-003': {
     id: 'CASO-003',
-    source: 'Twitter / X',
+    source: 'Instagram',
     author: '@NeivaAlerta',
     priority: 'Media',
     title: 'Hurto a mano armada en el sendero del Malecón del Río Magdalena',
@@ -115,7 +115,7 @@ const FALLBACK_CASES: Record<string, CaseDetailData> = {
   },
   'CASO-004': {
     id: 'CASO-004',
-    source: 'WhatsApp',
+    source: 'Facebook',
     author: '@LiderCanaimaNeiva',
     priority: 'Alta',
     title: 'Rebosamiento de aguas residuales e inundación en canaleta barrial',
@@ -157,7 +157,7 @@ const FALLBACK_CASES: Record<string, CaseDetailData> = {
   },
   'CASO-006': {
     id: 'CASO-006',
-    source: 'Twitter / X',
+    source: 'Instagram',
     author: '@NeivaSostenible',
     priority: 'Media',
     title: 'Botadero clandestino de escombros en ronda del Río Las Ceibas',
@@ -178,7 +178,7 @@ const FALLBACK_CASES: Record<string, CaseDetailData> = {
   },
   'CASO-007': {
     id: 'CASO-007',
-    source: 'Twitter / X',
+    source: 'Facebook',
     author: '@MovilidadNeivaHoy',
     priority: 'Media',
     title: 'Semáforos apagados en intersección de la Avenida Circunvalar',

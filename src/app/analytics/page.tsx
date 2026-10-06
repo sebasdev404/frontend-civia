@@ -6,10 +6,8 @@ import CategoryChart from '@/components/charts/CategoryChart';
 import { TrendingUp, MessageSquare, Zap, Clock } from 'lucide-react';
 
 const CHANNELS = [
-  { name: 'Facebook', percentage: 48, mentions: '616 reportes', color: '#1877F2' },
-  { name: 'Twitter / X', percentage: 32, mentions: '410 reportes', color: '#000000' },
-  { name: 'Instagram', percentage: 14, mentions: '180 reportes', color: '#E1306C' },
-  { name: 'WhatsApp Bot', percentage: 6, mentions: '78 reportes', color: '#25D366' },
+  { name: 'Facebook (Página Oficial / Comentarios)', percentage: 64, mentions: '822 reportes', color: '#1877F2' },
+  { name: 'Instagram (@JohanSteed / Menciones)', percentage: 36, mentions: '462 reportes', color: '#E1306C' },
 ];
 
 export default function AnalyticsPage() {
@@ -82,12 +80,13 @@ export default function AnalyticsPage() {
         <div className={styles['analytics-card']}>
           <div className={styles['card-title']}>Términos y Frases más Mencionadas</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '1rem 0' }}>
-            <span className="badge-alta" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>#ReciboDelAgua (340)</span>
-            <span className="badge-media" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>Huecos Carrera 5ta (210)</span>
-            <span className="badge-alta" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>Inseguridad Parque (185)</span>
-            <span className="badge-baja" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>Alcaldía Responde (142)</span>
-            <span className="badge-tag" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>Alumbrado Público (98)</span>
-            <span className="badge-tag" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>Semáforos (64)</span>
+            <span className="badge-alta" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>#LasCeibasResponde (340)</span>
+            <span className="badge-alta" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>#AguaLasGranjas (285)</span>
+            <span className="badge-media" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>Pavimentación La Toma (210)</span>
+            <span className="badge-alta" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>Inundación Canaima (185)</span>
+            <span className="badge-media" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>Seguridad Malecón (142)</span>
+            <span className="badge-baja" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>Alumbrado Ipanema (98)</span>
+            <span className="badge-tag" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>Semáforos Circunvalar (64)</span>
           </div>
         </div>
       </div>

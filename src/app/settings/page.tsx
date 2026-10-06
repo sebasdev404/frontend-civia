@@ -59,24 +59,17 @@ export default function SettingsPage() {
           <div className={styles['social-list']}>
             <div className={styles['social-item']}>
               <div>
-                <h3>Meta Graph API (Facebook / Instagram)</h3>
-                <p>Página vinculada: "Alcaldía Mayor de la Ciudad"</p>
+                <h3>Facebook Page API (Meta for Developers)</h3>
+                <p>Página vinculada: "Johan Steed / Alcaldía de Neiva" (Lectura de posts y comentarios)</p>
               </div>
-              <span className="badge-baja">Conectado</span>
+              <span className="badge-baja">Vinculado</span>
             </div>
             <div className={styles['social-item']}>
               <div>
-                <h3>WhatsApp Business API</h3>
-                <p>Notificaciones automáticas a funcionarios de guardia</p>
+                <h3>Instagram Graph API (Cuenta Profesional / Creador)</h3>
+                <p>Perfil vinculado: @JohanSteed (Monitoreo de menciones, reels y comentarios)</p>
               </div>
-              <span className="badge-media">En Espera de Token</span>
-            </div>
-            <div className={styles['social-item']}>
-              <div>
-                <h3>Twitter / X Streaming API v2</h3>
-                <p>Monitoreo continuo de palabras clave cívicas</p>
-              </div>
-              <span className="badge-baja">Activo</span>
+              <span className="badge-baja">Vinculado</span>
             </div>
           </div>
         </div>

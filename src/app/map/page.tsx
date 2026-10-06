@@ -51,7 +51,7 @@ const INITIAL_INCIDENTS: MapIncident[] = [
     category: 'Seguridad',
     priority: 'Media',
     sentiment: 'Preocupación',
-    source: 'Twitter / X',
+    source: 'Instagram',
     neighborhood: 'El Malecón - Comuna 4',
     zone: 'comuna-4',
     status: 'Pendiente',
@@ -67,7 +67,7 @@ const INITIAL_INCIDENTS: MapIncident[] = [
     category: 'Servicios Públicos',
     priority: 'Alta',
     sentiment: 'Indignación',
-    source: 'WhatsApp',
+    source: 'Facebook',
     neighborhood: 'Canaima - Comuna 6',
     zone: 'comuna-6',
     status: 'Pendiente',
@@ -99,7 +99,7 @@ const INITIAL_INCIDENTS: MapIncident[] = [
     category: 'Medio Ambiente',
     priority: 'Media',
     sentiment: 'Preocupación',
-    source: 'Twitter / X',
+    source: 'Instagram',
     neighborhood: 'San Martín / Río Las Ceibas',
     zone: 'comuna-2',
     status: 'Pendiente',
@@ -115,7 +115,7 @@ const INITIAL_INCIDENTS: MapIncident[] = [
     category: 'Movilidad',
     priority: 'Media',
     sentiment: 'Alerta',
-    source: 'Twitter / X',
+    source: 'Facebook',
     neighborhood: 'Cándido Leguízamo - Comuna 1',
     zone: 'comuna-1',
     status: 'En Gestión',
@@ -363,17 +363,15 @@ export default function MapPage() {
 
           {/* 5. Red Social / Canal de Origen */}
           <div className={styles['filter-group']}>
-            <label>Canal de Escucha Social</label>
+            <label>Canal de Escucha (Meta)</label>
             <select
               className={styles['filter-select']}
               value={selectedSource}
               onChange={(e) => setSelectedSource(e.target.value)}
             >
-              <option value="all">Todos los canales</option>
-              <option value="Facebook">Facebook</option>
-              <option value="Twitter / X">Twitter / X</option>
-              <option value="Instagram">Instagram</option>
-              <option value="WhatsApp">WhatsApp</option>
+              <option value="all">Meta: Facebook e Instagram</option>
+              <option value="Facebook">Facebook (Página Oficial)</option>
+              <option value="Instagram">Instagram (@JohanSteed)</option>
             </select>
           </div>
 
