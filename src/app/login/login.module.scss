@@ -1,0 +1,296 @@
+@use '../../styles/mixins' as *;
+
+.login-wrapper {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--bg-app);
+  position: relative;
+  overflow: hidden;
+
+  // Fondo sutil de radar / malla tecnológica
+  &::before {
+    content: '';
+    position: absolute;
+    width: 650px;
+    height: 650px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0) 70%);
+    top: -150px;
+    right: -150px;
+    pointer-events: none;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0) 70%);
+    bottom: -150px;
+    left: -150px;
+    pointer-events: none;
+  }
+}
+
+.login-card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 2.25rem;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.25);
+  position: relative;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+
+  @media (max-width: 480px) {
+    padding: 1.5rem;
+  }
+}
+
+.brand-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.logo-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--blue-600), var(--blue-700));
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  margin-bottom: 1rem;
+}
+
+.brand-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.brand-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+}
+
+.input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .input-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  input {
+    width: 100%;
+    padding: 10px 40px 10px 38px;
+    font-size: 0.875rem;
+    border-radius: var(--radius-md);
+    background: var(--bg-muted);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    transition: all var(--transition);
+    outline: none;
+
+    &:focus {
+      border-color: var(--blue-500);
+      background: var(--bg-card);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+  }
+
+  .toggle-pwd {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: color var(--transition);
+
+    &:hover {
+      color: var(--text-primary);
+    }
+  }
+}
+
+.error-banner {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--red-50);
+  border: 1px solid var(--red-100);
+  color: var(--red-600);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.submit-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--blue-600), var(--blue-700));
+  color: #fff;
+  border: none;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+
+  &:hover {
+    background: linear-gradient(135deg, var(--blue-700), var(--blue-800));
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+// ─── Accesos Rápidos Demo por Roles ───────────────────────────
+.demo-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.demo-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.875rem;
+  text-align: center;
+}
+
+.demo-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.demo-role-btn {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all var(--transition);
+
+  &:hover {
+    background: var(--bg-hover);
+    border-color: var(--blue-400);
+    transform: translateX(2px);
+  }
+
+  .role-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .role-name {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .role-sub {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+}
+
+.role-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+
+  &.alcalde {
+    background: var(--blue-50);
+    color: var(--blue-600);
+    border: 1px solid var(--blue-100);
+  }
+
+  &.secretario {
+    background: var(--emerald-50);
+    color: var(--emerald-600);
+    border: 1px solid var(--emerald-100);
+  }
+
+  &.operador {
+    background: var(--amber-50);
+    color: var(--amber-600);
+    border: 1px solid var(--amber-100);
+  }
+}
+
+.footer-security {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.725rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}

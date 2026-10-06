@@ -27,13 +27,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [mobileMenuOpen]);
 
+  // En la vista de login, no mostrar la estructura del panel de administración
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
+
   return (
     <div className={styles['app-shell']}>
       {/* Overlay oscuro para dispositivos móviles / tablets */}
       {mobileMenuOpen && (
         <div 
           className={styles['mobile-backdrop']} 
-          onClick={() => setMobileMenuOpen(false)}
+          onClick={() => setMobileMenuOpen(false)} 
           aria-label="Cerrar navegación"
         />
       )}

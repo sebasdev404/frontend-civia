@@ -1,0 +1,137 @@
+"use client";
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { API } from '@/lib/api/client';
+
+export type UserRole = 'ALCALDE' | 'SECRETARIO' | 'OPERADOR';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  department?: string;
+  avatar_url?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface AuthContextType {
+  user: AuthUser | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<AuthUser>;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Usuario de respaldo en caso de trabajar offline
+const DEFAULT_DEMO_USER: AuthUser = {
+  id: 'USR-001',
+  email: 'alcalde@civia.gov.co',
+  full_name: 'Johan Steed',
+  role: 'ALCALDE',
+  department: 'Despacho del Alcalde',
+  avatar_url: null,
+  is_active: true,
+  created_at: new Date().toISOString(),
+};
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const router = useRouter();
+
+  // Inicializar estado desde LocalStorage al cargar la aplicación
+  useEffect(() => {
+    try {
+      const storedToken = localStorage.getItem('civia_token');
+      const storedUser = localStorage.getItem('civia_user');
+
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+        
+        // Revalidación silenciosa con el backend
+        API.auth.me()
+          .then((freshUser) => {
+            setUser(freshUser);
+            localStorage.setItem('civia_user', JSON.stringify(freshUser));
+          })
+          .catch(() => {
+            // Si el backend no responde pero hay sesión guardada, conservamos la sesión local
+          });
+      } else {
+        // Para asegurar que el usuario pueda explorar si entra directamente sin login inicial
+        // iniciamos con la sesión guardada o dejamos null
+      }
+    } catch (e) {
+      console.warn('Error leyendo sesión local:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const login = async (email: string, password: string): Promise<AuthUser> => {
+    try {
+      const res = await API.auth.login({ email, password });
+      const loggedUser = res.user;
+      const accessToken = res.access_token;
+
+      setUser(loggedUser);
+      setToken(accessToken);
+
+      localStorage.setItem('civia_token', accessToken);
+      localStorage.setItem('civia_user', JSON.stringify(loggedUser));
+      document.cookie = `civia_token=${accessToken}; path=/; max-age=691200; SameSite=Lax`;
+
+      return loggedUser;
+    } catch (err: any) {
+      // Si el backend estuviera offline, permitimos autenticación de prueba local
+      if (email === 'alcalde@civia.gov.co' && password === 'civia2026') {
+        setUser(DEFAULT_DEMO_USER);
+        setToken('demo-token-alcalde');
+        localStorage.setItem('civia_token', 'demo-token-alcalde');
+        localStorage.setItem('civia_user', JSON.stringify(DEFAULT_DEMO_USER));
+        return DEFAULT_DEMO_USER;
+      }
+      throw err;
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('civia_token');
+    localStorage.removeItem('civia_user');
+    document.cookie = 'civia_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    router.push('/login');
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated: !!user,
+        isLoading,
+        login,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth debe ser utilizado dentro de un AuthProvider');
+  }
+  return context;
+}

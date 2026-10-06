@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "../styles/globals.scss";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AuthProvider } from "@/context/AuthContext";
 import { AppShell } from "@/components/ui/AppShell";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -20,9 +21,11 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <AppShell>
-            {children}
-          </AppShell>
+          <AuthProvider>
+            <AppShell>
+              {children}
+            </AppShell>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
