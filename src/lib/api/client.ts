@@ -79,7 +79,12 @@ export const API = {
       }),
   },
   analytics: {
-    getSentiment: () => fetcher('/analytics/sentiment'),
-    getMapPoints: () => fetcher('/analytics/map-points'),
+    getSummary: () => fetcher('/analytics/summary'),
+  },
+  map: {
+    getIncidents: (params?: Record<string, string>) => {
+      const query = params ? '?' + new URLSearchParams(params).toString() : '';
+      return fetcher(`/map/incidents${query}`);
+    },
   }
 };

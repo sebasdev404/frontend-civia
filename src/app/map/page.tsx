@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './map.module.scss';
 import ThermometerMap, { MapIncident } from '@/components/map/ThermometerMap';
@@ -8,6 +8,7 @@ import {
   Layers, Search, Filter, AlertCircle, ArrowUpRight, 
   RotateCcw, Radio, X, MapPin, MessageSquare, CheckCircle2 
 } from 'lucide-react';
+import { API } from '@/lib/api/client';
 
 const INITIAL_INCIDENTS: MapIncident[] = [
   {
@@ -165,6 +166,40 @@ export default function MapPage() {
   const [selectedZone, setSelectedZone] = useState<string>('all');
   const [selectedIncident, setSelectedIncident] = useState<MapIncident | null>(null);
   const [isLive, setIsLive] = useState(true);
+
+  // Carga inicial en vivo desde backend PostgreSQL / API
+  useEffect(() => {
+    let isMounted = true;
+    async function loadIncidents() {
+      try {
+        const data = await API.map.getIncidents();
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          const parsed: MapIncident[] = data.map((item: any) => ({
+            id: item.id,
+            lat: item.lat,
+            lng: item.lng,
+            title: item.title,
+            description: item.description,
+            category: item.category,
+            priority: item.priority,
+            sentiment: item.sentiment,
+            source: item.source || 'Facebook',
+            neighborhood: item.neighborhood,
+            zone: item.zone,
+            status: item.status,
+            reportsCount: item.reports_count || item.reportsCount || 1,
+            dateTime: item.date_time || item.dateTime || 'Reciente',
+            isNew: item.is_new,
+          }));
+          setIncidents(parsed);
+        }
+      } catch (err) {
+        console.warn('Backend offline o usando datos iniciales para mapa:', err);
+      }
+    }
+    loadIncidents();
+    return () => { isMounted = false; };
+  }, []);
 
   // Filtrado compuesto avanzado
   const filteredIncidents = useMemo(() => {
