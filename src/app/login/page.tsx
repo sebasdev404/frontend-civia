@@ -166,6 +166,19 @@ export default function LoginPage() {
               </div>
               <span className={[styles['role-badge'], styles.operador].join(' ')}>Operador</span>
             </button>
+
+            <button
+              type="button"
+              className={styles['demo-role-btn']}
+              onClick={() => handleSelectRole('admin@civia.gov.co', 'civia2026')}
+              disabled={loading}
+            >
+              <div className={styles['role-info']}>
+                <span className={styles['role-name']}>Ing. Juan Perdomo</span>
+                <span className={styles['role-sub']}>Dirección TI y Gobernanza</span>
+              </div>
+              <span className={[styles['role-badge'], styles.admin].join(' ')}>Admin TI</span>
+            </button>
           </div>
         </div>
 
