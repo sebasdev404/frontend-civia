@@ -1,7 +1,9 @@
 "use client";
+
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Map as MapIcon, FolderOpen, PieChart, Users, Settings } from 'lucide-react';
+import { Home, Map as MapIcon, FolderOpen, PieChart, Users, Settings, X } from 'lucide-react';
 import styles from './Sidebar.module.scss';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -14,11 +16,16 @@ const navItems = [
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isMobileOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={[styles.sidebar, isMobileOpen ? styles['mobile-open'] : ''].join(' ').trim()}>
       <div className={styles['sidebar-header']}>
         <div className={styles['sidebar-logo']}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--blue-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
@@ -26,18 +33,29 @@ export function Sidebar() {
           </div>
           <span>CIVIA</span>
         </div>
+        {onClose && (
+          <button 
+            type="button"
+            className={styles['sidebar-close-btn']} 
+            onClick={onClose}
+            aria-label="Cerrar navegación"
+          >
+            <X size={20} />
+          </button>
+        )}
       </div>
       
       <div className={styles['sidebar-nav']}>
         <div className={styles['sidebar-label']}>PRINCIPAL</div>
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/')) || (item.href === '/dashboard' && pathname === '/');
           const Icon = item.icon;
           
           return (
             <Link 
               key={item.href} 
               href={item.href}
+              onClick={onClose}
               className={[styles['nav-link'], isActive ? styles.active : ''].join(' ').trim()}
             >
               <Icon size={20} />
