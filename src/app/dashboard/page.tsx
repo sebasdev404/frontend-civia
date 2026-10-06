@@ -169,7 +169,7 @@ export default function DashboardPage() {
               {role === 'ALCALDE' && '👑 Alcalde: Johan Steed'}
               {role === 'SECRETARIO' && '👔 Dra. Camila Morales (Secretaría)'}
               {role === 'OPERADOR' && '🛠️ Carlos Mendoza (Operador)'}
-              {role === 'ADMIN' && '⚙️ Ing. Sofía Valderrama (Admin TI)'}
+              {role === 'ADMIN' && '⚙️ Ing. Juan Perdomo (Admin TI)'}
             </span>
           </div>
           <p>

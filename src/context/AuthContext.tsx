@@ -33,7 +33,7 @@ export const DEMO_ACCOUNTS: Record<UserRole, AuthUser> = {
   ADMIN: {
     id: 'USR-000',
     email: 'admin@civia.gov.co',
-    full_name: 'Ing. Sofía Valderrama',
+    full_name: 'Ing. Juan Perdomo',
     role: 'ADMIN',
     department: 'Dirección de Tecnologías y Seguridad TI',
     avatar_url: null,

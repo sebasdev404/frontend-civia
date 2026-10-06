@@ -179,7 +179,7 @@ export function TopBar({ onToggleMenu }: TopBarProps) {
                   setDropdownOpen(false);
                 }}
               >
-                ⚙️ Admin (Ing. Sofía Valderrama)
+                ⚙️ Admin (Ing. Juan Perdomo)
               </button>
               <button
                 type="button"
