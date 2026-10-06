@@ -5,70 +5,131 @@ import {
   Search, Filter, LayoutGrid, List as ListIcon, Menu, Table as TableIcon,
   Video, CheckCircle2, AlertCircle, ArrowUpRight, RotateCcw, ChevronDown,
   Tag, Radio, ShieldAlert, Building2, Flame, FolderOpen, MessageSquare,
-  Layers, CheckSquare, Sparkles, PlusCircle, Check
+  Layers, CheckSquare, Sparkles, PlusCircle, Check, X, AlertTriangle, Link as LinkIcon
 } from 'lucide-react';
 import { API } from '@/lib/api/client';
 import styles from './cases.module.scss';
 
-const MOCK_RAW_COMMENTS = [
+export interface RawCommentItem {
+  id: string;
+  source: 'Facebook' | 'Instagram';
+  author: string;
+  postTitle: string;
+  content: string;
+  detectedIntent: string;
+  detectedLocation: string;
+  referenceStreet: string;
+  detectedCategory: string;
+  detectedTopic: string;
+  detectedProblem: string;
+  aiConfidence: number;
+  requiresFollowup: boolean;
+  possibleCaseMatch: string | null;
+  caseMatchTitle?: string;
+  similarityPercent?: number;
+  metaDirectContactAllowed: boolean;
+  dateTime: string;
+}
+
+const MOCK_RAW_COMMENTS: RawCommentItem[] = [
   {
     id: 'COMM-101',
-    source: 'Facebook' as const,
+    source: 'Facebook',
     author: '@vecinolimonar',
     postTitle: 'Publicación: Plan de Intervención Vial 2026',
     content: 'La calle 39 del barrio Limonar está totalmente destruida, los carros ya no pueden pasar y los taxistas se niegan a entrar.',
-    detectedIntent: 'Reporte',
+    detectedIntent: 'Reporte ciudadano',
     detectedLocation: 'El Limonar (Comuna 6)',
+    referenceStreet: 'Calle 39',
     detectedCategory: 'Infraestructura Vial',
+    detectedTopic: 'Malla Vial Urbana / Pavimentación',
+    detectedProblem: 'Deterioro vial crítico / hueco severo',
     aiConfidence: 93,
+    requiresFollowup: true,
+    possibleCaseMatch: 'CIV-2026-0184',
+    caseMatchTitle: 'Deterioro vial crítico y hundimiento – El Limonar',
+    similarityPercent: 91,
+    metaDirectContactAllowed: true,
     dateTime: 'Hace 25 min',
   },
   {
     id: 'COMM-102',
-    source: 'Instagram' as const,
+    source: 'Instagram',
     author: '@maria_limonar',
     postTitle: 'Reel: Alcaldía en tu Comuna',
     content: 'En el Limonar tenemos el mismo problema con el pavimento, huecos gigantes en la 39 con carrera 28.',
-    detectedIntent: 'Queja',
+    detectedIntent: 'Queja ciudadana',
     detectedLocation: 'El Limonar (Comuna 6)',
+    referenceStreet: 'Calle 39 con Carrera 28',
     detectedCategory: 'Infraestructura Vial',
+    detectedTopic: 'Malla Vial Urbana / Pavimentación',
+    detectedProblem: 'Deterioro vial crítico / hueco severo',
     aiConfidence: 91,
+    requiresFollowup: true,
+    possibleCaseMatch: 'CIV-2026-0184',
+    caseMatchTitle: 'Deterioro vial crítico y hundimiento – El Limonar',
+    similarityPercent: 88,
+    metaDirectContactAllowed: true,
     dateTime: 'Hace 38 min',
   },
   {
     id: 'COMM-103',
-    source: 'Facebook' as const,
+    source: 'Facebook',
     author: '@transporte_huila',
     postTitle: 'Publicación: Plan de Intervención Vial 2026',
     content: 'Por favor arreglen la vía de la 39 en el Limonar antes de que ocurra una tragedia o bloqueo.',
-    detectedIntent: 'Solicitud',
+    detectedIntent: 'Solicitud ciudadana',
     detectedLocation: 'El Limonar (Comuna 6)',
+    referenceStreet: 'Calle 39',
     detectedCategory: 'Infraestructura Vial',
+    detectedTopic: 'Malla Vial Urbana / Pavimentación',
+    detectedProblem: 'Deterioro vial / riesgo de bloqueo vial',
     aiConfidence: 89,
+    requiresFollowup: true,
+    possibleCaseMatch: 'CIV-2026-0184',
+    caseMatchTitle: 'Deterioro vial crítico y hundimiento – El Limonar',
+    similarityPercent: 87,
+    metaDirectContactAllowed: false,
     dateTime: 'Hace 45 min',
   },
   {
     id: 'COMM-104',
-    source: 'Instagram' as const,
+    source: 'Instagram',
     author: '@pedro_neiva',
     postTitle: 'Reel: Alumbrado Navideño y Luminarias',
     content: 'En Ipanema siguen varias luminarias apagadas en la carrera 38, muy oscuro de noche.',
-    detectedIntent: 'Reporte',
+    detectedIntent: 'Reporte ciudadano',
     detectedLocation: 'Ipanema (Comuna 7)',
+    referenceStreet: 'Carrera 38',
     detectedCategory: 'Alumbrado Público',
+    detectedTopic: 'Alumbrado Público ESIP',
+    detectedProblem: 'Falla de luminarias / oscuridad nocturna',
     aiConfidence: 95,
+    requiresFollowup: true,
+    possibleCaseMatch: 'CASO-008',
+    caseMatchTitle: 'Alumbrado LED instalado en parque y ciclo-ruta',
+    similarityPercent: 74,
+    metaDirectContactAllowed: true,
     dateTime: 'Hace 1 hora',
   },
   {
     id: 'COMM-105',
-    source: 'Facebook' as const,
+    source: 'Facebook',
     author: '@veeduria_comuna2',
     postTitle: 'Publicación: Gestión Las Ceibas E.S.P.',
     content: 'Continuamos con baja presión de agua potable en Las Granjas, solicitamos carrotanques urgentes.',
-    detectedIntent: 'Queja',
+    detectedIntent: 'Queja ciudadana',
     detectedLocation: 'Las Granjas (Comuna 2)',
+    referenceStreet: 'Carrera 2da con Calle 64',
     detectedCategory: 'Servicios Públicos',
+    detectedTopic: 'Redes de Acueducto Las Ceibas E.S.P.',
+    detectedProblem: 'Baja presión de agua / suspensión de servicio',
     aiConfidence: 96,
+    requiresFollowup: true,
+    possibleCaseMatch: 'CASO-001',
+    caseMatchTitle: 'No más abusos con el recibo del agua y cortes',
+    similarityPercent: 93,
+    metaDirectContactAllowed: false,
     dateTime: 'Hace 1 hora',
   },
 ];
@@ -84,7 +145,30 @@ const NEIVA_ENTITIES = [
 
 const MOCK_CASES = [
   {
+    id: 'CIV-2026-0184',
+    institutional_radicado: 'RAD-INF-2026-0391',
+    source: 'Facebook / Instagram',
+    author: '@comunidad_limonar',
+    priority: 'Alta',
+    title: 'Deterioro vial crítico y hundimiento de calzada – El Limonar (Comuna 6)',
+    content: 'Falla geotécnica y baches profundos sobre la Calle 39 entre carreras 28 y 30. Afectación severa a rutas de transporte colectivo y riesgo inminente de siniestros viales.',
+    category: 'Infraestructura',
+    sentiment: 'Indignación',
+    location: 'El Limonar - Comuna 6',
+    dateTime: '15 Oct 2026, 08:30',
+    status: 'En Gestión',
+    mediaType: 'image',
+    imageUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?q=80&w=600&auto=format&fit=crop',
+    impact_if_solved: 'Recupera transitabilidad de vía arterial comunal y desactiva paro de transportadores.',
+    impact_if_ignored: 'Riesgo de bloqueo total de la Avenida Max Duque por transporte público.',
+    assigned_department: 'Secretaría de Infraestructura y Vías',
+    assigned_to: 'Ing. Carlos Dussán - Cuadrilla Malla Vial',
+    priority_action: true,
+    comments_count: 14,
+  },
+  {
     id: 'CASO-001',
+    institutional_radicado: 'RAD-CEIBAS-2026-0482',
     source: 'Facebook',
     author: '@JuanPerezNeiva',
     priority: 'Alta',
@@ -102,9 +186,11 @@ const MOCK_CASES = [
     assigned_department: 'Las Ceibas - Empresas Públicas de Neiva E.S.P.',
     assigned_to: 'Cuadrilla 4 - Redes de Acueducto',
     priority_action: true,
+    comments_count: 6,
   },
   {
     id: 'CASO-002',
+    institutional_radicado: 'RAD-INF-2026-0210',
     source: 'Instagram',
     author: '@MariaGomez_Huila',
     priority: 'Baja',
@@ -122,9 +208,11 @@ const MOCK_CASES = [
     assigned_department: 'Secretaría de Infraestructura y Vías',
     assigned_to: 'Ing. Carlos Dussán - Cuadrilla Malla Vial',
     priority_action: false,
+    comments_count: 3,
   },
   {
     id: 'CASO-003',
+    institutional_radicado: 'RAD-GOB-2026-0118',
     source: 'Instagram',
     author: '@NeivaAlerta',
     priority: 'Media',
@@ -142,9 +230,11 @@ const MOCK_CASES = [
     assigned_department: 'Secretaría de Gobierno y Convivencia Ciudadana',
     assigned_to: 'Coronel Cuadrante Malecón / Policía Metropolitana',
     priority_action: false,
+    comments_count: 8,
   },
   {
     id: 'CASO-004',
+    institutional_radicado: 'RAD-CEIBAS-2026-0511',
     source: 'Facebook',
     author: '@LiderCanaimaNeiva',
     priority: 'Alta',
@@ -162,9 +252,11 @@ const MOCK_CASES = [
     assigned_department: 'Las Ceibas - Empresas Públicas de Neiva E.S.P.',
     assigned_to: 'Equipo Hidrosucción Vactor 02',
     priority_action: true,
+    comments_count: 7,
   },
   {
     id: 'CASO-005',
+    institutional_radicado: 'RAD-SAL-2026-0094',
     source: 'Facebook',
     author: '@VeeduriaSaludHuila',
     priority: 'Alta',
@@ -182,9 +274,11 @@ const MOCK_CASES = [
     assigned_department: 'Secretaría de Salud Municipal',
     assigned_to: 'Dra. Lilian Perdomo - Red de Urgencias',
     priority_action: false,
+    comments_count: 5,
   },
   {
     id: 'CASO-006',
+    institutional_radicado: 'RAD-AMB-2026-0152',
     source: 'Instagram',
     author: '@NeivaSostenible',
     priority: 'Media',
@@ -202,9 +296,11 @@ const MOCK_CASES = [
     assigned_department: 'Secretaría de Medio Ambiente y Desarrollo Rural',
     assigned_to: 'Inspectora Ambiental Neiva',
     priority_action: false,
+    comments_count: 5,
   },
   {
     id: 'CASO-007',
+    institutional_radicado: 'RAD-MOV-2026-0310',
     source: 'Facebook',
     author: '@MovilidadNeivaHoy',
     priority: 'Media',
@@ -222,9 +318,11 @@ const MOCK_CASES = [
     assigned_department: 'Secretaría de Movilidad y Tránsito',
     assigned_to: 'Técnicos de Semaforización Neiva',
     priority_action: false,
+    comments_count: 4,
   },
   {
     id: 'CASO-008',
+    institutional_radicado: 'RAD-INF-2026-0145',
     source: 'Instagram',
     author: '@VecinosIpanema',
     priority: 'Baja',
@@ -242,6 +340,7 @@ const MOCK_CASES = [
     assigned_department: 'Secretaría de Infraestructura y Vías',
     assigned_to: 'Alumbrado Público Neiva (ESIP)',
     priority_action: false,
+    comments_count: 4,
   }
 ];
 
@@ -250,6 +349,37 @@ export default function CasesPage() {
   const [rawComments, setRawComments] = useState(MOCK_RAW_COMMENTS);
   const [selectedCommentIds, setSelectedCommentIds] = useState<string[]>(['COMM-101', 'COMM-102', 'COMM-103']);
   const [groupSuccessMsg, setGroupSuccessMsg] = useState<string | null>(null);
+
+  // Sugerencia de Agrupación Proactiva de IA
+  const [aiCluster, setAiCluster] = useState<{
+    title: string;
+    description: string;
+    commentIds: string[];
+    suggestedCaseId: string;
+    suggestedCaseTitle: string;
+    similarityScore: number;
+    location: string;
+    problem: string;
+  } | null>({
+    title: 'Deterioro vial crítico en El Limonar (Calle 39)',
+    description: 'La IA agrupó 3 comentarios de Facebook e Instagram con alta convergencia territorial y reclamo común.',
+    commentIds: ['COMM-101', 'COMM-102', 'COMM-103'],
+    suggestedCaseId: 'CIV-2026-0184',
+    suggestedCaseTitle: 'Deterioro vial crítico y hundimiento de calzada – El Limonar (Comuna 6)',
+    similarityScore: 91,
+    location: 'El Limonar (Comuna 6)',
+    problem: 'Deterioro vial crítico / hueco severo',
+  });
+
+  // Modal de Validación Anti-Duplicados (Human-in-the-loop)
+  const [duplicateModalData, setDuplicateModalData] = useState<{
+    commentIds: string[];
+    matchedCaseId: string;
+    matchedCaseTitle: string;
+    similarity: number;
+    location: string;
+    problem: string;
+  } | null>(null);
 
   const [viewMode, setViewMode] = useState<'card' | 'compact' | 'list' | 'table'>('card');
   const [search, setSearch] = useState('');
@@ -267,38 +397,107 @@ export default function CasesPage() {
     );
   };
 
-  const handleGroupSelected = () => {
-    if (selectedCommentIds.length === 0) return;
+  // ─── ACCIÓN: Asociar Comentarios a un Caso Existente (Anti-Duplicidad) ───
+  const handleAssociateToCase = (targetCaseId: string, commentIds: string[]) => {
+    if (commentIds.length === 0) return;
+    
+    // Incrementar conteo de comentarios en el caso existente
+    setCasesList(prev => prev.map(c => {
+      if (c.id === targetCaseId) {
+        const currentCount = typeof c.comments_count === 'number' ? c.comments_count : parseInt(c.comments_count || '1', 10);
+        return {
+          ...c,
+          comments_count: currentCount + commentIds.length,
+          internal_notes: c.internal_notes 
+            ? `${c.internal_notes}\n[${new Date().toLocaleDateString('es-CO')}] [Operador]: Se asociaron ${commentIds.length} comentarios adicionales de Meta a esta problemática.`
+            : `[${new Date().toLocaleDateString('es-CO')}] [Operador]: Se asociaron ${commentIds.length} comentarios de Meta.`
+        };
+      }
+      return c;
+    }));
+
+    // Remover comentarios asociados de la bandeja entrante
+    setRawComments(prev => prev.filter(c => !commentIds.includes(c.id)));
+    setSelectedCommentIds([]);
+    if (aiCluster && aiCluster.commentIds.every(id => commentIds.includes(id))) {
+      setAiCluster(null);
+    }
+    setDuplicateModalData(null);
+
+    setGroupSuccessMsg(`🔗 ¡${commentIds.length} comentarios asociados exitosamente al caso institucional ${targetCaseId}! Se consolidó la necesidad territorial sin duplicar expedientes.`);
+    setTimeout(() => {
+      setGroupSuccessMsg(null);
+      setActiveTab('CASES');
+    }, 2800);
+  };
+
+  // ─── VALIDACIÓN: Chequear si existe caso similar antes de crear nuevo ───
+  const handleInitiateGroup = (idsToGroup: string[]) => {
+    if (idsToGroup.length === 0) return;
+
+    // Analizar si los comentarios coinciden con algún caso abierto
+    const commentsToExamine = rawComments.filter(c => idsToGroup.includes(c.id));
+    const matchWithOpenCase = commentsToExamine.find(c => Boolean(c.possibleCaseMatch));
+
+    if (matchWithOpenCase && matchWithOpenCase.possibleCaseMatch) {
+      // Activar modal de validación anti-duplicación
+      setDuplicateModalData({
+        commentIds: idsToGroup,
+        matchedCaseId: matchWithOpenCase.possibleCaseMatch,
+        matchedCaseTitle: matchWithOpenCase.caseMatchTitle || 'Caso Abierto Existente',
+        similarity: matchWithOpenCase.similarityPercent || 88,
+        location: matchWithOpenCase.detectedLocation,
+        problem: matchWithOpenCase.detectedProblem,
+      });
+    } else {
+      // No hay coincidencia previa: crear caso directamente
+      handleConfirmCreateIndependentCase(idsToGroup);
+    }
+  };
+
+  // ─── ACCIÓN: Crear Nuevo Caso CIVIA Consolidado ───
+  const handleConfirmCreateIndependentCase = (idsToGroup: string[]) => {
+    if (idsToGroup.length === 0) return;
     const newCaseId = `CIV-2026-${String(casesList.length + 1).padStart(4, '0')}`;
+    const newRadicado = `RAD-INF-2026-${String(casesList.length + 420).padStart(4, '0')}`;
+    const firstComment = rawComments.find(c => idsToGroup.includes(c.id));
+    
     const newCase = {
       id: newCaseId,
+      institutional_radicado: newRadicado,
       source: 'Facebook / Instagram',
-      author: `@${selectedCommentIds.length}_ciudadanos_neiva`,
+      author: `@${idsToGroup.length}_ciudadanos_neiva`,
       priority: 'Alta',
-      title: 'Deterioro vial y riesgo de movilidad – El Limonar (Comuna 6)',
-      content: `Agrupación de ${selectedCommentIds.length} reportes ciudadanos similares recibidos por redes Meta denunciando deterioro crítico del pavimento en la Calle 39 con Carrera 28.`,
-      category: 'Infraestructura',
+      title: firstComment ? `${firstComment.detectedProblem} – ${firstComment.detectedLocation}` : 'Problemática Ciudadana Consolidada',
+      content: `Consolidación de ${idsToGroup.length} interacciones ciudadanas detectadas en Facebook e Instagram sobre: ${firstComment?.detectedProblem || 'Problemática barrial'} en ${firstComment?.detectedLocation || 'Neiva'} (${firstComment?.referenceStreet || ''}).`,
+      category: firstComment?.detectedCategory || 'Infraestructura',
       sentiment: 'Indignación',
-      location: 'El Limonar - Comuna 6',
+      location: firstComment?.detectedLocation || 'Neiva',
       dateTime: 'Justo ahora',
       mediaType: 'image',
       imageUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?q=80&w=600&auto=format&fit=crop',
-      impact_if_solved: 'Recupera transitabilidad de vía arterial comunal y desactiva plantón ciudadano.',
-      impact_if_ignored: 'Riesgo de bloqueo de la Avenida Max Duque por transporte público.',
+      impact_if_solved: 'Recupera transitabilidad de vía comunal y previene manifestaciones barriales.',
+      impact_if_ignored: 'Riesgo de bloqueo vecinal o escalamiento del malestar ciudadano en redes sociales.',
       status: 'Nuevo',
       assigned_department: 'Secretaría de Infraestructura y Vías',
       assigned_to: 'Pendiente asignación por Secretario',
       priority_action: false,
-      comments_count: selectedCommentIds.length,
+      comments_count: idsToGroup.length,
     };
+
     setCasesList([newCase, ...casesList]);
-    setRawComments(rawComments.filter(c => !selectedCommentIds.includes(c.id)));
+    setRawComments(prev => prev.filter(c => !idsToGroup.includes(c.id)));
     setSelectedCommentIds([]);
-    setGroupSuccessMsg(`¡Caso ${newCaseId} creado exitosamente agrupando ${newCase.comments_count} comentarios de Meta!`);
+    if (aiCluster && aiCluster.commentIds.every(id => idsToGroup.includes(id))) {
+      setAiCluster(null);
+    }
+    setDuplicateModalData(null);
+
+    setGroupSuccessMsg(`✨ ¡Nuevo Caso CIVIA ${newCaseId} creado con Radicado ${newRadicado} agrupando ${newCase.comments_count} interacciones!`);
     setTimeout(() => {
       setGroupSuccessMsg(null);
       setActiveTab('CASES');
-    }, 2200);
+    }, 2800);
   };
 
   useEffect(() => {
@@ -309,6 +508,7 @@ export default function CasesPage() {
         if (isMounted && Array.isArray(data) && data.length > 0) {
           const formatted = data.map((item: any) => ({
             id: item.id,
+            institutional_radicado: item.institutional_radicado || `RAD-INF-2026-${item.id.replace(/\D/g, '').slice(-4) || '0042'}`,
             source: item.source,
             author: item.author,
             priority: item.priority,
@@ -326,6 +526,7 @@ export default function CasesPage() {
             assigned_department: item.assigned_department,
             assigned_to: item.assigned_to,
             priority_action: item.priority_action || false,
+            comments_count: item.comments_count ? parseInt(item.comments_count, 10) : 1,
           }));
           setCasesList(formatted);
         }
@@ -588,7 +789,12 @@ export default function CasesPage() {
                         <div className={styles['post-meta']}>{c.dateTime} • {c.source}</div>
                       </div>
                     </div>
-                    <span className={styles['post-id']}>{c.id}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
+                      <span className={styles['post-id']}>{c.id}</span>
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: 'var(--bg-muted)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                        {c.institutional_radicado ? `Rad: ${c.institutional_radicado}` : 'Radicado: Pendiente'}
+                      </span>
+                    </div>
                   </div>
                   <h3 className={styles['post-title']}>{c.title}</h3>
                   <p className={styles['post-content']}>{c.content}</p>
@@ -611,6 +817,9 @@ export default function CasesPage() {
                     <div className={styles.tags}>
                       <span className={getPriorityBadge(c.priority)}>Prioridad {c.priority}</span>
                       <span className={getStatusBadge(c.status)}>{c.status}</span>
+                      <span className="badge-tag" style={{ background: 'rgba(59, 130, 246, 0.08)', color: 'var(--blue-600)', border: '1px solid rgba(59, 130, 246, 0.25)', fontWeight: 600 }}>
+                        💬 {c.comments_count || 1} {c.comments_count === 1 ? 'comentario' : 'comentarios'} Meta
+                      </span>
                       {c.priority_action && (
                         <span style={{ 
                           display: 'inline-flex', alignItems: 'center', gap: '4px',
@@ -790,6 +999,56 @@ export default function CasesPage() {
       ) : (
         /* VISTA DE BANDEJA DE COMENTARIOS META (OPERADOR) */
         <div className={styles['comments-workbench']}>
+          {/* BANNER 1: SUGERENCIA PROACTIVA DE AGRUPACIÓN POR IA */}
+          {aiCluster && (
+            <div className={styles['ai-cluster-banner']}>
+              <div>
+                <div className={styles['cluster-title']}>
+                  <Sparkles size={18} style={{ color: 'var(--blue-600)' }} />
+                  <span>Sugerencia Automática de Agrupación por IA (Motor NLP Neiva)</span>
+                  <span className="badge-tag" style={{ background: 'rgba(59, 130, 246, 0.12)', color: 'var(--blue-600)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                    {aiCluster.commentIds.length} interacciones detectadas
+                  </span>
+                </div>
+                <p className={styles['cluster-desc']}>
+                  Patrón común detectado: <strong>{aiCluster.title}</strong> en <strong>{aiCluster.location}</strong>.
+                  Coincidencia del <strong>{aiCluster.similarityScore}%</strong> con el caso institucional abierto <strong>{aiCluster.suggestedCaseId}</strong>.
+                </p>
+              </div>
+
+              <div className={styles['cluster-actions']}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => handleAssociateToCase(aiCluster.suggestedCaseId, aiCluster.commentIds)}
+                  style={{ padding: '8px 14px', fontSize: '0.8125rem' }}
+                >
+                  <LinkIcon size={14} />
+                  <span>Asociar a {aiCluster.suggestedCaseId} ({aiCluster.similarityScore}%)</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => handleInitiateGroup(aiCluster.commentIds)}
+                  style={{ padding: '8px 14px', fontSize: '0.8125rem' }}
+                >
+                  <PlusCircle size={14} />
+                  <span>Crear Nuevo Caso CIVIA</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setAiCluster(null)}
+                  style={{ padding: '6px 8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}
+                  title="Descartar sugerencia"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* BARRA DE CONTROL DE LA MESA */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             background: 'var(--bg-muted)', padding: '14px 18px', borderRadius: 'var(--radius-lg)',
@@ -797,11 +1056,11 @@ export default function CasesPage() {
           }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={16} style={{ color: 'var(--blue-600)' }} />
-                <span>Mesa de Agrupación de Comentarios (Facebook & Instagram)</span>
+                <Layers size={16} style={{ color: 'var(--blue-600)' }} />
+                <span>Mesa de Triaje y Agrupación de Redes (Facebook & Instagram)</span>
               </div>
               <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Selecciona comentarios con problemática similar para consolidarlos en un único Caso CIVIA.
+                CIVIA consolida patrones de conversación ciudadana en casos institucionales únicos. La IA sugiere y el operador valida.
               </p>
             </div>
 
@@ -812,7 +1071,7 @@ export default function CasesPage() {
               <button
                 type="button"
                 className="btn-primary"
-                onClick={handleGroupSelected}
+                onClick={() => handleInitiateGroup(selectedCommentIds)}
                 disabled={selectedCommentIds.length === 0}
                 style={{ padding: '8px 16px', fontSize: '0.8125rem' }}
               >
@@ -822,11 +1081,12 @@ export default function CasesPage() {
             </div>
           </div>
 
+          {/* LISTADO DE COMENTARIOS CON ANÁLISIS AMPLIADO DE IA */}
           {rawComments.length === 0 ? (
             <div className={styles['empty-state']}>
               <CheckCircle2 size={40} style={{ color: 'var(--emerald-600)', margin: '0 auto 12px' }} />
               <h3>¡Bandeja de comentarios al día!</h3>
-              <p>Todos los comentarios entrantes de Meta han sido agrupados en casos o marcados como atendidos.</p>
+              <p>Todos los comentarios entrantes de Facebook e Instagram han sido agrupados en casos o canalizados.</p>
             </div>
           ) : (
             rawComments.map(comm => {
@@ -862,27 +1122,143 @@ export default function CasesPage() {
                     "{comm.content}"
                   </div>
 
+                  {/* DESGLOSE DETALLADO DE ANÁLISIS DE IA (CIVIA NLP) */}
+                  <div className={styles['ai-meta-grid']}>
+                    <div className={styles['ai-meta-item']}>
+                      <span>Tema / Entidad</span>
+                      <span>{comm.detectedTopic}</span>
+                    </div>
+                    <div className={styles['ai-meta-item']}>
+                      <span>Problema Específico</span>
+                      <span>{comm.detectedProblem}</span>
+                    </div>
+                    <div className={styles['ai-meta-item']}>
+                      <span>Ubicación y Referencia</span>
+                      <span>{comm.detectedLocation} • {comm.referenceStreet}</span>
+                    </div>
+                    <div className={styles['ai-meta-item']}>
+                      <span>Seguimiento</span>
+                      <span style={{ color: comm.requiresFollowup ? 'var(--blue-600)' : 'var(--text-secondary)' }}>
+                        {comm.requiresFollowup ? '✓ Requerido' : 'Opcional'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* PIE DE COMENTARIO: TAGS, COINCIDENCIAS Y POLÍTICA DE CONTACTO */}
                   <div className={styles['comment-footer']}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <span className="badge-tag" style={{ fontSize: '0.72rem' }}>
                         🎯 {comm.detectedIntent}
                       </span>
                       <span className="badge-tag" style={{ fontSize: '0.72rem' }}>
-                        📍 {comm.detectedLocation}
-                      </span>
-                      <span className="badge-tag" style={{ fontSize: '0.72rem' }}>
                         📁 {comm.detectedCategory}
                       </span>
+                      
+                      {/* Badge y acción rápida de coincidencia con caso existente */}
+                      {comm.possibleCaseMatch && (
+                        <div style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '6px',
+                          background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)',
+                          borderRadius: '999px', padding: '2px 8px', fontSize: '0.7rem'
+                        }}>
+                          <span style={{ color: 'var(--blue-600)', fontWeight: 700 }}>
+                            🔗 Coincide con {comm.possibleCaseMatch} ({comm.similarityPercent}%)
+                          </span>
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            style={{ padding: '1px 6px', fontSize: '0.65rem', borderRadius: '4px' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAssociateToCase(comm.possibleCaseMatch!, [comm.id]);
+                            }}
+                          >
+                            Asociar
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--blue-600)', fontWeight: 600 }}>
-                      <Sparkles size={13} />
-                      <span>{comm.aiConfidence}% Confianza IA</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '0.7rem', color: comm.metaDirectContactAllowed ? 'var(--emerald-600)' : 'var(--text-muted)' }}>
+                        {comm.metaDirectContactAllowed ? '💬 Ventana Meta activa (24h)' : '🔒 Requiere contacto alternativo (políticas Meta)'}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--blue-600)', fontWeight: 600 }}>
+                        <Sparkles size={13} />
+                        <span>{comm.aiConfidence}% IA</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               );
             })
+          )}
+
+          {/* MODAL DE VALIDACIÓN ANTI-DUPLICADOS (HUMAN-IN-THE-LOOP) */}
+          {duplicateModalData && (
+            <div className={styles['modal-overlay']} onClick={() => setDuplicateModalData(null)}>
+              <div className={styles['modal-card']} onClick={(e) => e.stopPropagation()}>
+                <div className={styles['modal-header']}>
+                  <h3>
+                    <AlertTriangle size={20} style={{ color: 'var(--amber-500)' }} />
+                    <span>Validación Anti-Duplicados de Casos CIVIA</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setDuplicateModalData(null)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    aria-label="Cerrar modal"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className={styles['modal-body']}>
+                  <p>
+                    La IA analizó los <strong>{duplicateModalData.commentIds.length} comentarios</strong> seleccionados y detectó una coincidencia del <strong>{duplicateModalData.similarity}%</strong> con un caso institucional ya existente y abierto en la misma zona:
+                  </p>
+
+                  <div style={{ padding: '12px 14px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--blue-500)' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                      {duplicateModalData.matchedCaseId}: {duplicateModalData.matchedCaseTitle}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                      📍 Sector: {duplicateModalData.location} • ⚠️ Problema: {duplicateModalData.problem}
+                    </div>
+                  </div>
+
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    <strong>Regla Central de CIVIA:</strong> Evitar la dispersión de reclamos en tickets duplicados. Al asociar los comentarios, se incrementa el peso de la necesidad y se mantiene una sola trazabilidad institucional.
+                  </p>
+                </div>
+
+                <div className={styles['modal-footer']}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setDuplicateModalData(null)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    style={{ border: '1px solid var(--border)', fontSize: '0.8125rem' }}
+                    onClick={() => handleConfirmCreateIndependentCase(duplicateModalData.commentIds)}
+                  >
+                    Crear Nuevo Caso Independiente
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => handleAssociateToCase(duplicateModalData.matchedCaseId, duplicateModalData.commentIds)}
+                  >
+                    <LinkIcon size={14} />
+                    <span>Asociar al Caso {duplicateModalData.matchedCaseId} (Recomendado)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       )}

@@ -175,7 +175,7 @@ export default function DashboardPage() {
           <p>
             {role === 'ALCALDE' && 'Dirección estratégica, índice de tensión social y supervisión de dependencias en Neiva'}
             {role === 'SECRETARIO' && 'Gestión técnica sectorial, asignación de cuadrillas y validación de cierre técnico'}
-            {role === 'OPERADOR' && 'Validación de clasificación IA en comentarios de Meta, agrupación de necesidades y contacto ciudadano'}
+            {role === 'OPERADOR' && 'Operador gestiona información, evidencias y trazabilidad / Cuadrillas atienden en terreno'}
             {role === 'ADMIN' && 'Monitoreo de infraestructura, integraciones Meta Graph API, motor IA y auditoría'}
           </p>
         </div>
@@ -223,7 +223,7 @@ export default function DashboardPage() {
           </Link>
           <Link href="/citizens" className={styles['quick-btn']}>
             <PhoneCall size={16} style={{ color: 'var(--emerald-600)' }} />
-            <span>Contactar Líder JAC / Registrar Minuta</span>
+            <span>Directorio Ciudadano & Trazabilidad</span>
           </Link>
           <Link href="/map" className={styles['quick-btn']}>
             <MapPin size={16} style={{ color: 'var(--blue-500)' }} />
@@ -292,6 +292,9 @@ export default function DashboardPage() {
                 <div className={[styles['metric-delta'], styles.up].join(' ')}>
                   Nivel Moderado (Bajo control)
                 </div>
+                <div style={{ fontSize: '0.67rem', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.25 }}>
+                  Fórmula: volumen negativo, criticidad, recurrencia comunal y casos vencidos.
+                </div>
               </div>
             </div>
             <div className={styles['metric-card']}>
@@ -314,7 +317,7 @@ export default function DashboardPage() {
                 <div className={styles['metric-label']}>Prioridad Institucional</div>
                 <div className={styles['metric-value']} style={{ color: '#b91c1c' }}>{mayoralPriorityCount}</div>
                 <div className={[styles['metric-delta'], styles.down].join(' ')} style={{ color: '#b91c1c' }}>
-                  SLA Despacho Alcalde &lt; 24h
+                  SLA especial configurable: 24h (Gobernanza)
                 </div>
               </div>
             </div>
@@ -515,7 +518,7 @@ export default function DashboardPage() {
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
               {role === 'ALCALDE' && 'Supervisión ejecutiva de incidentes críticos para prevención de crisis'}
               {role === 'SECRETARIO' && 'Casos que requieren asignación técnica, seguimiento o validación de cierre'}
-              {role === 'OPERADOR' && 'Validación humana de clasificación IA y agrupación de comentarios similares'}
+              {role === 'OPERADOR' && 'Operador valida clasificación IA, consolida casos y gestiona evidencias; cuadrillas atienden en terreno'}
               {role === 'ADMIN' && 'Eventos registrados por el pipeline de Meta y estado de servicios locales'}
             </p>
           </div>
