@@ -18,14 +18,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning style={{ width: '100vw', minHeight: '100vh', margin: 0, padding: 0 }}>
+      <body className={inter.className} suppressHydrationWarning style={{ width: '100vw', minHeight: '100vh', margin: 0, padding: 0, overflowX: 'hidden' }}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <div className="app-shell">
+          <div className="app-shell" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', width: '100vw', minHeight: '100vh', overflowX: 'hidden' }}>
             <Sidebar />
-            <div className="app-main-container">
+            <div className="app-main-container" style={{ width: '100%', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
               <TopBar />
-              <main className="app-main">
+              <main className="app-main" style={{ width: '100%', minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
                 {children}
               </main>
             </div>

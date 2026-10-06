@@ -146,9 +146,9 @@
   }
 
   input {
-    @include input-base;
     padding-left: 40px;
     font-size: 0.8125rem;
+    @include input-base;
   }
 }
 
@@ -215,10 +215,10 @@
 }
 
 .filter-select {
-  @include input-base;
   padding: 9px 12px;
   font-size: 0.8125rem;
   font-weight: 500;
+  @include input-base;
 }
 
 .legend-box {

@@ -40,9 +40,9 @@
   }
 
   input {
-    @include input-base;
     padding-left: 42px;
     font-size: 0.8125rem;
+    @include input-base;
   }
 }
 
@@ -139,11 +139,11 @@
 }
 
 .filter-select {
-  @include input-base;
   padding: 7px 12px;
   font-size: 0.8125rem;
   font-weight: 500;
   min-width: 170px;
+  @include input-base;
 }
 
 .clear-btn {
