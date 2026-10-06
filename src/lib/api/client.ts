@@ -1,6 +1,6 @@
 /**
  * Configuración base para el cliente de API que se conectará con FastAPI.
- * Utiliza fetch nativo (o puedes cambiarlo a Axios) para realizar peticiones.
+ * Utiliza fetch nativo para realizar peticiones.
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -10,8 +10,6 @@ export async function fetcher(endpoint: string, options: RequestInit = {}) {
   
   const defaultHeaders = {
     'Content-Type': 'application/json',
-    // Aquí podrías inyectar el token de autenticación (Ej. JWT)
-    // 'Authorization': `Bearer ${token}`
   };
 
   const response = await fetch(url, {
@@ -47,7 +45,38 @@ export const API = {
   cases: {
     getAll: () => fetcher('/cases'),
     getById: (id: string) => fetcher(`/cases/${id}`),
-    // updateStatus: (id: string, status: string) => fetcher(`/cases/${id}`, { method: 'PUT', body: JSON.stringify({ status }) })
+    dispatch: (id: string, data: { assigned_department: string; assigned_to?: string; note?: string; internal_note?: string }) =>
+      fetcher(`/cases/${id}/dispatch`, {
+        method: 'POST',
+        body: JSON.stringify({
+          assigned_department: data.assigned_department,
+          assigned_to: data.assigned_to,
+          note: data.note || data.internal_note,
+        }),
+      }),
+    addNote: (id: string, data: { note: string; author_name?: string; author?: string }) =>
+      fetcher(`/cases/${id}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({
+          note: data.note,
+          author_name: data.author_name || data.author || 'Sistema',
+        }),
+      }),
+    resolve: (id: string, data: { resolution_note: string; resolved_by: string }) =>
+      fetcher(`/cases/${id}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    togglePriority: (id: string, priority_action?: boolean) =>
+      fetcher(`/cases/${id}/priority-action`, {
+        method: 'POST',
+        body: priority_action !== undefined ? JSON.stringify({ priority_action }) : undefined,
+      }),
+    savePublicResponse: (id: string, public_response: string) =>
+      fetcher(`/cases/${id}/public-response`, {
+        method: 'POST',
+        body: JSON.stringify({ public_response }),
+      }),
   },
   analytics: {
     getSentiment: () => fetcher('/analytics/sentiment'),

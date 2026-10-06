@@ -4,10 +4,19 @@ import Link from 'next/link';
 import { 
   Search, Filter, LayoutGrid, List as ListIcon, Menu, Table as TableIcon,
   Video, CheckCircle2, AlertCircle, ArrowUpRight, RotateCcw, ChevronDown,
-  Tag, Radio, ShieldAlert
+  Tag, Radio, ShieldAlert, Building2, Flame
 } from 'lucide-react';
 import { API } from '@/lib/api/client';
 import styles from './cases.module.scss';
+
+const NEIVA_ENTITIES = [
+  'Las Ceibas - Empresas Públicas de Neiva E.S.P.',
+  'Secretaría de Infraestructura y Vías',
+  'Secretaría de Movilidad y Tránsito',
+  'Secretaría de Salud Municipal',
+  'Secretaría de Medio Ambiente y Desarrollo Rural',
+  'Secretaría de Gobierno y Convivencia Ciudadana',
+];
 
 const MOCK_CASES = [
   {
@@ -26,6 +35,9 @@ const MOCK_CASES = [
     imageUrl: 'https://images.unsplash.com/photo-1541888086725-3314f2e51927?q=80&w=600&auto=format&fit=crop',
     impact_if_solved: 'Alivia tensión comunitaria inmediata y previene bloqueo de vía arterial norte en Neiva.',
     impact_if_ignored: 'Riesgo inminente de protesta social frente a la sede de Las Ceibas E.S.P.',
+    assigned_department: 'Las Ceibas - Empresas Públicas de Neiva E.S.P.',
+    assigned_to: 'Cuadrilla 4 - Redes de Acueducto',
+    priority_action: true,
   },
   {
     id: 'CASO-002',
@@ -43,6 +55,9 @@ const MOCK_CASES = [
     imageUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?q=80&w=600&auto=format&fit=crop',
     impact_if_solved: 'Genera validación comunitaria positiva y confianza en obras públicas de Neiva.',
     impact_if_ignored: 'Pérdida de oportunidad mediática para posicionar la gestión de infraestructura vial.',
+    assigned_department: 'Secretaría de Infraestructura y Vías',
+    assigned_to: 'Ing. Carlos Dussán - Cuadrilla Malla Vial',
+    priority_action: false,
   },
   {
     id: 'CASO-003',
@@ -60,6 +75,9 @@ const MOCK_CASES = [
     imageUrl: null,
     impact_if_solved: 'Refuerza percepción de patrullaje y seguridad en el principal eje turístico de Neiva.',
     impact_if_ignored: 'Aumento del temor en turistas y desconfianza en la seguridad urbana.',
+    assigned_department: 'Secretaría de Gobierno y Convivencia Ciudadana',
+    assigned_to: 'Coronel Cuadrante Malecón / Policía Metropolitana',
+    priority_action: false,
   },
   {
     id: 'CASO-004',
@@ -77,6 +95,9 @@ const MOCK_CASES = [
     imageUrl: 'https://images.unsplash.com/photo-1541888086725-3314f2e51927?q=80&w=600&auto=format&fit=crop',
     impact_if_solved: 'Despliegue de camión vactor de Las Ceibas y prevención de contingencia sanitaria.',
     impact_if_ignored: 'Protesta comunitaria y plantón sobre la Avenida Max Duque.',
+    assigned_department: 'Las Ceibas - Empresas Públicas de Neiva E.S.P.',
+    assigned_to: 'Equipo Hidrosucción Vactor 02',
+    priority_action: true,
   },
   {
     id: 'CASO-005',
@@ -94,6 +115,9 @@ const MOCK_CASES = [
     imageUrl: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?q=80&w=600&auto=format&fit=crop',
     impact_if_solved: 'Articulación con Secretaría de Salud Departamental para descongestionar el centro asistencial.',
     impact_if_ignored: 'Crisis hospitalaria y denuncias ante la Superintendencia Nacional de Salud.',
+    assigned_department: 'Secretaría de Salud Municipal',
+    assigned_to: 'Dra. Lilian Perdomo - Red de Urgencias',
+    priority_action: false,
   },
   {
     id: 'CASO-006',
@@ -111,6 +135,9 @@ const MOCK_CASES = [
     imageUrl: null,
     impact_if_solved: 'Protección de la fuente hídrica vital de Neiva y operativo conjunto con la CAM.',
     impact_if_ignored: 'Taponamiento del cauce hídrico y proliferación de vertederos ilegales.',
+    assigned_department: 'Secretaría de Medio Ambiente y Desarrollo Rural',
+    assigned_to: 'Inspectora Ambiental Neiva',
+    priority_action: false,
   },
   {
     id: 'CASO-007',
@@ -128,6 +155,9 @@ const MOCK_CASES = [
     imageUrl: null,
     impact_if_solved: 'Restablecimiento de la fluidez en el corredor norte hacia el puente Santander.',
     impact_if_ignored: 'Colapso vehicular en hora pico y siniestros con motociclistas.',
+    assigned_department: 'Secretaría de Movilidad y Tránsito',
+    assigned_to: 'Técnicos de Semaforización Neiva',
+    priority_action: false,
   },
   {
     id: 'CASO-008',
@@ -145,6 +175,9 @@ const MOCK_CASES = [
     imageUrl: 'https://images.unsplash.com/photo-1509114397022-ed747cca3f65?q=80&w=600&auto=format&fit=crop',
     impact_if_solved: 'Incrementa la satisfacción ciudadana y el uso seguro de espacios deportivos nocturnos.',
     impact_if_ignored: 'Sin riesgo inmediato.',
+    assigned_department: 'Secretaría de Infraestructura y Vías',
+    assigned_to: 'Alumbrado Público Neiva (ESIP)',
+    priority_action: false,
   }
 ];
 
@@ -155,6 +188,8 @@ export default function CasesPage() {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterSource, setFilterSource] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterDepartment, setFilterDepartment] = useState<string>('all');
+  const [filterPriorityOnly, setFilterPriorityOnly] = useState<boolean>(false);
   const [casesList, setCasesList] = useState<any[]>(MOCK_CASES);
 
   useEffect(() => {
@@ -179,6 +214,9 @@ export default function CasesPage() {
             impact_if_solved: item.impact_if_solved,
             impact_if_ignored: item.impact_if_ignored,
             status: item.status || 'Pendiente',
+            assigned_department: item.assigned_department,
+            assigned_to: item.assigned_to,
+            priority_action: item.priority_action || false,
           }));
           setCasesList(formatted);
         }
@@ -198,16 +236,19 @@ export default function CasesPage() {
         c.content.toLowerCase().includes(search.toLowerCase()) ||
         c.location.toLowerCase().includes(search.toLowerCase()) ||
         c.id.toLowerCase().includes(search.toLowerCase()) ||
-        (c.author && c.author.toLowerCase().includes(search.toLowerCase()));
+        (c.author && c.author.toLowerCase().includes(search.toLowerCase())) ||
+        (c.assigned_department && c.assigned_department.toLowerCase().includes(search.toLowerCase()));
 
       const matchesPriority = filterPriority === 'all' || c.priority === filterPriority;
       const matchesCategory = filterCategory === 'all' || c.category === filterCategory;
       const matchesSource = filterSource === 'all' || c.source === filterSource;
       const matchesStatus = filterStatus === 'all' || (c.status && c.status === filterStatus);
+      const matchesDept = filterDepartment === 'all' || (c.assigned_department && c.assigned_department.includes(filterDepartment));
+      const matchesPriorityOnly = !filterPriorityOnly || Boolean(c.priority_action);
 
-      return matchesSearch && matchesPriority && matchesCategory && matchesSource && matchesStatus;
+      return matchesSearch && matchesPriority && matchesCategory && matchesSource && matchesStatus && matchesDept && matchesPriorityOnly;
     });
-  }, [casesList, search, filterPriority, filterCategory, filterSource, filterStatus]);
+  }, [casesList, search, filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterPriorityOnly]);
 
   const handleResetFilters = () => {
     setSearch('');
@@ -215,9 +256,18 @@ export default function CasesPage() {
     setFilterCategory('all');
     setFilterSource('all');
     setFilterStatus('all');
+    setFilterDepartment('all');
+    setFilterPriorityOnly(false);
   };
 
-  const hasActiveFilters = search !== '' || filterPriority !== 'all' || filterCategory !== 'all' || filterSource !== 'all' || filterStatus !== 'all';
+  const hasActiveFilters = 
+    search !== '' || 
+    filterPriority !== 'all' || 
+    filterCategory !== 'all' || 
+    filterSource !== 'all' || 
+    filterStatus !== 'all' || 
+    filterDepartment !== 'all' || 
+    filterPriorityOnly;
 
   const getPriorityBadge = (priority: string) => {
     if (priority === 'Alta') return 'badge-alta';
@@ -225,11 +275,17 @@ export default function CasesPage() {
     return 'badge-baja';
   };
 
+  const getStatusBadge = (status: string) => {
+    if (status === 'Resuelto') return 'badge-baja';
+    if (status === 'En Gestión') return 'badge-blue';
+    return 'badge-media';
+  };
+
   return (
     <div className="page">
       <div className="page-header">
         <h1>Bandeja de Casos Ciudadanos</h1>
-        <p>Gestión, análisis de impacto y despacho de reportes detectados por IA</p>
+        <p>Gestión municipal, análisis de impacto político y despacho de reportes en Neiva</p>
       </div>
 
       <div className={styles.toolbar}>
@@ -239,7 +295,7 @@ export default function CasesPage() {
             <Search size={18} />
             <input 
               type="text" 
-              placeholder="Buscar por palabra clave, barrio o caso..." 
+              placeholder="Buscar por palabra clave, barrio, secretaría o caso..." 
               className={styles['search-input']} 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -258,6 +314,22 @@ export default function CasesPage() {
               <option value="Alta">🔴 Alta</option>
               <option value="Media">🟡 Media</option>
               <option value="Baja">🟢 Baja</option>
+            </select>
+            <ChevronDown size={14} className={styles['dropdown-arrow']} />
+          </div>
+
+          {/* Dropdown de Dependencia / Entidad */}
+          <div className={[styles['filter-dropdown-wrap'], filterDepartment !== 'all' ? styles.active : ''].join(' ')}>
+            <Building2 size={14} className={styles['dropdown-icon']} />
+            <select 
+              value={filterDepartment} 
+              onChange={(e) => setFilterDepartment(e.target.value)}
+              title="Filtrar por dependencia de Neiva"
+            >
+              <option value="all">Entidad: Todas</option>
+              {NEIVA_ENTITIES.map(ent => (
+                <option key={ent} value={ent}>{ent}</option>
+              ))}
             </select>
             <ChevronDown size={14} className={styles['dropdown-arrow']} />
           </div>
@@ -281,23 +353,6 @@ export default function CasesPage() {
             <ChevronDown size={14} className={styles['dropdown-arrow']} />
           </div>
 
-          {/* Dropdown de Canal / Red Social */}
-          <div className={[styles['filter-dropdown-wrap'], filterSource !== 'all' ? styles.active : ''].join(' ')}>
-            <Radio size={14} className={styles['dropdown-icon']} />
-            <select 
-              value={filterSource} 
-              onChange={(e) => setFilterSource(e.target.value)}
-              title="Filtrar por red o canal social"
-            >
-              <option value="all">Canal: Todos</option>
-              <option value="Facebook">Facebook</option>
-              <option value="Instagram">Instagram</option>
-              <option value="Twitter / X">Twitter / X</option>
-              <option value="WhatsApp">WhatsApp</option>
-            </select>
-            <ChevronDown size={14} className={styles['dropdown-arrow']} />
-          </div>
-
           {/* Dropdown de Estado de Gestión */}
           <div className={[styles['filter-dropdown-wrap'], filterStatus !== 'all' ? styles.active : ''].join(' ')}>
             <ShieldAlert size={14} className={styles['dropdown-icon']} />
@@ -313,6 +368,17 @@ export default function CasesPage() {
             </select>
             <ChevronDown size={14} className={styles['dropdown-arrow']} />
           </div>
+
+          {/* Filtro Botón Prioridad Alcaldía */}
+          <button 
+            type="button"
+            className={[styles['clear-btn'], filterPriorityOnly ? styles.active : ''].join(' ')}
+            style={filterPriorityOnly ? { background: '#fef2f2', borderColor: '#ef4444', color: '#b91c1c' } : {}}
+            onClick={() => setFilterPriorityOnly(!filterPriorityOnly)}
+            title="Mostrar solo casos con Prioridad Inmediata Alcaldía"
+          >
+            <Flame size={13} className={filterPriorityOnly ? 'text-red-600' : ''} /> Prioridad Alcaldía
+          </button>
 
           {/* Botón Limpiar Filtros */}
           {hasActiveFilters && (
@@ -401,6 +467,21 @@ export default function CasesPage() {
                   <div>
                     <div className={styles.tags}>
                       <span className={getPriorityBadge(c.priority)}>Prioridad {c.priority}</span>
+                      <span className={getStatusBadge(c.status)}>{c.status}</span>
+                      {c.priority_action && (
+                        <span style={{ 
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          background: '#fee2e2', color: '#b91c1c', border: '1px solid #f87171',
+                          borderRadius: '999px', padding: '3px 10px', fontSize: '0.7rem', fontWeight: 700 
+                        }}>
+                          <Flame size={12} /> Prioridad Alcaldía
+                        </span>
+                      )}
+                      {c.assigned_department && (
+                        <span className="badge-tag">
+                          🏢 {c.assigned_department}
+                        </span>
+                      )}
                       <span className="badge-tag">{c.location}</span>
                       <span className="badge-tag">{c.category}</span>
                       <span className="badge-blue">Sentimiento: {c.sentiment}</span>
@@ -453,6 +534,19 @@ export default function CasesPage() {
                 <p className={styles['compact-text']}>{c.content}</p>
                 <div className={styles.tags} style={{ marginTop: '8px' }}>
                   <span className={getPriorityBadge(c.priority)}>{c.priority}</span>
+                  <span className={getStatusBadge(c.status)}>{c.status}</span>
+                  {c.priority_action && (
+                    <span style={{ 
+                      display: 'inline-flex', alignItems: 'center', gap: '3px',
+                      background: '#fee2e2', color: '#b91c1c', border: '1px solid #f87171',
+                      borderRadius: '999px', padding: '2px 8px', fontSize: '0.65rem', fontWeight: 700 
+                    }}>
+                      <Flame size={11} /> Alcaldía
+                    </span>
+                  )}
+                  {c.assigned_department && (
+                    <span className="badge-tag">🏢 {c.assigned_department}</span>
+                  )}
                   <span className="badge-tag">{c.location}</span>
                 </div>
               </div>
@@ -476,8 +570,21 @@ export default function CasesPage() {
               <div className={styles['list-info']}>
                 <div className={styles['list-tags']}>
                   <span className={getPriorityBadge(c.priority)}>P. {c.priority}</span>
+                  <span className={getStatusBadge(c.status)}>{c.status}</span>
+                  {c.priority_action && (
+                    <span style={{ 
+                      display: 'inline-flex', alignItems: 'center', gap: '3px',
+                      background: '#fee2e2', color: '#b91c1c', border: '1px solid #f87171',
+                      borderRadius: '999px', padding: '2px 8px', fontSize: '0.65rem', fontWeight: 700 
+                    }}>
+                      <Flame size={11} /> Alcaldía
+                    </span>
+                  )}
                   <span className="badge-tag">{c.category}</span>
                   <span className="badge-tag">{c.location}</span>
+                  {c.assigned_department && (
+                    <span className="badge-tag">🏢 {c.assigned_department}</span>
+                  )}
                 </div>
                 <div className={styles['list-title']}>{c.title}</div>
                 <div className={styles['list-sub']}>{c.id} • {c.author} • {c.dateTime}</div>
@@ -497,8 +604,8 @@ export default function CasesPage() {
               <tr>
                 <th>ID</th>
                 <th>Detalle del Caso</th>
-                <th>Categoría</th>
-                <th>Ubicación</th>
+                <th>Dependencia Asignada</th>
+                <th>Estado</th>
                 <th>Prioridad</th>
                 <th>Acción</th>
               </tr>
@@ -506,13 +613,24 @@ export default function CasesPage() {
             <tbody className={styles['table-body']}>
               {filteredCases.map((c) => (
                 <tr key={c.id}>
-                  <td className={styles['table-id']}>{c.id}</td>
+                  <td className={styles['table-id']}>
+                    {c.id}
+                    {c.priority_action && (
+                      <div style={{ color: '#ef4444', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
+                        <Flame size={12} /> Alcaldía
+                      </div>
+                    )}
+                  </td>
                   <td>
                     <div className={styles['table-title']}>{c.title}</div>
-                    <div className={styles['table-sub']}>{c.author} • {c.dateTime}</div>
+                    <div className={styles['table-sub']}>{c.author} • {c.location} • {c.dateTime}</div>
                   </td>
-                  <td><span className="badge-tag">{c.category}</span></td>
-                  <td>{c.location}</td>
+                  <td>
+                    <span className="badge-tag">
+                      {c.assigned_department || 'Sin asignar'}
+                    </span>
+                  </td>
+                  <td><span className={getStatusBadge(c.status)}>{c.status}</span></td>
                   <td><span className={getPriorityBadge(c.priority)}>{c.priority}</span></td>
                   <td>
                     <Link href={'/cases/' + c.id} className="btn-primary" style={{ padding: '5px 12px', fontSize: '0.75rem' }}>

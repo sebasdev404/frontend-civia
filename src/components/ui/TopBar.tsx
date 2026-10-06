@@ -11,7 +11,7 @@ interface TopBarProps {
 }
 
 export function TopBar({ onToggleMenu }: TopBarProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, switchDemoUser } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const displayName = user?.full_name || 'Johan Steed';
@@ -61,6 +61,42 @@ export function TopBar({ onToggleMenu }: TopBarProps) {
                 <p className={styles['menu-user-name']}>{displayName}</p>
                 <p className={styles['menu-user-email']}>{user?.email || 'alcalde@civia.gov.co'}</p>
               </div>
+              <div className={styles['menu-divider']} />
+              <div style={{ padding: '4px 8px 4px' }}>
+                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', fontWeight: 700 }}>
+                  Cambiar Rol (Demostración)
+                </span>
+              </div>
+              <button
+                type="button"
+                className={[styles['role-switch-btn'], roleLabel === 'ALCALDE' ? styles.active : ''].join(' ')}
+                onClick={() => {
+                  switchDemoUser('ALCALDE');
+                  setDropdownOpen(false);
+                }}
+              >
+                👑 Alcalde (Johan Steed)
+              </button>
+              <button
+                type="button"
+                className={[styles['role-switch-btn'], roleLabel === 'SECRETARIO' ? styles.active : ''].join(' ')}
+                onClick={() => {
+                  switchDemoUser('SECRETARIO');
+                  setDropdownOpen(false);
+                }}
+              >
+                👔 Secretario (Dra. Camila Morales)
+              </button>
+              <button
+                type="button"
+                className={[styles['role-switch-btn'], roleLabel === 'OPERADOR' ? styles.active : ''].join(' ')}
+                onClick={() => {
+                  switchDemoUser('OPERADOR');
+                  setDropdownOpen(false);
+                }}
+              >
+                🛠️ Operador (Carlos Mendoza)
+              </button>
               <div className={styles['menu-divider']} />
               <button 
                 type="button"

@@ -24,21 +24,45 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
+  switchDemoUser: (role: UserRole) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Usuario de respaldo en caso de trabajar offline
-const DEFAULT_DEMO_USER: AuthUser = {
-  id: 'USR-001',
-  email: 'alcalde@civia.gov.co',
-  full_name: 'Johan Steed',
-  role: 'ALCALDE',
-  department: 'Despacho del Alcalde',
-  avatar_url: null,
-  is_active: true,
-  created_at: new Date().toISOString(),
+export const DEMO_ACCOUNTS: Record<UserRole, AuthUser> = {
+  ALCALDE: {
+    id: 'USR-001',
+    email: 'alcalde@civia.gov.co',
+    full_name: 'Johan Steed',
+    role: 'ALCALDE',
+    department: 'Despacho del Alcalde',
+    avatar_url: null,
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  SECRETARIO: {
+    id: 'USR-002',
+    email: 'secretario@civia.gov.co',
+    full_name: 'Dra. Camila Morales',
+    role: 'SECRETARIO',
+    department: 'Secretaría de Movilidad y Servicios',
+    avatar_url: null,
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  OPERADOR: {
+    id: 'USR-003',
+    email: 'operador@civia.gov.co',
+    full_name: 'Carlos Mendoza',
+    role: 'OPERADOR',
+    department: 'Centro de Monitoreo Ciudadano',
+    avatar_url: null,
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
 };
+
+const DEFAULT_DEMO_USER: AuthUser = DEMO_ACCOUNTS.ALCALDE;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -103,6 +127,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const switchDemoUser = async (role: UserRole) => {
+    const target = DEMO_ACCOUNTS[role];
+    try {
+      await login(target.email, 'civia2026');
+    } catch {
+      setUser(target);
+      setToken(`demo-token-${role.toLowerCase()}`);
+      localStorage.setItem('civia_token', `demo-token-${role.toLowerCase()}`);
+      localStorage.setItem('civia_user', JSON.stringify(target));
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -121,6 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         logout,
+        switchDemoUser,
       }}
     >
       {children}
@@ -138,6 +175,7 @@ export function useAuth() {
       isLoading: false,
       login: async () => DEFAULT_DEMO_USER,
       logout: () => {},
+      switchDemoUser: async () => {},
     };
   }
   return context;
