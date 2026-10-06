@@ -1,9 +1,10 @@
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './analytics.module.scss';
 import SentimentChart from '@/components/charts/SentimentChart';
 import CategoryChart from '@/components/charts/CategoryChart';
-import { TrendingUp, MessageSquare, Zap, Clock } from 'lucide-react';
+import { TrendingUp, MessageSquare, Zap, Clock, FileText } from 'lucide-react';
+import { ExecutiveReportModal } from '@/components/reports/ExecutiveReportModal';
 
 const CHANNELS = [
   { name: 'Facebook (Página Oficial / Comentarios)', percentage: 64, mentions: '822 reportes', color: '#1877F2' },
@@ -11,11 +12,24 @@ const CHANNELS = [
 ];
 
 export default function AnalyticsPage() {
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+
   return (
     <div className="page">
-      <div className="page-header">
-        <h1>Análisis de Inteligencia Social</h1>
-        <p>Métricas consolidadas, tendencias virales y pronósticos de respuesta ciudadana</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1>Análisis de Inteligencia Social</h1>
+          <p>Métricas consolidadas, tendencias virales y pronósticos de respuesta ciudadana en Neiva</p>
+        </div>
+        <button 
+          type="button" 
+          className="btn-primary" 
+          onClick={() => setReportModalOpen(true)}
+          style={{ padding: '8px 16px', fontSize: '0.8125rem' }}
+        >
+          <FileText size={16} />
+          <span>Informe Consejo de Gobierno</span>
+        </button>
       </div>
 
       <div className={styles['kpi-grid']}>
@@ -90,6 +104,12 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
+
+      {/* MODAL DE INFORME EJECUTIVO PARA CONSEJO DE GOBIERNO */}
+      <ExecutiveReportModal 
+        isOpen={reportModalOpen} 
+        onClose={() => setReportModalOpen(false)} 
+      />
     </div>
   );
 }

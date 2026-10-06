@@ -6,13 +6,14 @@ import {
   Activity, AlertTriangle, MapPin, CheckCircle, Flame, 
   ArrowUpRight, RefreshCw, Radio, Sparkles, Building2,
   Users, ShieldCheck, Wrench, MessageSquare, PlusCircle, 
-  PhoneCall, Layers, Server, Cpu, Database, CheckCircle2, Clock
+  PhoneCall, Layers, Server, Cpu, Database, CheckCircle2, Clock, FileText
 } from 'lucide-react';
 import styles from './dashboard.module.scss';
 import SentimentChart from '@/components/charts/SentimentChart';
 import CategoryChart from '@/components/charts/CategoryChart';
 import { API } from '@/lib/api/client';
 import { useAuth } from '@/context/AuthContext';
+import { ExecutiveReportModal } from '@/components/reports/ExecutiveReportModal';
 
 interface DashboardCase {
   id: string;
@@ -102,6 +103,7 @@ export default function DashboardPage() {
 
   const [cases, setCases] = useState<DashboardCase[]>(FALLBACK_DASHBOARD_CASES);
   const [loading, setLoading] = useState(true);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -178,21 +180,33 @@ export default function DashboardPage() {
           </p>
         </div>
         
-        {/* Widget de Estado de Escucha Meta */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          padding: '6px 14px',
-          borderRadius: 'var(--radius-full)',
-          fontSize: '0.8125rem',
-          fontWeight: 600,
-          color: 'var(--text-secondary)'
-        }}>
-          <Radio size={14} className="text-emerald-500 animate-pulse" />
-          <span>Meta Escucha Activa: Facebook Page & Instagram (@JohanSteed)</span>
+        {/* Acciones de Cabecera: Exportar Reporte + Estado de Meta */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => setReportModalOpen(true)}
+            style={{ padding: '7px 14px', fontSize: '0.8125rem' }}
+          >
+            <FileText size={15} />
+            <span>Informe Consejo de Gobierno</span>
+          </button>
+
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            padding: '6px 14px',
+            borderRadius: 'var(--radius-full)',
+            fontSize: '0.8125rem',
+            fontWeight: 600,
+            color: 'var(--text-secondary)'
+          }}>
+            <Radio size={14} className="text-emerald-500 animate-pulse" />
+            <span>Meta Escucha: FB & IG</span>
+          </div>
         </div>
       </div>
 
@@ -548,6 +562,12 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* MODAL DE INFORME EJECUTIVO PARA CONSEJO DE GOBIERNO */}
+      <ExecutiveReportModal 
+        isOpen={reportModalOpen} 
+        onClose={() => setReportModalOpen(false)} 
+      />
     </div>
   );
 }
