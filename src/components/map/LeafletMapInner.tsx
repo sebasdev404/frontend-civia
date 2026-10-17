@@ -115,28 +115,23 @@ export default function LeafletMapInner({
   zoom,
   isDark,
 }: LeafletMapInnerProps) {
-  // Stadia Maps con la API Key oficial del usuario
-  const STADIA_API_KEY = 'febdb3c1-d95f-4788-bf11-41b9b851542b';
-  
-  const tileUrl = isDark
-    ? `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=${STADIA_API_KEY}`
-    : `https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=${STADIA_API_KEY}`;
-
+  // OpenStreetMap: 100% público, libre, sin API Keys, sin marcas de agua y sin expiración.
   return (
     <MapContainer
       center={center}
       zoom={zoom}
-      style={{ height: '100%', width: '100%', background: isDark ? '#090d16' : '#f1f5f9' }}
+      style={{ height: '100%', width: '100%', background: isDark ? '#0b1120' : '#f1f5f9' }}
       zoomControl={false}
+      className={isDark ? 'civia-dark-tiles' : ''}
     >
       <ZoomControl position="bottomright" />
       <MapController center={center} zoom={zoom} selectedIncident={selectedIncident} />
 
       <TileLayer
-        key={isDark ? 'stadia-dark' : 'stadia-light'}
-        attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url={tileUrl}
-        maxZoom={20}
+        key={isDark ? 'osm-dark' : 'osm-light'}
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        maxZoom={19}
       />
 
       {incidents.map((inc) => {

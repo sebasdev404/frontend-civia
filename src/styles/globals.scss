@@ -98,3 +98,26 @@
 // Botones globales
 .btn-primary { @include btn-primary; }
 .btn-ghost   { @include btn-ghost; }
+
+// Leaflet OpenStreetMap Dark Theme (100% Libre, Sin API Key, Sin Marcas de Agua)
+.civia-dark-tiles .leaflet-tile {
+  filter: brightness(0.62) invert(100%) contrast(135%) hue-rotate(200deg) saturate(25%) !important;
+}
+
+// Form elements dark theme override to prevent white flash in Chromium/Edge/Windows
+html.dark select,
+html.dark option,
+html[data-theme='dark'] select,
+html[data-theme='dark'] option,
+[data-theme='dark'] select,
+[data-theme='dark'] option {
+  color-scheme: dark !important;
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+
+html.dark select option:hover,
+html[data-theme='dark'] select option:hover {
+  background-color: #1e293b !important;
+}
+

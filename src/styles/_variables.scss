@@ -72,7 +72,8 @@
 }
 
 // ─── Modo Oscuro ────────────────────────────────────────────
-:root.dark, html.dark, body.dark {
+:root.dark, html.dark, body.dark, [data-theme='dark'], html[data-theme='dark'] {
+  color-scheme: dark;
   --bg-app:       #020617;
   --bg-card:      #0f172a;
   --bg-sidebar:   #090d16;

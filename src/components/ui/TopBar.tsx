@@ -4,41 +4,71 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './TopBar.module.scss';
 import { ThemeToggle } from './ThemeToggle';
-import { Menu, LogOut, ChevronDown, Bell } from 'lucide-react';
+import { Menu, LogOut, ChevronDown, Bell, Radio } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { API } from '@/lib/api/client';
 
 interface TopBarProps {
   onToggleMenu?: () => void;
 }
 
-const NOTIFICATIONS = [
+interface AlertItem {
+  id: string;
+  title: string;
+  desc: string;
+  time: string;
+  icon: string;
+  priority: string;
+}
+
+function getRelativeTime(dateStr?: string): string {
+  if (!dateStr) return 'Reciente';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Hace un momento';
+  if (mins < 60) return `Hace ${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `Hace ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `Hace ${days}d`;
+}
+
+function getCategoryIcon(cat?: string, prio?: string): string {
+  if (prio === 'Alta') return '🚨';
+  const c = (cat || '').toLowerCase();
+  if (c.includes('servicio') || c.includes('agua') || c.includes('ceibas')) return '💧';
+  if (c.includes('vial') || c.includes('infraestructura') || c.includes('malla')) return '🚧';
+  if (c.includes('movilidad') || c.includes('tránsito') || c.includes('semáforo')) return '🚦';
+  if (c.includes('alumbrado') || c.includes('luz') || c.includes('led')) return '💡';
+  if (c.includes('seguridad') || c.includes('policía')) return '🛡️';
+  if (c.includes('salud') || c.includes('hospital')) return '🏥';
+  return '📌';
+}
+
+const DEFAULT_NOTIFICATIONS: AlertItem[] = [
   {
-    id: 'CASO-001',
+    id: 'CIV-2026-0001',
     title: 'Prioridad Inmediata Alcaldía',
     desc: 'Parque Las Granjas (Comuna 2): Inseguridad y falta de patrullaje reportada en Facebook.',
     time: 'Hace 15m',
     icon: '🚨',
+    priority: 'Alta',
   },
   {
-    id: 'CASO-004',
+    id: 'CIV-2026-0004',
     title: 'Emergencia Sanitaria',
     desc: 'Canaima (Comuna 6): Desbordamiento de aguas servidas requiere intervención Las Ceibas E.S.P.',
     time: 'Hace 45m',
     icon: '💧',
+    priority: 'Alta',
   },
   {
-    id: 'CASO-007',
+    id: 'CIV-2026-0007',
     title: 'Alerta de Movilidad',
     desc: 'Av. Circunvalar con Cra 5 (Comuna 1): Semáforos averiados generan congestión vial.',
     time: 'Hace 2h',
     icon: '🚦',
-  },
-  {
-    id: 'CASO-008',
-    title: 'Cierre Técnico de Reporte',
-    desc: 'Ipanema (Comuna 7): Luminarias LED reparadas satisfactoriamente por Alumbrado Público.',
-    time: 'Hace 3h',
-    icon: '💡',
+    priority: 'Media',
   },
 ];
 
@@ -46,8 +76,42 @@ export function TopBar({ onToggleMenu }: TopBarProps) {
   const { user, logout, switchDemoUser } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [alerts, setAlerts] = useState<AlertItem[]>(DEFAULT_NOTIFICATIONS);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+
+  // Cargar casos reales en vivo desde PostgreSQL
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveCases = async () => {
+      try {
+        const data = await API.cases.getAll(15);
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          // Filtrar y ordenar: primero los de prioridad Alta y más recientes
+          const mapped: AlertItem[] = data.slice(0, 5).map((c: any) => ({
+            id: c.id,
+            title: c.priority === 'Alta' ? 'Prioridad Inmediata Alcaldía' : (c.title || c.category || 'Alerta Territorial'),
+            desc: `${c.location || 'Neiva'}: ${(c.content || c.title || '').slice(0, 80)}...`,
+            time: getRelativeTime(c.created_at),
+            icon: getCategoryIcon(c.category, c.priority),
+            priority: c.priority || 'Media',
+          }));
+          setAlerts(mapped);
+        }
+      } catch (err) {
+        console.warn('Usando alertas de respaldo:', err);
+      }
+    };
+
+    fetchLiveCases();
+    // Sondeo de tiempo real cada 25 segundos
+    const interval = setInterval(fetchLiveCases, 25000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const displayName = user?.full_name || 'Johan Steed';
   const roleLabel = user?.role || 'ALCALDE';
@@ -101,17 +165,20 @@ export function TopBar({ onToggleMenu }: TopBarProps) {
             aria-label="Notificaciones del sistema"
           >
             <Bell size={18} />
-            <span className={styles['bell-badge']}>3</span>
+            <span className={styles['bell-badge']}>{alerts.length}</span>
           </button>
 
           {notifOpen && (
             <div className={styles['notifications-dropdown']}>
               <div className={styles['notifications-header']}>
-                <h4>Alertas Neiva</h4>
-                <span>3 Críticas</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10b981', boxShadow: '0 0 6px #10b981' }} />
+                  <h4>Alertas Neiva (En Vivo)</h4>
+                </div>
+                <span>{alerts.filter(a => a.priority === 'Alta').length} Críticas</span>
               </div>
               <div className={styles['notifications-list']}>
-                {NOTIFICATIONS.map((n) => (
+                {alerts.map((n) => (
                   <Link
                     key={n.id}
                     href={`/cases/${n.id}`}

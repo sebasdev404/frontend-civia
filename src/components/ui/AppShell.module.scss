@@ -9,11 +9,6 @@
   color: var(--text-primary);
   transition: background 200ms ease, color 200ms ease;
   overflow-x: hidden;
-
-  @media (min-width: 1025px) {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-  }
 }
 
 .mobile-backdrop {
@@ -37,6 +32,11 @@
   flex-direction: column;
   background: var(--bg-app);
   flex: 1;
+
+  @media (min-width: 1025px) {
+    margin-left: 260px;
+    width: calc(100% - 260px);
+  }
 }
 
 .app-main {

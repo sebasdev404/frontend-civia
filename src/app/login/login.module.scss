@@ -300,3 +300,139 @@
   justify-content: center;
   gap: 6px;
 }
+
+// ─── Flujo de Recuperación de Contraseña y OTP ───────────────────
+.form-options {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -0.25rem;
+}
+
+.forgot-btn {
+  background: none;
+  border: none;
+  font-size: 0.8125rem;
+  color: var(--blue-600);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--transition);
+
+  &:hover {
+    color: var(--blue-700);
+    text-decoration: underline;
+  }
+}
+
+.secondary-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all var(--transition);
+
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+  }
+}
+
+.action-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 0.5rem;
+}
+
+.info-banner {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: var(--blue-600);
+  font-size: 0.8125rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.otp-highlight {
+  display: inline-block;
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 2px;
+  background: var(--blue-600);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.otp-input {
+  text-align: center;
+  font-family: monospace;
+  font-size: 1.6rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 8px !important;
+  padding: 12px !important;
+  color: var(--blue-600) !important;
+}
+
+.success-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem 0;
+  gap: 12px;
+
+  .success-icon-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.12);
+    border: 2px solid var(--emerald-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--emerald-600);
+    margin-bottom: 0.5rem;
+    animation: pulseIcon 2s infinite ease-in-out;
+  }
+
+  .success-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+
+  .success-desc {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    max-width: 320px;
+  }
+}
+
+@keyframes pulseIcon {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+}

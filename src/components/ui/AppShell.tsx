@@ -41,23 +41,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, pathname, router]);
 
-  // Si está verificando sesión con backend o cargando
+  // En la vista de login, nunca mostrar pantalla de carga de administración
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
+
+  // Si está verificando sesión con backend o cargando (con escape automático a los 800ms)
   if (isLoading) {
     return (
       <div className={styles['auth-loading-screen']}>
         <div className={styles['logo-badge']}>C</div>
         <div className={styles['loading-text']}>
           <h3>CIVIA INTELLIGENCE</h3>
-          <p>Verificando credenciales de seguridad...</p>
+          <p>Cargando plataforma...</p>
         </div>
         <div className={styles.spinner} />
       </div>
     );
-  }
-
-  // En la vista de login, no mostrar la estructura del panel de administración
-  if (pathname === '/login') {
-    return <>{children}</>;
   }
 
   // Si no hay usuario y no es /login, mostrar pantalla de redirección

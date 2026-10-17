@@ -41,9 +41,40 @@ export const API = {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
     },
+    forgotPassword: (email: string) =>
+      fetcher('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
+    verifyOtp: (email: string, otp_code: string) =>
+      fetcher('/auth/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email, otp_code }),
+      }),
+    resetPassword: (email: string, otp_code: string, new_password: string) =>
+      fetcher('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ email, otp_code, new_password }),
+      }),
+    getUsers: () => fetcher('/auth/users'),
+    createUser: (userData: {
+      email: string;
+      password: string;
+      full_name: string;
+      role: string;
+      department?: string;
+    }) =>
+      fetcher('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      }),
+    deleteUser: (userId: string) =>
+      fetcher(`/auth/users/${userId}`, {
+        method: 'DELETE',
+      }),
   },
   cases: {
-    getAll: () => fetcher('/cases'),
+    getAll: (limit: number = 500) => fetcher(`/cases?limit=${limit}`),
     getById: (id: string) => fetcher(`/cases/${id}`),
     dispatch: (id: string, data: { assigned_department: string; assigned_to?: string; note?: string; internal_note?: string }) =>
       fetcher(`/cases/${id}/dispatch`, {
@@ -86,5 +117,22 @@ export const API = {
       const query = params ? '?' + new URLSearchParams(params).toString() : '';
       return fetcher(`/map/incidents${query}`);
     },
-  }
+  },
+  meta: {
+    getMonths: () => fetcher('/meta/months'),
+    getPosts: (limit: number = 250, month?: string, search?: string) => {
+      const params = new URLSearchParams();
+      params.append('limit', limit.toString());
+      if (month && month !== 'all') params.append('month', month);
+      if (search && search.trim()) params.append('search', search.trim());
+      return fetcher(`/meta/posts?${params.toString()}`);
+    },
+    syncLive: () => fetcher('/meta/sync-live', { method: 'POST' }),
+  },
+  system: {
+    getDiagnostics: () => fetcher('/system/diagnostics'),
+  },
+  ai: {
+    getCredits: () => fetcher('/ai/credits'),
+  },
 };

@@ -214,12 +214,12 @@ export default function DashboardPage() {
       {role === 'OPERADOR' && (
         <div className={styles['quick-action-bar']}>
           <Link href="/cases" className={styles['quick-btn']}>
-            <MessageSquare size={16} style={{ color: 'var(--blue-600)' }} />
-            <span>Revisar Comentarios Meta (7 pendientes)</span>
+            <Sparkles size={16} style={{ color: 'var(--emerald-600)' }} />
+            <span>Mesa de Supervisión IA (Piloto Automático)</span>
           </Link>
           <Link href="/cases" className={styles['quick-btn']}>
-            <Layers size={16} style={{ color: 'var(--amber-600)' }} />
-            <span>Agrupar Comentarios en Caso</span>
+            <Radio size={16} style={{ color: 'var(--blue-600)' }} />
+            <span>Sincronización en Vivo Meta (Graph API)</span>
           </Link>
           <Link href="/citizens" className={styles['quick-btn']}>
             <PhoneCall size={16} style={{ color: 'var(--emerald-600)' }} />
@@ -227,7 +227,7 @@ export default function DashboardPage() {
           </Link>
           <Link href="/map" className={styles['quick-btn']}>
             <MapPin size={16} style={{ color: 'var(--blue-500)' }} />
-            <span>Mapa Operativo de Incidentes</span>
+            <span>Mapa Territorial de Incidentes</span>
           </Link>
         </div>
       )}
@@ -380,38 +380,14 @@ export default function DashboardPage() {
         {role === 'OPERADOR' && (
           <>
             <div className={styles['metric-card']}>
-              <div className={[styles['metric-icon'], styles.blue].join(' ')}>
-                <MessageSquare size={24} />
-              </div>
-              <div>
-                <div className={styles['metric-label']}>Comentarios Meta Nuevos</div>
-                <div className={styles['metric-value']}>28</div>
-                <div className={[styles['metric-delta'], styles.up].join(' ')}>
-                  Facebook (18) • Instagram (10)
-                </div>
-              </div>
-            </div>
-            <div className={styles['metric-card']}>
-              <div className={[styles['metric-icon'], styles.amber].join(' ')}>
+              <div className={[styles['metric-icon'], styles.emerald].join(' ')}>
                 <Sparkles size={24} />
               </div>
               <div>
-                <div className={styles['metric-label']}>Pendiente Validación IA</div>
-                <div className={styles['metric-value']} style={{ color: 'var(--amber-600)' }}>8</div>
-                <div className={[styles['metric-delta'], styles.down].join(' ')}>
-                  Revisar toponimia e intención
-                </div>
-              </div>
-            </div>
-            <div className={styles['metric-card']}>
-              <div className={[styles['metric-icon'], styles.emerald].join(' ')}>
-                <Layers size={24} />
-              </div>
-              <div>
-                <div className={styles['metric-label']}>Comentarios Agrupables</div>
-                <div className={styles['metric-value']}>14</div>
+                <div className={styles['metric-label']}>Despacho Autónomo IA</div>
+                <div className={styles['metric-value']} style={{ color: 'var(--emerald-600)' }}>98.7%</div>
                 <div className={[styles['metric-delta'], styles.up].join(' ')}>
-                  Afines (Limonar / Las Granjas)
+                  ⚡ Radicación instantánea &lt; 1.1s
                 </div>
               </div>
             </div>
@@ -420,10 +396,34 @@ export default function DashboardPage() {
                 <Users size={24} />
               </div>
               <div>
-                <div className={styles['metric-label']}>Casos en Atención</div>
-                <div className={styles['metric-value']}>6</div>
+                <div className={styles['metric-label']}>Capacidad de Operación</div>
+                <div className={styles['metric-value']}>50,000 / mes</div>
                 <div className={[styles['metric-delta'], styles.up].join(' ')}>
-                  Seguimiento con líderes JAC
+                  👥 Mesa ágil de 3 Operadores
+                </div>
+              </div>
+            </div>
+            <div className={styles['metric-card']}>
+              <div className={[styles['metric-icon'], styles.amber].join(' ')}>
+                <ShieldCheck size={24} />
+              </div>
+              <div>
+                <div className={styles['metric-label']}>Excepciones de Triaje</div>
+                <div className={styles['metric-value']} style={{ color: 'var(--amber-600)' }}>5</div>
+                <div className={[styles['metric-delta'], styles.down].join(' ')}>
+                  1.3% con ambigüedad territorial
+                </div>
+              </div>
+            </div>
+            <div className={styles['metric-card']}>
+              <div className={[styles['metric-icon'], styles.blue].join(' ')}>
+                <Layers size={24} />
+              </div>
+              <div>
+                <div className={styles['metric-label']}>Casos Radicados en Alcaldía</div>
+                <div className={styles['metric-value']}>{cases.length}</div>
+                <div className={[styles['metric-delta'], styles.up].join(' ')}>
+                  10 comunas de Neiva atendidas
                 </div>
               </div>
             </div>

@@ -25,6 +25,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
   switchDemoUser: (role: UserRole) => Promise<void>;
+  setSession: (user: AuthUser, token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,9 +76,9 @@ export const DEMO_ACCOUNTS: Record<UserRole, AuthUser> = {
 const DEFAULT_DEMO_USER: AuthUser = DEMO_ACCOUNTS.ALCALDE;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<AuthUser | null>(DEFAULT_DEMO_USER);
+  const [token, setToken] = useState<string | null>('demo-token-alcalde');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
 
   // Inicializar estado desde LocalStorage al cargar la aplicación
@@ -93,18 +94,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Revalidación silenciosa con el backend
         API.auth.me()
           .then((freshUser: any) => {
-            setUser(freshUser);
-            localStorage.setItem('civia_user', JSON.stringify(freshUser));
+            if (freshUser && freshUser.id) {
+              setUser(freshUser);
+              localStorage.setItem('civia_user', JSON.stringify(freshUser));
+            }
           })
           .catch(() => {
-            // Si el backend no responde pero hay sesión guardada, conservamos la sesión local
+            // Si el backend no responde o tarda, conservamos la sesión local activa
           });
       } else {
-        // Para asegurar que el usuario pueda explorar si entra directamente sin login inicial
-        // iniciamos con la sesión guardada o dejamos null
+        // Inicializar sesión por defecto de Johan Steed (Alcalde) para acceso inmediato sin pantallas de espera
+        setUser(DEFAULT_DEMO_USER);
+        setToken('demo-token-alcalde');
+        localStorage.setItem('civia_token', 'demo-token-alcalde');
+        localStorage.setItem('civia_user', JSON.stringify(DEFAULT_DEMO_USER));
       }
     } catch (e) {
       console.warn('Error leyendo sesión local:', e);
+      setUser(DEFAULT_DEMO_USER);
     } finally {
       setIsLoading(false);
     }
@@ -151,6 +158,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const setSession = (authUser: AuthUser, accessToken: string) => {
+    setUser(authUser);
+    setToken(accessToken);
+    localStorage.setItem('civia_token', accessToken);
+    localStorage.setItem('civia_user', JSON.stringify(authUser));
+    document.cookie = `civia_token=${accessToken}; path=/; max-age=691200; SameSite=Lax`;
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -170,6 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         switchDemoUser,
+        setSession,
       }}
     >
       {children}
@@ -188,6 +204,7 @@ export function useAuth() {
       login: async () => DEFAULT_DEMO_USER,
       logout: () => {},
       switchDemoUser: async () => {},
+      setSession: () => {},
     };
   }
   return context;

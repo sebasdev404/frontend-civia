@@ -1,34 +1,87 @@
 @use '../../styles/mixins' as *;
 
-// ─── Sidebar Container ──────────────────────────────────────
+// ─── Sidebar Container (Fijo en Pantalla) ───────────────────────
 .sidebar {
   width: 260px;
-  min-height: 100vh;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
   background: var(--bg-sidebar);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255,255,255,0.07);
-  flex-shrink: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  z-index: 100;
+  overflow-y: auto;
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), background-color 200ms ease;
+
+  @media (max-width: 1024px) {
+    width: 280px;
+    max-width: 85vw;
+    z-index: 1000;
+    transform: translateX(-100%);
+    box-shadow: none;
+
+    &.mobile-open {
+      transform: translateX(0);
+      box-shadow: 4px 0 30px rgba(0, 0, 0, 0.5);
+    }
+  }
 }
 
 // ─── Header del sidebar ─────────────────────────────────────
 .sidebar-header {
-  height: 64px;
+  height: 62px;
   @include flex(row, center, space-between, 0);
-  padding: 0 1.5rem;
+  padding: 0 1.25rem;
   border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 
 .sidebar-logo {
   @include flex(row, center, flex-start, 10px);
 
-  svg { color: #3b82f6; flex-shrink: 0; }
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--blue-600) 0%, #1d4ed8 100%);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+  }
 
   span {
-    font-size: 1.25rem;
-    font-weight: 700;
+    font-size: 1.15rem;
+    font-weight: 800;
     color: #fff;
     letter-spacing: 0.05em;
+  }
+}
+
+.close-mobile-btn {
+  display: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 150ms ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+  }
+
+  @media (max-width: 1024px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 

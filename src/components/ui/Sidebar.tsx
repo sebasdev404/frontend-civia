@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Map as MapIcon, FolderOpen, PieChart, Users, Settings, X } from 'lucide-react';
 import styles from './Sidebar.module.scss';
-import { ThemeToggle } from './ThemeToggle';
-
 import { useAuth } from '@/context/AuthContext';
 
 interface SidebarProps {
@@ -30,16 +28,21 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
 
   if (role === 'ADMIN') {
     navItems = [
-      { href: '/dashboard', label: 'Dashboard Técnico', icon: Home },
-      { href: '/cases', label: 'Casos y Necesidades', icon: FolderOpen, badge: '8' },
-      { href: '/settings', label: 'Infraestructura & Logs', icon: Settings },
+      { href: '/dashboard', label: 'Dashboard Integral', icon: Home },
+      { href: '/cases', label: 'Bandeja de Casos', icon: FolderOpen, badge: '12' },
+      { href: '/map', label: 'Mapa Territorial GIS', icon: MapIcon },
+      { href: '/analytics', label: 'Analítica & Métricas', icon: PieChart },
+      { href: '/citizens', label: 'Directorio Ciudadano', icon: Users },
+      { href: '/settings', label: 'Configuración & Usuarios', icon: Settings },
     ];
   } else if (role === 'ALCALDE') {
     navItems = [
       { href: '/dashboard', label: 'Dashboard Ejecutivo', icon: Home },
-      { href: '/cases', label: 'Casos Prioritarios', icon: FolderOpen, badge: '3' },
+      { href: '/cases', label: 'Casos Territoriales', icon: FolderOpen, badge: '12' },
       { href: '/map', label: 'Mapa de Calor Neiva', icon: MapIcon },
       { href: '/analytics', label: 'Inteligencia Social', icon: PieChart },
+      { href: '/citizens', label: 'Directorio Ciudadano', icon: Users },
+      { href: '/settings', label: 'Configuración & Gobernanza', icon: Settings },
     ];
   } else if (role === 'SECRETARIO') {
     navItems = [
@@ -47,20 +50,39 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
       { href: '/cases', label: 'Casos Asignados', icon: FolderOpen, badge: '5' },
       { href: '/map', label: 'Mapa Comunal', icon: MapIcon },
       { href: '/analytics', label: 'Métricas de Gestión', icon: PieChart },
+      { href: '/citizens', label: 'Directorio Ciudadano', icon: Users },
+      { href: '/settings', label: 'Configuración', icon: Settings },
     ];
   } else if (role === 'OPERADOR') {
     navItems = [
       { href: '/dashboard', label: 'Bandeja Operativa', icon: Home },
       { href: '/cases', label: 'Comentarios y Casos', icon: FolderOpen, badge: '12' },
-      { href: '/citizens', label: 'Directorio Ciudadano', icon: Users },
       { href: '/map', label: 'Mapa de Incidencias', icon: MapIcon },
+      { href: '/analytics', label: 'Analítica', icon: PieChart },
+      { href: '/citizens', label: 'Directorio Ciudadano', icon: Users },
+      { href: '/settings', label: 'Configuración', icon: Settings },
     ];
   }
 
   return (
     <aside className={[styles.sidebar, isMobileOpen ? styles['mobile-open'] : ''].join(' ').trim()}>
-      
-      
+      <div className={styles['sidebar-header']}>
+        <div className={styles['sidebar-logo']}>
+          <div className={styles['logo-icon']}>C</div>
+          <span>CIVIA</span>
+        </div>
+        {onClose && (
+          <button 
+            type="button" 
+            className={styles['close-mobile-btn']}
+            onClick={onClose}
+            aria-label="Cerrar navegación"
+          >
+            <X size={18} />
+          </button>
+        )}
+      </div>
+
       <div className={styles['sidebar-nav']}>
         <div className={styles['sidebar-label']}>PRINCIPAL</div>
         {navItems.map((item) => {
@@ -80,10 +102,6 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
             </Link>
           );
         })}
-      </div>
-      
-      <div className={styles['sidebar-footer']}>
-        <ThemeToggle />
       </div>
     </aside>
   );

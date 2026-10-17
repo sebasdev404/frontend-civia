@@ -5,17 +5,22 @@
   width: 100%;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
-  padding: 0 2rem;
-  @include flex(row, center, space-between, 1rem);
+  padding: 0 1rem;
+  @include flex(row, center, space-between, 0.75rem);
   flex-shrink: 0;
   transition: background 200ms ease, border-color 200ms ease;
   position: sticky;
   top: 0;
-  z-index: 90;
+  z-index: 1050;
+
+  @media (min-width: 1025px) {
+    padding: 0 2rem;
+    gap: 1rem;
+  }
 }
 
 .topbar-left {
-  @include flex(row, center, flex-start, 12px);
+  @include flex(row, center, flex-start, 10px);
 }
 
 .system-status {
@@ -23,6 +28,12 @@
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-secondary);
+
+  @media (max-width: 640px) {
+    span {
+      display: none;
+    }
+  }
 }
 
 .status-dot {
@@ -35,14 +46,21 @@
 
 .mobile-menu-btn {
   display: none;
-  background: transparent;
-  border: none;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
   color: var(--text-primary);
   cursor: pointer;
-  padding: 6px;
+  padding: 7px;
   border-radius: var(--radius-md);
+  transition: all 150ms ease;
 
-  @media (max-width: 900px) {
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--blue-600);
+    border-color: var(--border-hover);
+  }
+
+  @media (max-width: 1024px) {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -116,7 +134,7 @@
   border-radius: var(--radius-lg);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
   padding: 8px;
-  z-index: 100;
+  z-index: 9999;
   animation: fadeIn 150ms ease;
 }
 
@@ -264,7 +282,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.3);
-  z-index: 100;
+  z-index: 9999;
   animation: fadeIn 150ms ease;
   overflow: hidden;
 }
