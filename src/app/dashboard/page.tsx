@@ -14,6 +14,7 @@ import CategoryChart from '@/components/charts/CategoryChart';
 import { API } from '@/lib/api/client';
 import { useAuth } from '@/context/AuthContext';
 import { ExecutiveReportModal } from '@/components/reports/ExecutiveReportModal';
+import { formatNumber } from '@/lib/utils';
 
 interface DashboardCase {
   id: string;
@@ -276,7 +277,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <div className={styles['metric-label']}>Necesidades Detectadas</div>
-                <div className={styles['metric-value']}>{totalReportes.toLocaleString()}</div>
+                <div className={styles['metric-value']} suppressHydrationWarning>{formatNumber(totalReportes)}</div>
                 <div className={[styles['metric-delta'], styles.up].join(' ')}>
                   Facebook (64%) • Instagram (36%)
                 </div>

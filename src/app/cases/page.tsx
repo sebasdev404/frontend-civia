@@ -9,6 +9,7 @@ import {
   Calendar, Heart, Eye, Share2, RefreshCw, Bot, Zap, Users
 } from 'lucide-react';
 import { API } from '@/lib/api/client';
+import { formatNumber } from '@/lib/utils';
 import styles from './cases.module.scss';
 
 export interface RawCommentItem {
@@ -982,15 +983,15 @@ export default function CasesPage() {
                       <div className={styles['metrics-pill-grid']}>
                         <div className={styles['metric-pill']} title="Me gusta / Reacciones en Facebook">
                           <Heart size={13} style={{ color: '#ef4444' }} />
-                          <span><strong>{(post.likes_count || 145).toLocaleString()}</strong> Likes</span>
+                          <span><strong suppressHydrationWarning>{formatNumber(post.likes_count || 145)}</strong> Likes</span>
                         </div>
                         <div className={styles['metric-pill']} title="Alcance / Vistas estimadas de la publicación">
                           <Eye size={13} style={{ color: '#3b82f6' }} />
-                          <span><strong>{(post.views_count || 2100).toLocaleString()}</strong> Vistas</span>
+                          <span><strong suppressHydrationWarning>{formatNumber(post.views_count || 2100)}</strong> Vistas</span>
                         </div>
                         <div className={styles['metric-pill']} title="Veces compartido en redes">
                           <Share2 size={13} style={{ color: '#8b5cf6' }} />
-                          <span><strong>{(post.shares_count || 18).toLocaleString()}</strong> Shares</span>
+                          <span><strong suppressHydrationWarning>{formatNumber(post.shares_count || 18)}</strong> Shares</span>
                         </div>
                         <div className={styles['metric-pill']} title="Comentarios totales de ciudadanos">
                           <MessageSquare size={13} style={{ color: '#f59e0b' }} />
@@ -1780,15 +1781,15 @@ export default function CasesPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
                     <span className={styles['metric-pill']} style={{ background: 'rgba(239, 68, 68, 0.08)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.25)' }}>
                       <Heart size={12} />
-                      <strong>{(selectedPost.likes_count || 145).toLocaleString()}</strong> Likes
+                      <strong suppressHydrationWarning>{formatNumber(selectedPost.likes_count || 145)}</strong> Likes
                     </span>
                     <span className={styles['metric-pill']} style={{ background: 'rgba(59, 130, 246, 0.08)', color: '#3b82f6', borderColor: 'rgba(59, 130, 246, 0.25)' }}>
                       <Eye size={12} />
-                      <strong>{(selectedPost.views_count || 2100).toLocaleString()}</strong> Vistas / Alcance
+                      <strong suppressHydrationWarning>{formatNumber(selectedPost.views_count || 2100)}</strong> Vistas / Alcance
                     </span>
                     <span className={styles['metric-pill']} style={{ background: 'rgba(139, 92, 246, 0.08)', color: '#8b5cf6', borderColor: 'rgba(139, 92, 246, 0.25)' }}>
                       <Share2 size={12} />
-                      <strong>{(selectedPost.shares_count || 18).toLocaleString()}</strong> Compartidos
+                      <strong suppressHydrationWarning>{formatNumber(selectedPost.shares_count || 18)}</strong> Compartidos
                     </span>
                     <span className={styles['metric-pill']} style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.25)' }}>
                       <MessageSquare size={12} />

@@ -216,7 +216,7 @@ export default function CaseDetailPage() {
   const caseId = (params?.id as string) || 'CASO-001';
   const { user, switchDemoUser } = useAuth();
 
-  const [caseData, setCaseData] = useState<CaseDetailData>(() => getFallbackCase(caseId));
+  const [caseData, setCaseData] = useState<CaseDetailData | null>(() => getFallbackCase(caseId));
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);

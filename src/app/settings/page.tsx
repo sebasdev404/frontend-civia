@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { API } from '@/lib/api/client';
 import { useAuth } from '@/context/AuthContext';
+import { formatNumber } from '@/lib/utils';
 import styles from './settings.module.scss';
 
 interface UserRecord {
@@ -470,7 +471,7 @@ export default function SettingsPage() {
                   {aiCredits?.detail || diagnostics.ai?.detail || 'Clasificador semántico y diccionario geográfico de comunas calibrado.'}
                 </p>
                 <div className={styles['health-metric']}>
-                  <span>Casos Clasificados: <strong>{aiCredits?.cases_analyzed?.toLocaleString() || '1,115'}</strong></span>
+                  <span>Casos Clasificados: <strong suppressHydrationWarning>{formatNumber(aiCredits?.cases_analyzed || 1115)}</strong></span>
                   <span>Inversión IA: <strong>${aiCredits?.estimated_cost_usd || '0.0976'} USD</strong></span>
                   <span>Latencia: <strong>{aiCredits?.latency_ms || '1100'} ms</strong></span>
                   <span>Modelo: <strong>{aiCredits?.model || 'OpenAI GPT-4o-mini'}</strong></span>
@@ -501,12 +502,12 @@ export default function SettingsPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '18px' }}>
                 <div style={{ padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Incidentes Procesados IA</span>
-                  <strong style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>{aiCredits.cases_analyzed?.toLocaleString() || '1,115'}</strong>
+                  <strong style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }} suppressHydrationWarning>{formatNumber(aiCredits.cases_analyzed || 1115)}</strong>
                 </div>
 
                 <div style={{ padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tokens Acumulados</span>
-                  <strong style={{ fontSize: '1.25rem', color: '#60a5fa' }}>{aiCredits.estimated_tokens?.toLocaleString() || '390,250'}</strong>
+                  <strong style={{ fontSize: '1.25rem', color: '#60a5fa' }} suppressHydrationWarning>{formatNumber(aiCredits.estimated_tokens || 390250)}</strong>
                 </div>
 
                 <div style={{ padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
