@@ -195,23 +195,39 @@ const FALLBACK_CASES: Record<string, CaseDetailData> = {
   }
 };
 
+function getFallbackCase(id: string): CaseDetailData {
+  if (FALLBACK_CASES[id]) return FALLBACK_CASES[id];
+  const cleanNum = id.replace(/\D/g, '') || '1';
+  const altCivKey = `CIV-2026-${cleanNum.padStart(4, '0')}`;
+  if (FALLBACK_CASES[altCivKey]) {
+    return { ...FALLBACK_CASES[altCivKey], id };
+  }
+  const base = FALLBACK_CASES['CIV-2026-0001'] || Object.values(FALLBACK_CASES)[0];
+  return {
+    ...base,
+    id,
+    title: `Incidente Urbano ${id} - Neiva`,
+    institutional_radicado: `RAD-MUN-2026-${cleanNum.padStart(4, '0')}`,
+  };
+}
+
 export default function CaseDetailPage() {
   const params = useParams();
   const caseId = (params?.id as string) || 'CASO-001';
   const { user, switchDemoUser } = useAuth();
 
-  const [caseData, setCaseData] = useState<CaseDetailData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [caseData, setCaseData] = useState<CaseDetailData>(() => getFallbackCase(caseId));
+  const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   // Estados de formularios para cada rol
   const [newNote, setNewNote] = useState('');
-  const [dispatchDept, setDispatchDept] = useState('');
-  const [dispatchAssignee, setDispatchAssignee] = useState('');
+  const [dispatchDept, setDispatchDept] = useState(() => getFallbackCase(caseId).assigned_department || NEIVA_DEPARTMENTS[0]);
+  const [dispatchAssignee, setDispatchAssignee] = useState(() => getFallbackCase(caseId).assigned_to || '');
   const [dispatchNote, setDispatchNote] = useState('');
-  const [resolutionText, setResolutionText] = useState('');
-  const [publicRespText, setPublicRespText] = useState('');
+  const [resolutionText, setResolutionText] = useState(() => getFallbackCase(caseId).resolution_note || '');
+  const [publicRespText, setPublicRespText] = useState(() => getFallbackCase(caseId).public_response || '');
   const [mayoralDirective, setMayoralDirective] = useState('');
   const [operatorSolution, setOperatorSolution] = useState('');
   const [operatorEvidence, setOperatorEvidence] = useState('');
@@ -225,11 +241,11 @@ export default function CaseDetailPage() {
         const data = await API.cases.getById(caseId);
         if (isMounted && data) {
           const parsed: CaseDetailData = {
-            id: data.id,
-            source: data.source || 'Redes',
+            id: data.id || caseId,
+            source: data.source || 'Facebook Oficial',
             author: data.author || 'Ciudadano',
             priority: data.priority || 'Media',
-            title: data.title || '',
+            title: data.title || 'Reporte Ciudadano en Neiva',
             content: data.content || '',
             category: data.category || 'General',
             sentiment: data.sentiment || 'Neutro',
@@ -238,26 +254,33 @@ export default function CaseDetailPage() {
             status: data.status || 'Pendiente',
             mediaType: data.media_type || data.mediaType || 'none',
             imageUrl: data.image_url || data.imageUrl || null,
-            impact_if_solved: data.impact_if_solved,
-            impact_if_ignored: data.impact_if_ignored,
-            assigned_department: data.assigned_department,
-            assigned_to: data.assigned_to,
-            internal_notes: data.internal_notes,
-            public_response: data.public_response,
-            resolution_note: data.resolution_note,
-            resolved_by: data.resolved_by,
+            impact_if_solved: data.impact_if_solved || 'Atención prioritaria y resolución efectiva en el sector.',
+            impact_if_ignored: data.impact_if_ignored || 'Riesgo de escalamiento y afectación prolongada.',
+            assigned_department: data.assigned_department || NEIVA_DEPARTMENTS[0],
+            assigned_to: data.assigned_to || '',
+            internal_notes: data.internal_notes || '',
+            public_response: data.public_response || '',
+            resolution_note: data.resolution_note || '',
+            resolved_by: data.resolved_by || '',
             priority_action: data.priority_action || false,
+            institutional_radicado: data.institutional_radicado || `RAD-${(data.category || 'GEN').substring(0,3).toUpperCase()}-2026-${caseId.replace(/\D/g, '').padStart(4, '0') || '0001'}`,
+            comments_count: data.comments_count || 1,
           };
           setCaseData(parsed);
           setDispatchDept(parsed.assigned_department || NEIVA_DEPARTMENTS[0]);
           setDispatchAssignee(parsed.assigned_to || '');
           setResolutionText(parsed.resolution_note || '');
           setPublicRespText(parsed.public_response || '');
+        } else if (isMounted) {
+          const fallback = getFallbackCase(caseId);
+          setCaseData(fallback);
+          setDispatchDept(fallback.assigned_department || NEIVA_DEPARTMENTS[0]);
+          setDispatchAssignee(fallback.assigned_to || '');
         }
       } catch (err) {
         console.warn('Backend offline o usando fallback:', err);
-        const fallback = FALLBACK_CASES[caseId] || FALLBACK_CASES['CASO-001'];
         if (isMounted) {
+          const fallback = getFallbackCase(caseId);
           setCaseData(fallback);
           setDispatchDept(fallback.assigned_department || NEIVA_DEPARTMENTS[0]);
           setDispatchAssignee(fallback.assigned_to || '');
@@ -468,7 +491,7 @@ export default function CaseDetailPage() {
     }
   };
 
-  if (loading || !caseData) {
+  if (!caseData) {
     return (
       <div className={styles['page-container']}>
         <div className="flex items-center justify-center p-12 text-slate-500">

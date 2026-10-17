@@ -189,21 +189,23 @@ export default function LeafletMapInner({
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#1e293b' }}>
                       🔥 {inc.reportsCount} reportes
                     </span>
-                    <button
-                      onClick={() => onSelectIncident(inc)}
+                    <a
+                      href={'/cases/' + inc.id}
                       style={{
-                        padding: '4px 10px',
+                        padding: '5px 12px',
                         background: '#2563eb',
                         color: '#fff',
                         border: 'none',
                         borderRadius: '6px',
                         fontSize: '11px',
                         fontWeight: 700,
+                        textDecoration: 'none',
                         cursor: 'pointer',
+                        display: 'inline-block',
                       }}
                     >
-                      Ver Detalle
-                    </button>
+                      Ver Detalle ↗
+                    </a>
                   </div>
                 </div>
               </Popup>
