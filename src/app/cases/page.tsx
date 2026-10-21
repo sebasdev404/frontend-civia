@@ -1034,15 +1034,15 @@ export default function CasesPage() {
 
                     <div className={styles['post-card-stats']}>
                       <div className={styles['metrics-pill-grid']}>
-                        <div className={styles['metric-pill']} title={Me gusta: }>
+                        <div className={styles['metric-pill']} title={`Me gusta: ${post.likes_count || 145}`}>
                           <Heart size={12} style={{ color: '#ef4444' }} />
                           <span><strong suppressHydrationWarning>{formatCompactNumber(post.likes_count || 145)}</strong> Likes</span>
                         </div>
-                        <div className={styles['metric-pill']} title={Vistas estimadas: }>
+                        <div className={styles['metric-pill']} title={`Vistas estimadas: ${post.views_count || 2100}`}>
                           <Eye size={12} style={{ color: '#3b82f6' }} />
                           <span><strong suppressHydrationWarning>{formatCompactNumber(post.views_count || 2100)}</strong> Vistas</span>
                         </div>
-                        <div className={styles['metric-pill']} title={Compartidos: }>
+                        <div className={styles['metric-pill']} title={`Compartidos: ${post.shares_count || 18}`}>
                           <Share2 size={12} style={{ color: '#8b5cf6' }} />
                           <span><strong suppressHydrationWarning>{formatCompactNumber(post.shares_count || 18)}</strong> Shares</span>
                         </div>
