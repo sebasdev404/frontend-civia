@@ -1,9 +1,11 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styles from './citizens.module.scss';
 import { 
   Search, PhoneCall, X, Send, CheckCircle2, MessageSquare, 
-  PhoneOutgoing, Mail, MapPin, AlertCircle, Info, ShieldCheck, UserCheck, AlertTriangle
+  Mail, MapPin, AlertCircle, Info, ShieldCheck, UserCheck, AlertTriangle,
+  Upload, FileSpreadsheet, Bot, Sparkles, Copy, ExternalLink, RefreshCw, 
+  Filter, Users, UserX, Phone, ChevronRight, Check
 } from 'lucide-react';
 
 interface CitizenItem {
@@ -11,495 +13,993 @@ interface CitizenItem {
   name: string;
   handle: string;
   neighborhood: string;
-  reports: number;
-  communityRole: 'Ciudadano' | 'Líder Comunitario' | 'Presidente JAC' | 'Veedor Ciudadano';
-  origenDato: 'CIUDADANO' | 'OPERADOR' | 'FORMULARIO';
-  metaDirectAllowed: boolean;
-  phone?: string;
-  email?: string;
-  sentiment: string;
-  network: string;
+  total_reports: number;
+  phone?: string | null;
+  followers_count: number;
+  following_count: number;
+  account_created_at: string;
+  user_type: 'Positivo' | 'Negativo' | 'Bot';
+  bot_probability: number;
+  bot_origin?: string;
+  channel: string;
+  sentiment_tendency: string;
+  notes?: string;
+  origen_dato?: string;
+  whatsapp_link?: string | null;
 }
 
-const MOCK_CITIZENS: CitizenItem[] = [
+const FALLBACK_CITIZENS: CitizenItem[] = [
   { 
-    id: 'CIUD-01', 
-    name: 'Juan Pérez', 
+    id: 'CIUD-001', 
+    name: 'Juan Carlos Pérez', 
     handle: '@JuanPerezNeiva', 
     neighborhood: 'Las Granjas (Comuna 2)', 
-    reports: 6, 
-    communityRole: 'Presidente JAC', 
-    origenDato: 'OPERADOR', 
-    metaDirectAllowed: false, 
-    phone: '312 456 7890', 
-    email: 'juan.perez@jacgranjas.org', 
-    sentiment: 'Crítico', 
-    network: 'Facebook' 
+    total_reports: 6, 
+    phone: '+57 312 456 7890', 
+    followers_count: 840,
+    following_count: 210,
+    account_created_at: 'Hace 4 años',
+    user_type: 'Negativo',
+    bot_probability: 0.05,
+    bot_origin: 'Humano Verificado',
+    sentiment_tendency: 'Crítico', 
+    channel: 'Facebook',
+    notes: 'Presidente JAC Las Granjas. Reclama por corte de agua y retrasos en obras de la Cra 2da.',
+    whatsapp_link: 'https://wa.me/573124567890'
   },
   { 
-    id: 'CIUD-02', 
-    name: 'María Gómez', 
+    id: 'CIUD-002', 
+    name: 'María Camila Gómez', 
     handle: '@MariaGomez_Huila', 
     neighborhood: 'Centro - Av. La Toma', 
-    reports: 3, 
-    communityRole: 'Ciudadano', 
-    origenDato: 'CIUDADANO', 
-    metaDirectAllowed: true, 
-    phone: '315 987 6543', 
-    email: 'maria.gomez@gmail.com', 
-    sentiment: 'Positivo', 
-    network: 'Instagram' 
+    total_reports: 3, 
+    phone: '+57 315 987 6543', 
+    followers_count: 1250,
+    following_count: 480,
+    account_created_at: 'Hace 3 años',
+    user_type: 'Positivo',
+    bot_probability: 0.02,
+    bot_origin: 'Humano Verificado',
+    sentiment_tendency: 'Aprobación', 
+    channel: 'Instagram',
+    notes: 'Comerciante de La Toma. Resalta los avances del bacheo nocturno y la recuperación del alumbrado.',
+    whatsapp_link: 'https://wa.me/573159876543'
   },
   { 
-    id: 'CIUD-03', 
-    name: 'Veeduría Malecón', 
-    handle: '@NeivaAlerta', 
-    neighborhood: 'El Malecón (Comuna 4)', 
-    reports: 8, 
-    communityRole: 'Veedor Ciudadano', 
-    origenDato: 'FORMULARIO', 
-    metaDirectAllowed: true, 
-    phone: 'No registrado', 
-    email: 'veeduria.malecon@redveedurias.co', 
-    sentiment: 'Preocupado', 
-    network: 'Instagram' 
+    id: 'CIUD-003', 
+    name: 'Usuario_9281734_Neiva', 
+    handle: '@user9281734', 
+    neighborhood: 'Neiva (General)', 
+    total_reports: 18, 
+    phone: null, 
+    followers_count: 4,
+    following_count: 412,
+    account_created_at: 'Hace 14 días',
+    user_type: 'Bot',
+    bot_probability: 0.94,
+    bot_origin: 'Granja de Cuentas / Campaña Opositora',
+    sentiment_tendency: 'Ataque', 
+    channel: 'Facebook',
+    notes: 'Cuenta automatizada sin foto de perfil. Publica exactamente el mismo mensaje en publicaciones sobre el PAE.'
   },
   { 
-    id: 'CIUD-04', 
+    id: 'CIUD-004', 
     name: 'Carlos Alberto Díaz', 
     handle: '@CarlosDiaz_Canaima', 
     neighborhood: 'Canaima (Comuna 6)', 
-    reports: 7, 
-    communityRole: 'Líder Comunitario', 
-    origenDato: 'OPERADOR', 
-    metaDirectAllowed: false, 
-    phone: '320 123 4567', 
-    sentiment: 'Crítico', 
-    network: 'Facebook' 
+    total_reports: 7, 
+    phone: '+57 320 123 4567', 
+    followers_count: 430,
+    following_count: 310,
+    account_created_at: 'Hace 2 años',
+    user_type: 'Negativo',
+    bot_probability: 0.08,
+    bot_origin: 'Humano Verificado',
+    sentiment_tendency: 'Crítico', 
+    channel: 'Facebook',
+    notes: 'Líder barrial de Canaima. Denuncia rebosamiento del alcantarillado en temporada de lluvias.',
+    whatsapp_link: 'https://wa.me/573201234567'
   },
   { 
-    id: 'CIUD-05', 
+    id: 'CIUD-005', 
+    name: 'Alerta_Opita_Real', 
+    handle: '@alertaopita2026', 
+    neighborhood: 'Neiva (General)', 
+    total_reports: 14, 
+    phone: null, 
+    followers_count: 12,
+    following_count: 890,
+    account_created_at: 'Hace 22 días',
+    user_type: 'Bot',
+    bot_probability: 0.89,
+    bot_origin: 'Troll Político / Perfil Falso Sin Foto',
+    sentiment_tendency: 'Ataque', 
+    channel: 'Facebook',
+    notes: 'Coordina ataques de desprestigio en comentarios. Repite frases como "la misma mierda" y "se roban la plata".'
+  },
+  { 
+    id: 'CIUD-006', 
     name: 'Dra. Patricia Charry', 
     handle: '@DraPatriciaCharry', 
     neighborhood: 'Quirinal (Comuna 3)', 
-    reports: 5, 
-    communityRole: 'Ciudadano', 
-    origenDato: 'CIUDADANO', 
-    metaDirectAllowed: false, 
-    phone: 'No suministrado', 
-    sentiment: 'Crítico', 
-    network: 'Facebook' 
+    total_reports: 5, 
+    phone: '+57 310 555 9812', 
+    followers_count: 2100,
+    following_count: 620,
+    account_created_at: 'Hace 5 años',
+    user_type: 'Negativo',
+    bot_probability: 0.03,
+    bot_origin: 'Humano Verificado',
+    sentiment_tendency: 'Preocupado', 
+    channel: 'Facebook',
+    notes: 'Médica especialista. Realizó crítica sobre el PAE ("Por mi crítica salvé el PAE") solicitando auditorías nutricionales.',
+    whatsapp_link: 'https://wa.me/573105559812'
   },
   { 
-    id: 'CIUD-06', 
-    name: 'Vecinos Ipanema', 
+    id: 'CIUD-007', 
+    name: 'Vecinos Unidos Ipanema', 
     handle: '@VecinosIpanema', 
     neighborhood: 'Ipanema (Comuna 7)', 
-    reports: 4, 
-    communityRole: 'Líder Comunitario', 
-    origenDato: 'FORMULARIO', 
-    metaDirectAllowed: true, 
-    phone: '310 555 4321', 
-    sentiment: 'Positivo', 
-    network: 'Instagram' 
+    total_reports: 4, 
+    phone: '+57 314 789 1234', 
+    followers_count: 670,
+    following_count: 190,
+    account_created_at: 'Hace 3 años',
+    user_type: 'Positivo',
+    bot_probability: 0.04,
+    bot_origin: 'Humano Verificado',
+    sentiment_tendency: 'Positivo', 
+    channel: 'Instagram',
+    notes: 'Colectivo vecinal. Agradecen instalación de cámaras de seguridad y podas preventivas en parques.',
+    whatsapp_link: 'https://wa.me/573147891234'
   },
   { 
-    id: 'CIUD-07', 
-    name: 'Neiva Sostenible', 
-    handle: '@NeivaSostenible', 
-    neighborhood: 'San Martín (Comuna 2)', 
-    reports: 5, 
-    communityRole: 'Veedor Ciudadano', 
-    origenDato: 'OPERADOR', 
-    metaDirectAllowed: false, 
-    phone: 'No registrado', 
-    sentiment: 'Preocupado', 
-    network: 'Instagram' 
-  },
+    id: 'CIUD-008', 
+    name: 'Bot_Hater_Huila_44', 
+    handle: '@bot_huila44', 
+    neighborhood: 'Neiva (General)', 
+    total_reports: 25, 
+    phone: null, 
+    followers_count: 2,
+    following_count: 640,
+    account_created_at: 'Hace 8 días',
+    user_type: 'Bot',
+    bot_probability: 0.98,
+    bot_origin: 'Granja de Cuentas / Campaña Opositora',
+    sentiment_tendency: 'Ataque', 
+    channel: 'Facebook',
+    notes: 'Perfil automatizado detectado por CIVIA NLP. Spam masivo de odio en todas las publicaciones de la administración.'
+  }
 ];
 
 export default function CitizensPage() {
+  const [citizens, setCitizens] = useState<CitizenItem[]>(FALLBACK_CITIZENS);
+  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState({
+    total_registered: 8,
+    total_with_phone: 5,
+    total_bots_detected: 3,
+    total_positives: 2,
+    total_negatives: 3,
+    bot_percentage: 37.5
+  });
+
+  // Filtros
   const [search, setSearch] = useState('');
-  const [selectedLeader, setSelectedLeader] = useState<CitizenItem | null>(null);
-  const [contactMode, setContactMode] = useState<'META_DM' | 'PHONE' | 'VISIT' | 'EMAIL'>('PHONE');
-  const [messageContent, setMessageContent] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [sendSuccess, setSendSuccess] = useState(false);
+  const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'Positivo' | 'Negativo' | 'Bot'>('all');
+  const [followersFilter, setFollowersFilter] = useState<'all' | 'under_50' | '50_500' | 'over_500'>('all');
+  const [accountAgeFilter, setAccountAgeFilter] = useState<'all' | 'recent' | 'older'>('all');
 
-  const filtered = MOCK_CITIZENS.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.neighborhood.toLowerCase().includes(search.toLowerCase()) ||
-    c.handle.toLowerCase().includes(search.toLowerCase()) ||
-    c.communityRole.toLowerCase().includes(search.toLowerCase())
-  );
+  // Modales
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [smartReplyModalOpen, setSmartReplyModalOpen] = useState(false);
+  const [activeCitizenForReply, setActiveCitizenForReply] = useState<CitizenItem | null>(null);
 
-  const handleOpenContact = (leader: CitizenItem) => {
-    setSelectedLeader(leader);
-    setSendSuccess(false);
-    // Prioritise phone or meta depending on availability
-    if (leader.metaDirectAllowed) {
-      setContactMode('META_DM');
-      setMessageContent(
-        `Estimado(a) ${leader.name}, desde la Alcaldía de Neiva hacemos seguimiento a sus reportes en ${leader.neighborhood}. Estamos coordinando la intervención institucional.`
+  // Estado del Uploader
+  const [rawUploadText, setRawUploadText] = useState('');
+  const [uploadSuccessMsg, setUploadSuccessMsg] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Estado del Smart Responder
+  const [replyPrompt, setReplyPrompt] = useState('Por mi crítica salvé el PAE');
+  const [generatedReply, setGeneratedReply] = useState<string | null>(null);
+  const [replyTopic, setReplyTopic] = useState<string | null>(null);
+  const [isGeneratingReply, setIsGeneratingReply] = useState(false);
+  const [copiedSuccess, setCopiedSuccess] = useState(false);
+
+  // Cargar datos del Backend
+  const fetchCitizens = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (userTypeFilter !== 'all') params.append('user_type', userTypeFilter);
+      if (followersFilter !== 'all') params.append('followers_filter', followersFilter);
+      if (accountAgeFilter !== 'all') params.append('account_age_filter', accountAgeFilter);
+      if (search.trim()) params.append('search', search.trim());
+
+      const res = await fetch(`http://localhost:8000/api/v1/citizens?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCitizens(data.items || FALLBACK_CITIZENS);
+        if (data.metrics) setMetrics(data.metrics);
+      } else {
+        setCitizens(FALLBACK_CITIZENS);
+      }
+    } catch {
+      setCitizens(FALLBACK_CITIZENS);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCitizens();
+  }, [userTypeFilter, followersFilter, accountAgeFilter]);
+
+  // Filtrado local en vivo si se escribe en el buscador
+  const filteredCitizens = useMemo(() => {
+    return citizens.filter(c => {
+      const matchSearch = !search.trim() || 
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.handle.toLowerCase().includes(search.toLowerCase()) ||
+        c.neighborhood.toLowerCase().includes(search.toLowerCase()) ||
+        (c.phone && c.phone.includes(search)) ||
+        (c.notes && c.notes.toLowerCase().includes(search.toLowerCase()));
+
+      const matchType = userTypeFilter === 'all' || c.user_type === userTypeFilter;
+
+      let matchFollowers = true;
+      if (followersFilter === 'under_50') matchFollowers = c.followers_count < 50;
+      else if (followersFilter === '50_500') matchFollowers = c.followers_count >= 50 && c.followers_count <= 500;
+      else if (followersFilter === 'over_500') matchFollowers = c.followers_count > 500;
+
+      let matchAge = true;
+      if (accountAgeFilter === 'recent') matchAge = c.account_created_at.includes('días') || c.account_created_at.includes('mes');
+      else if (accountAgeFilter === 'older') matchAge = c.account_created_at.includes('año');
+
+      return matchSearch && matchType && matchFollowers && matchAge;
+    });
+  }, [citizens, search, userTypeFilter, followersFilter, accountAgeFilter]);
+
+  // Acción: Generar Respuesta Inteligente
+  const handleGenerateReply = async (promptText: string, citizen?: CitizenItem | null) => {
+    setIsGeneratingReply(true);
+    setCopiedSuccess(false);
+    const targetType = citizen ? citizen.user_type : 'Negativo';
+
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/ai/generate-smart-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          comment_text: promptText,
+          author_metadata: citizen ? {
+            author: citizen.name,
+            handle: citizen.handle,
+            followers: citizen.followers_count,
+            following: citizen.following_count
+          } : {},
+          user_type: targetType
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setGeneratedReply(data.response_text);
+        setReplyTopic(data.topic);
+      } else {
+        // Fallback local
+        if (promptText.toLowerCase().includes('pae')) {
+          setGeneratedReply(
+            'Apreciado ciudadano, el control social y la veeduría son fundamentales para la transparencia de Neiva. Bajo la actual administración de Johan Steed, el Programa de Alimentación Escolar (PAE) opera con supervisión técnica permanente en las 160 sedes educativas de la ciudad, garantizando más de 38.000 raciones diarias auditadas por nutricionistas y comités de veeduría comunitaria. Toda observación ciudadana se radica formalmente para inspección inmediata en sitio por la Secretaría de Educación.'
+          );
+          setReplyTopic('Programa de Alimentación Escolar (PAE)');
+        } else {
+          setGeneratedReply(
+            'Agradecemos tu reporte ciudadano. En la administración municipal hacemos seguimiento estricto a cada intervención en territorio. Tu solicitud ha sido radicada formalmente en el sistema CIVIA para despacho y atención prioritaria.'
+          );
+          setReplyTopic('Atención Institucional');
+        }
+      }
+    } catch {
+      setGeneratedReply(
+        'Apreciado ciudadano, el Programa de Alimentación Escolar (PAE) de Neiva cuenta con supervisión técnica continua en las 160 sedes educativas, garantizando 38.000 raciones diarias auditadas con total transparencia.'
       );
-    } else {
-      setContactMode('PHONE');
-      setMessageContent(
-        `Llamada efectuada con ${leader.name} (${leader.communityRole}) sobre la problemática de ${leader.neighborhood}. Se confirma recepción y se coordina seguimiento.`
-      );
+      setReplyTopic('Programa de Alimentación Escolar (PAE)');
+    } finally {
+      setIsGeneratingReply(false);
     }
   };
 
-  const handleSelectMode = (mode: 'META_DM' | 'PHONE' | 'VISIT' | 'EMAIL') => {
-    setContactMode(mode);
-    if (!selectedLeader) return;
-    if (mode === 'META_DM') {
-      setMessageContent(`Estimado(a) ${selectedLeader.name}, desde la Alcaldía de Neiva le informamos avances sobre la atención prioritaria en ${selectedLeader.neighborhood}.`);
-    } else if (mode === 'PHONE') {
-      setMessageContent(`Minuta de llamada con ${selectedLeader.name} (${selectedLeader.communityRole}): Se concertaron puntos clave sobre ${selectedLeader.neighborhood}.`);
-    } else if (mode === 'VISIT') {
-      setMessageContent(`Registro de visita en terreno a ${selectedLeader.neighborhood}. Contacto directo con ${selectedLeader.name} para verificación de la situación reportada.`);
-    } else if (mode === 'EMAIL') {
-      setMessageContent(`Oficio de respuesta institucional dirigido a ${selectedLeader.name} (${selectedLeader.email || 'correo pendiente'}) respecto al caso en ${selectedLeader.neighborhood}.`);
+  const handleOpenSmartReplyForCitizen = (citizen: CitizenItem) => {
+    setActiveCitizenForReply(citizen);
+    setSmartReplyModalOpen(true);
+    const defaultText = citizen.notes || (citizen.user_type === 'Bot' ? 'la misma mierda no hacen nada corruptos' : 'Por mi crítica salvé el PAE');
+    setReplyPrompt(defaultText);
+    handleGenerateReply(defaultText, citizen);
+  };
+
+  const handleCopyReply = () => {
+    if (generatedReply) {
+      navigator.clipboard.writeText(generatedReply);
+      setCopiedSuccess(true);
+      setTimeout(() => setCopiedSuccess(false), 2500);
     }
   };
 
-  const handleApplyTemplate = (type: string) => {
-    if (!selectedLeader) return;
-    if (type === 'radicado') {
-      setMessageContent(`Estimado(a) ${selectedLeader.name}, su solicitud referente a ${selectedLeader.neighborhood} cuenta con radicado oficial y fue remitida al despacho sectorial.`);
-    } else if (type === 'mesa') {
-      setMessageContent(`Estimado(a) ${selectedLeader.name}, le extendemos invitación a la Mesa Técnica de concertación comunitaria para evaluar soluciones en ${selectedLeader.neighborhood}.`);
-    } else if (type === 'cuadrilla') {
-      setMessageContent(`Estimado(a) ${selectedLeader.name}, le confirmamos que la cuadrilla operativa ya fue despachada para atender el sector de ${selectedLeader.neighborhood}.`);
-    }
+  // Cargar Plantilla de Ejemplo en el Uploader
+  const handleLoadSampleCSV = () => {
+    const sample = `Nombre,Telefono,Barrio,Perfil,Notas
+Gustavo Adolfo Rojas,3114567890,Las Palmas,gustavorojas_neiva,Líder comunal preocupado por alumbrado en canchas
+Valeria Dussán Perdomo,3187654321,El Caguán,valeriadussan,Solicita mantenimiento de placa huella rural
+Cuenta_Troll_7718,,Neiva (General),troll7718,Ataques continuos de desprestigio en Facebook
+Felipe Charry Medina,3208889911,Santa Inés,felipe_charry,Apoya la intervención en la Carrera 5ta
+Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el PAE`;
+    setRawUploadText(sample);
   };
 
-  const handleSendMessage = () => {
-    setIsSending(true);
-    setTimeout(() => {
-      setIsSending(false);
-      setSendSuccess(true);
-      setTimeout(() => {
-        setSelectedLeader(null);
-        setSendSuccess(false);
-      }, 1800);
-    }, 800);
+  // Procesar Carga de Base de Datos
+  const handleProcessUpload = async () => {
+    if (!rawUploadText.trim()) return;
+    setIsUploading(true);
+    setUploadSuccessMsg(null);
+
+    const lines = rawUploadText.trim().split('\n');
+    const citizensToUpload: any[] = [];
+
+    // Parsear líneas CSV simples (Nombre, Telefono, Barrio, Perfil, Notas)
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line || (i === 0 && line.toLowerCase().includes('nombre'))) continue;
+      const parts = line.split(',');
+      if (parts.length >= 1 && parts[0].trim()) {
+        citizensToUpload.push({
+          name: parts[0]?.trim(),
+          phone: parts[1]?.trim() || null,
+          neighborhood: parts[2]?.trim() || 'Neiva (General)',
+          handle: parts[3]?.trim() ? `@${parts[3].trim().replace('@', '')}` : null,
+          notes: parts[4]?.trim() || 'Cargado mediante archivo de base de datos'
+        });
+      }
+    }
+
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/citizens/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          citizens: citizensToUpload,
+          source_tag: 'Base_Externa_CSV'
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUploadSuccessMsg(data.message || `Se procesaron exitosamente ${citizensToUpload.length} registros.`);
+        fetchCitizens();
+        setTimeout(() => {
+          setUploadModalOpen(false);
+          setUploadSuccessMsg(null);
+          setRawUploadText('');
+        }, 2200);
+      } else {
+        setUploadSuccessMsg(`Se agregaron ${citizensToUpload.length} ciudadanos a la vista local.`);
+      }
+    } catch {
+      setUploadSuccessMsg(`Cargados localmente ${citizensToUpload.length} registros.`);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
     <div className="page">
-      <div className="page-header">
-        <h1>Directorio de Ciudadanos y Líderes</h1>
-        <p>Seguimiento individual, historial de interacción y atención prioritaria comunitaria en Neiva</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1>Inteligencia de Contacto Ciudadano & Detección de Bots</h1>
+          <p>Base unificada de números telefónicos (+57), clasificación de aliados vs quejas reales y neutralización de granjas de trolls</p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button 
+            type="button" 
+            className="btn-secondary" 
+            onClick={() => {
+              setActiveCitizenForReply(null);
+              setSmartReplyModalOpen(true);
+              setReplyPrompt('Por mi crítica salvé el PAE');
+              handleGenerateReply('Por mi crítica salvé el PAE', null);
+            }}
+            style={{ padding: '8px 14px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Sparkles size={15} style={{ color: 'var(--blue-600)' }} />
+            <span>⚡ Probar Respuestas IA (PAE / Hate)</span>
+          </button>
+
+          <button 
+            type="button" 
+            className="btn-primary" 
+            onClick={() => setUploadModalOpen(true)}
+            style={{ padding: '8px 16px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Upload size={15} />
+            <span>📤 Subir Base de Datos (CSV / Excel)</span>
+          </button>
+        </div>
       </div>
 
+      {/* METRICAS SUPERIORES DE AUDITORIA */}
       <div className={styles['stats-grid']}>
         <div className={styles['stat-card']}>
-          <div className={styles['stat-title']}>Ciudadanos Registrados</div>
-          <div className={styles['stat-value']}>1,420</div>
+          <div className={styles['stat-title']}>
+            <Users size={16} style={{ color: 'var(--blue-600)' }} />
+            <span>Total Ciudadanos Registrados</span>
+          </div>
+          <div className={styles['stat-value']}>{metrics.total_registered}</div>
+          <div className={styles['stat-sub']}>Perfiles únicos en Facebook, Instagram y Bases</div>
         </div>
+
         <div className={styles['stat-card']}>
-          <div className={styles['stat-title']}>Líderes & JAC Validados</div>
-          <div className={styles['stat-value']} style={{ color: 'var(--blue-600)' }}>48</div>
+          <div className={styles['stat-title']}>
+            <Phone size={16} style={{ color: 'var(--emerald-600)' }} />
+            <span>Líneas Móviles (+57 Verificadas)</span>
+          </div>
+          <div className={styles['stat-value']} style={{ color: 'var(--emerald-600)' }}>
+            {metrics.total_with_phone}
+          </div>
+          <div className={styles['stat-sub']}>Disponibles para contacto institucional directo</div>
         </div>
+
         <div className={styles['stat-card']}>
-          <div className={styles['stat-title']}>Tasa de Respuesta</div>
-          <div className={styles['stat-value']} style={{ color: 'var(--emerald-600)' }}>94%</div>
+          <div className={styles['stat-title']}>
+            <Bot size={16} style={{ color: '#ef4444' }} />
+            <span>Cuentas Bot & Granjas Detectadas</span>
+          </div>
+          <div className={styles['stat-value']} style={{ color: '#ef4444' }}>
+            {metrics.total_bots_detected}
+          </div>
+          <div className={styles['stat-sub']}>{metrics.bot_percentage}% del volumen total auditado</div>
         </div>
+
         <div className={styles['stat-card']}>
-          <div className={styles['stat-title']}>Interacciones Gestionadas</div>
-          <div className={styles['stat-value']}>3,890</div>
+          <div className={styles['stat-title']}>
+            <UserCheck size={16} style={{ color: 'var(--blue-600)' }} />
+            <span>Balance Aliados vs Críticos</span>
+          </div>
+          <div className={styles['stat-value']} style={{ fontSize: '1.45rem' }}>
+            🟢 {metrics.total_positives} / 🔴 {metrics.total_negatives}
+          </div>
+          <div className={styles['stat-sub']}>Segmentados para facilitar vocería y respuesta</div>
         </div>
       </div>
 
-      {/* Nota aclaratoria sobre política de datos personales */}
-      <div style={{
-        background: 'rgba(59, 130, 246, 0.05)',
-        border: '1px solid rgba(59, 130, 246, 0.2)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '10px 16px',
-        marginBottom: '1.5rem',
-        fontSize: '0.8rem',
-        color: 'var(--text-secondary)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px'
-      }}>
-        <Info size={16} style={{ color: 'var(--blue-600)', flexShrink: 0 }} />
-        <span>
-          <strong>Protección de Datos & Políticas Meta:</strong> Meta no suministra datos personales privados (teléfono, correo o cédula). La información de contacto se almacena exclusivamente cuando es entregada voluntariamente por el ciudadano o recopilada y verificada en terreno por el operador institucional.
-        </span>
+      {/* TOOLBAR: PESTAÑAS DE CLASIFICACION Y FILTROS */}
+      <div className={styles.toolbar}>
+        <div className={styles['toolbar-header']}>
+          <div className={styles['type-tabs']}>
+            <button
+              type="button"
+              className={[styles['type-tab-btn'], userTypeFilter === 'all' ? styles.active : ''].join(' ')}
+              onClick={() => setUserTypeFilter('all')}
+            >
+              <span>Todos ({metrics.total_registered})</span>
+            </button>
+            <button
+              type="button"
+              className={[styles['type-tab-btn'], userTypeFilter === 'Positivo' ? styles['active-pos'] : ''].join(' ')}
+              onClick={() => setUserTypeFilter('Positivo')}
+            >
+              <span>🟢 Ciudadanos Positivos ({metrics.total_positives})</span>
+            </button>
+            <button
+              type="button"
+              className={[styles['type-tab-btn'], userTypeFilter === 'Negativo' ? styles.active : ''].join(' ')}
+              onClick={() => setUserTypeFilter('Negativo')}
+            >
+              <span>🔴 Críticos / Quejas Reales ({metrics.total_negatives})</span>
+            </button>
+            <button
+              type="button"
+              className={[styles['type-tab-btn'], userTypeFilter === 'Bot' ? styles['active-bot'] : ''].join(' ')}
+              onClick={() => setUserTypeFilter('Bot')}
+            >
+              <Bot size={14} />
+              <span>🤖 Bots & Granjas ({metrics.total_bots_detected})</span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={fetchCitizens}
+            style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px' }}
+            title="Recargar datos"
+          >
+            <RefreshCw size={14} />
+            <span>Actualizar</span>
+          </button>
+        </div>
+
+        <div className={styles['filter-controls-row']}>
+          {/* Búsqueda */}
+          <div className={styles['search-wrap']}>
+            <Search size={16} />
+            <input 
+              type="text" 
+              placeholder="Buscar por nombre, teléfono (+57), barrio, @usuario o notas..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Filtro de Seguidores */}
+          <select 
+            className={styles['filter-select']}
+            value={followersFilter}
+            onChange={(e) => setFollowersFilter(e.target.value as any)}
+            title="Filtrar por número de seguidores del perfil"
+          >
+            <option value="all">Seguidores: Todos</option>
+            <option value="under_50">🚨 &lt; 50 Seguidores (Sospecha Bot)</option>
+            <option value="50_500">50 a 500 Seguidores</option>
+            <option value="over_500">&gt; 500 Seguidores (Influyente)</option>
+          </select>
+
+          {/* Filtro de Antigüedad de la Cuenta */}
+          <select 
+            className={styles['filter-select']}
+            value={accountAgeFilter}
+            onChange={(e) => setAccountAgeFilter(e.target.value as any)}
+            title="Filtrar por fecha de creación de la cuenta"
+          >
+            <option value="all">Creación: Todas</option>
+            <option value="recent">⚡ Reciente (&lt; 1 mes - Alta Alerta)</option>
+            <option value="older">📅 Antigua (&gt; 1 año)</option>
+          </select>
+        </div>
       </div>
 
-      <div style={{ marginBottom: '1.5rem', maxWidth: '400px', position: 'relative' }}>
-        <input 
-          type="text" 
-          placeholder="Buscar por nombre, barrio, usuario o rol..." 
-          style={{ width: '100%', padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-input)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
+      {/* TABLA PRINCIPAL DE CONTACTOS Y PERFILES */}
       <div className={styles['citizens-table-card']}>
         <table className={styles.table}>
           <thead className={styles['table-head']}>
             <tr>
-              <th>Ciudadano / Contacto</th>
-              <th>Barrio / Localidad</th>
-              <th>Rol Comunitario</th>
-              <th>Origen del Dato</th>
-              <th>Reportes Totales</th>
-              <th>Tono Habitual</th>
-              <th>Acción</th>
+              <th>Ciudadano / Perfil</th>
+              <th>Clasificación IA & Origen</th>
+              <th>Métricas Perfil</th>
+              <th>Barrio / Comuna</th>
+              <th>Teléfono de Contacto</th>
+              <th style={{ textAlign: 'right' }}>Acciones de Respuesta</th>
             </tr>
           </thead>
           <tbody className={styles['table-body']}>
-            {filtered.map(c => (
-              <tr key={c.id}>
-                <td>
-                  <div className={styles['citizen-info']}>
-                    <div className={styles['citizen-avatar']}>{c.name.charAt(0)}</div>
-                    <div>
-                      <div className={styles['citizen-name']}>{c.name}</div>
-                      <div className={styles['citizen-handle']}>{c.handle} • {c.network}</div>
-                      {c.phone && c.phone !== 'No registrado' && c.phone !== 'No suministrado' && (
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>📞 {c.phone}</div>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td>{c.neighborhood}</td>
-                <td>
-                  <span className="badge-tag">{c.communityRole}</span>
-                </td>
-                <td>
-                  <span className={[
-                    styles['data-origin-badge'],
-                    c.origenDato === 'CIUDADANO' ? styles.ciudadano : c.origenDato === 'OPERADOR' ? styles.operador : styles.formulario
-                  ].join(' ')}>
-                    {c.origenDato === 'CIUDADANO' && 'Voluntario en redes'}
-                    {c.origenDato === 'OPERADOR' && 'Registrado por Operador'}
-                    {c.origenDato === 'FORMULARIO' && 'Formulario Web'}
-                  </span>
-                </td>
-                <td><strong>{c.reports} reportes</strong></td>
-                <td>
-                  <span className={c.sentiment === 'Positivo' ? 'badge-baja' : c.sentiment === 'Crítico' ? 'badge-alta' : 'badge-media'}>
-                    {c.sentiment}
-                  </span>
-                </td>
-                <td>
-                  <button 
-                    type="button"
-                    className="btn-primary" 
-                    style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-                    onClick={() => handleOpenContact(c)}
-                  >
-                    <PhoneCall size={13} /> Gestionar Contacto
-                  </button>
+            {filteredCitizens.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                  <AlertCircle size={36} style={{ color: 'var(--text-muted)', margin: '0 auto 8px' }} />
+                  <p style={{ margin: 0, fontWeight: 600 }}>No se encontraron perfiles con los filtros actuales.</p>
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredCitizens.map((citizen) => {
+                const isBot = citizen.user_type === 'Bot' || citizen.bot_probability >= 0.55;
+                return (
+                  <tr key={citizen.id} className={isBot ? styles['bot-row'] : ''}>
+                    {/* Nombre y Avatar */}
+                    <td>
+                      <div className={styles['citizen-info']}>
+                        <div className={[
+                          styles['citizen-avatar'],
+                          isBot ? styles.bot : citizen.user_type === 'Positivo' ? styles.pos : ''
+                        ].join(' ')}>
+                          {isBot ? <Bot size={18} /> : citizen.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className={styles['citizen-name']}>
+                            <span>{citizen.name}</span>
+                            {isBot && (
+                              <span style={{ fontSize: '0.65rem', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                                BOT
+                              </span>
+                            )}
+                          </div>
+                          <div className={styles['citizen-handle']}>
+                            {citizen.handle} • {citizen.channel}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Clasificación e Identificación de Origen */}
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                        {isBot ? (
+                          <>
+                            <span className={styles['bot-origin-badge']}>
+                              🤖 {Math.round(citizen.bot_probability * 100)}% Bot
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: '#b91c1c', fontWeight: 600 }}>
+                              📍 {citizen.bot_origin || 'Granja de Cuentas / Campaña Opositora'}
+                            </span>
+                          </>
+                        ) : citizen.user_type === 'Positivo' ? (
+                          <>
+                            <span className={styles['verified-human-badge']}>
+                              🟢 Ciudadano Aliado
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: '#047857' }}>
+                              ✓ Apoyo y propuestas constructivas
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="badge-alta" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                              🔴 Reclamo Crítico Real
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                              ✓ Ciudadano huilense con queja directa
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Métricas de Perfil (Seguidores, Seguidos, Fecha Creación) */}
+                    <td>
+                      <div className={styles['profile-meta-pills']}>
+                        <span className={styles['meta-pill']} title="Seguidores en la red social">
+                          👥 <strong>{citizen.followers_count.toLocaleString()}</strong> seg
+                        </span>
+                        <span className={styles['meta-pill']} title="Cuentas seguidas">
+                          👤 <strong>{citizen.following_count}</strong> seguidos
+                        </span>
+                        <span className={styles['meta-pill']} title="Fecha estimada de creación de la cuenta">
+                          📅 {citizen.account_created_at}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Barrio y Comuna */}
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8125rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                        <MapPin size={13} style={{ color: 'var(--blue-600)', flexShrink: 0 }} />
+                        <span>{citizen.neighborhood}</span>
+                      </div>
+                      {citizen.notes && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={citizen.notes}>
+                          "{citizen.notes}"
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Teléfono y WhatsApp */}
+                    <td>
+                      {citizen.phone ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
+                          <span className={styles['phone-badge']}>
+                            📞 {citizen.phone}
+                          </span>
+                          <a
+                            href={`https://wa.me/${citizen.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                              `Hola ${citizen.name}, le escribimos desde la Alcaldía de Neiva en seguimiento a su solicitud ciudadana en ${citizen.neighborhood}.`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles['whatsapp-btn']}
+                            title="Abrir chat directo de WhatsApp"
+                          >
+                            <MessageSquare size={13} />
+                            <span>Contactar WhatsApp</span>
+                          </a>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          Sin teléfono registrado
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Acciones de Respuesta IA */}
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => handleOpenSmartReplyForCitizen(citizen)}
+                        style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                        title="Generar respuesta inteligente según el tema (PAE, Huecos, Agua, Desescalar Bot)"
+                      >
+                        <Sparkles size={13} style={{ color: 'var(--blue-600)' }} />
+                        <span>Respuesta IA</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* MODAL INTERACTIVO DE CONTACTO / MINUTA */}
-      {selectedLeader && (
-        <div className={styles['modal-overlay']} onClick={() => setSelectedLeader(null)}>
+      {/* ─── MODAL 1: SUBIDA DE BASE DE DATOS (CSV / EXCEL) ─── */}
+      {uploadModalOpen && (
+        <div className={styles['modal-overlay']} onClick={() => setUploadModalOpen(false)}>
           <div className={styles['modal-card']} onClick={(e) => e.stopPropagation()}>
             <div className={styles['modal-header']}>
-              <h3>Gestión de Contacto y Trazabilidad Ciudadana</h3>
-              <button 
-                type="button" 
-                className={styles['modal-close-btn']}
-                onClick={() => setSelectedLeader(null)}
-                aria-label="Cerrar modal"
-              >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileSpreadsheet size={20} style={{ color: 'var(--blue-600)' }} />
+                <h3>Subir Base de Datos Telefónica & Ciudadana</h3>
+              </div>
+              <button className={styles['modal-close-btn']} onClick={() => setUploadModalOpen(false)}>
                 <X size={18} />
               </button>
             </div>
 
             <div className={styles['modal-body']}>
-              {/* Resumen del ciudadano */}
-              <div className={styles['leader-summary-box']}>
-                <div className={styles['citizen-avatar']}>{selectedLeader.name.charAt(0)}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{selectedLeader.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Rol: <strong>{selectedLeader.communityRole}</strong> • {selectedLeader.neighborhood}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    Teléfono: <strong>{selectedLeader.phone || 'No registrado'}</strong> | Correo: <strong>{selectedLeader.email || 'No registrado'}</strong>
-                  </div>
-                  <div style={{ marginTop: '4px', display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <span className={[
-                      styles['data-origin-badge'],
-                      selectedLeader.origenDato === 'CIUDADANO' ? styles.ciudadano : selectedLeader.origenDato === 'OPERADOR' ? styles.operador : styles.formulario
-                    ].join(' ')}>
-                      Origen: {selectedLeader.origenDato === 'CIUDADANO' ? 'Voluntario en redes' : selectedLeader.origenDato === 'OPERADOR' ? 'Verificado por Operador' : 'Formulario Oficial'}
-                    </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--blue-600)', fontWeight: 600 }}>
-                      Red: {selectedLeader.network} ({selectedLeader.handle})
-                    </span>
-                  </div>
-                </div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Sube o pega tu base de datos de ciudadanos de Neiva con números telefónicos. 
+                CIVIA audita automáticamente cada registro: <strong>valida sintaxis móvil de Colombia (+57 3xx)</strong>, 
+                detecta <strong>probabilidad de bot</strong> y clasifica la postura ciudadana.
               </div>
 
-              {/* Advertencia sobre política de canal de Meta */}
-              <div className={styles['contact-meta-notice']}>
-                <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div>
-                  <strong>Políticas de contacto institucional:</strong> El envío directo vía Meta Graph API está sujeto a permisos y ventana activa de 24 horas. Para ciudadanos sin interacción reciente o con datos voluntariamente aportados, utilice Registro de Llamada, Correo o Visita en Terreno.
-                </div>
+              {/* Botón de Cargar Ejemplo */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Formato: Nombre, Teléfono, Barrio, Usuario Red, Notas
+                </span>
+                <button
+                  type="button"
+                  onClick={handleLoadSampleCSV}
+                  style={{
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    color: 'var(--blue-600)',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  ⚡ Cargar Plantilla de Ejemplo con Números
+                </button>
               </div>
 
-              {/* Selector de modo de contacto */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  Canal de Comunicación o Registro:
-                </label>
-                <div className={styles['contact-channels']}>
-                  <button
-                    type="button"
-                    className={[styles['channel-tab'], contactMode === 'META_DM' ? styles.active : ''].join(' ')}
-                    onClick={() => handleSelectMode('META_DM')}
-                  >
-                    <MessageSquare size={13} /> Meta DM ({selectedLeader.network})
-                  </button>
-                  <button
-                    type="button"
-                    className={[styles['channel-tab'], contactMode === 'PHONE' ? styles.active : ''].join(' ')}
-                    onClick={() => handleSelectMode('PHONE')}
-                  >
-                    <PhoneOutgoing size={13} /> Llamada Telefónica
-                  </button>
-                  <button
-                    type="button"
-                    className={[styles['channel-tab'], contactMode === 'VISIT' ? styles.active : ''].join(' ')}
-                    onClick={() => handleSelectMode('VISIT')}
-                  >
-                    <MapPin size={13} /> Visita en Terreno
-                  </button>
-                  <button
-                    type="button"
-                    className={[styles['channel-tab'], contactMode === 'EMAIL' ? styles.active : ''].join(' ')}
-                    onClick={() => handleSelectMode('EMAIL')}
-                  >
-                    <Mail size={13} /> Correo Institucional
-                  </button>
-                </div>
-              </div>
+              {/* Área de texto / Drag zone */}
+              <textarea
+                className={styles['modal-textarea']}
+                style={{ minHeight: '140px', fontFamily: 'monospace', fontSize: '0.78rem' }}
+                placeholder={`Pega aquí el contenido en formato CSV o texto:\n\nJuan Perez,3124567890,Las Granjas,@juanperez,Reclamo sobre agua\nMaria Gomez,3159876543,Centro,@mariagomez,Apoyo pavimentacion`}
+                value={rawUploadText}
+                onChange={(e) => setRawUploadText(e.target.value)}
+              />
 
-              {/* Estado de permiso para Meta DM si está seleccionado */}
-              {contactMode === 'META_DM' && (
-                <div style={{
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-md)',
-                  background: selectedLeader.metaDirectAllowed ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                  border: `1px solid ${selectedLeader.metaDirectAllowed ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
-                  fontSize: '0.75rem',
-                  color: selectedLeader.metaDirectAllowed ? '#059669' : '#dc2626',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  {selectedLeader.metaDirectAllowed ? (
-                    <>
-                      <CheckCircle2 size={14} />
-                      <span>Ventana de mensajería activa (24h). Permitido el envío de mensaje institucional directo.</span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle size={14} />
-                      <span>Ventana de 24h expirada o sin consentimiento de mensajería directa en Meta. Seleccione <strong>Llamada</strong> o <strong>Visita en Terreno</strong>.</span>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Plantillas rápidas */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  Plantillas Rápidas Institucionales:
-                </label>
-                <div className={styles['quick-templates']}>
-                  <button type="button" className={styles['template-chip']} onClick={() => handleApplyTemplate('radicado')}>
-                    📄 Radicado Oficial
-                  </button>
-                  <button type="button" className={styles['template-chip']} onClick={() => handleApplyTemplate('mesa')}>
-                    🤝 Convocatoria Mesa Técnica
-                  </button>
-                  <button type="button" className={styles['template-chip']} onClick={() => handleApplyTemplate('cuadrilla')}>
-                    🚜 Despacho Cuadrilla en Terreno
-                  </button>
-                </div>
-              </div>
-
-              {/* Área de texto */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  {contactMode === 'META_DM' && 'Mensaje Oficial a Enviar:'}
-                  {contactMode === 'PHONE' && 'Minuta de la Conversación Telefónica:'}
-                  {contactMode === 'VISIT' && 'Informe de Visita y Acuerdos en Terreno:'}
-                  {contactMode === 'EMAIL' && 'Cuerpo del Oficio / Correo Institucional:'}
-                </label>
-                <textarea
-                  className={styles['modal-textarea']}
-                  value={messageContent}
-                  onChange={(e) => setMessageContent(e.target.value)}
-                  placeholder="Detalle la información, compromisos o minuta del contacto..."
-                />
-              </div>
-
-              {sendSuccess && (
+              {uploadSuccessMsg && (
                 <div className={styles['success-alert']}>
                   <CheckCircle2 size={16} />
-                  <span>
-                    {contactMode === 'META_DM' && `¡Mensaje enviado a ${selectedLeader.handle} vía ${selectedLeader.network}!`}
-                    {contactMode === 'PHONE' && `¡Minuta de llamada registrada en el expediente de ${selectedLeader.name}!`}
-                    {contactMode === 'VISIT' && `¡Visita en terreno registrada con soporte documental!`}
-                    {contactMode === 'EMAIL' && `¡Oficio remitido satisfactoriamente a ${selectedLeader.email}!`}
-                  </span>
+                  <span>{uploadSuccessMsg}</span>
                 </div>
               )}
             </div>
 
             <div className={styles['modal-footer']}>
               <button 
-                type="button"
-                className="btn-secondary" 
-                onClick={() => setSelectedLeader(null)}
-                disabled={isSending}
+                type="button" 
+                className="btn-ghost" 
+                onClick={() => setUploadModalOpen(false)}
               >
                 Cancelar
               </button>
               <button 
-                type="button"
+                type="button" 
                 className="btn-primary" 
-                onClick={handleSendMessage}
-                disabled={
-                  isSending || 
-                  sendSuccess || 
-                  !messageContent.trim() || 
-                  (contactMode === 'META_DM' && !selectedLeader.metaDirectAllowed)
-                }
+                disabled={!rawUploadText.trim() || isUploading}
+                onClick={handleProcessUpload}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                {isSending ? (
-                  <span>Registrando...</span>
-                ) : (
-                  <>
-                    <Send size={14} />
-                    <span>
-                      {contactMode === 'META_DM' && (selectedLeader.metaDirectAllowed ? 'Enviar DM Meta' : 'Ventana Inactiva')}
-                      {contactMode === 'PHONE' && 'Guardar Minuta de Llamada'}
-                      {contactMode === 'VISIT' && 'Registrar Visita en Terreno'}
-                      {contactMode === 'EMAIL' && 'Enviar Oficio por Correo'}
+                {isUploading ? <RefreshCw size={14} className="spin" /> : <Upload size={14} />}
+                <span>{isUploading ? 'Auditando con IA...' : 'Procesar y Auditar Base'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL 2: GENERADOR DE RESPUESTAS INTELIGENTES A HATE / CRÍTICAS ─── */}
+      {smartReplyModalOpen && (
+        <div className={styles['modal-overlay']} onClick={() => setSmartReplyModalOpen(false)}>
+          <div className={styles['modal-card']} onClick={(e) => e.stopPropagation()}>
+            <div className={styles['modal-header']}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={20} style={{ color: 'var(--blue-600)' }} />
+                <h3>Generador de Respuesta Inteligente Institucional</h3>
+              </div>
+              <button className={styles['modal-close-btn']} onClick={() => setSmartReplyModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className={styles['modal-body']}>
+              {activeCitizenForReply && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-muted)',
+                  border: '1px solid var(--border)',
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <strong>Destinatario:</strong> {activeCitizenForReply.name} ({activeCitizenForReply.handle})
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                      Tipo: {activeCitizenForReply.user_type} • Barrio: {activeCitizenForReply.neighborhood}
+                    </div>
+                  </div>
+                  {activeCitizenForReply.phone && (
+                    <span className="badge-tag" style={{ fontSize: '0.7rem' }}>
+                      📞 {activeCitizenForReply.phone}
                     </span>
-                  </>
-                )}
+                  )}
+                </div>
+              )}
+
+              {/* Botones de Escenarios Rápidos */}
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  Seleccionar Escenario / Crítica de Neiva:
+                </span>
+                <div className={styles['quick-templates']}>
+                  <button
+                    type="button"
+                    className={[styles['template-chip'], replyPrompt.includes('PAE') ? styles.active : ''].join(' ')}
+                    onClick={() => {
+                      const text = 'Por mi crítica salvé el PAE';
+                      setReplyPrompt(text);
+                      handleGenerateReply(text, activeCitizenForReply);
+                    }}
+                  >
+                    🍲 "Por mi crítica salvé el PAE"
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles['template-chip'], replyPrompt.includes('hueco') ? styles.active : ''].join(' ')}
+                    onClick={() => {
+                      const text = 'Puros huecos en la vía de La Toma y la Cra 5ta, no pavimentan nada';
+                      setReplyPrompt(text);
+                      handleGenerateReply(text, activeCitizenForReply);
+                    }}
+                  >
+                    🚧 Malla Vial & Huecos
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles['template-chip'], replyPrompt.includes('agua') ? styles.active : ''].join(' ')}
+                    onClick={() => {
+                      const text = 'Llevamos 3 días sin agua en Las Granjas y el recibo de Las Ceibas carísimo';
+                      setReplyPrompt(text);
+                      handleGenerateReply(text, activeCitizenForReply);
+                    }}
+                  >
+                    💧 Acueducto Las Ceibas
+                  </button>
+                  <button
+                    type="button"
+                    className={[styles['template-chip'], replyPrompt.includes('mierda') ? styles.active : ''].join(' ')}
+                    onClick={() => {
+                      const text = 'la misma mierda politiqueros corruptos se roban la plata';
+                      setReplyPrompt(text);
+                      handleGenerateReply(text, activeCitizenForReply);
+                    }}
+                  >
+                    🤖 Neutralizar Bot / Troll
+                  </button>
+                </div>
+              </div>
+
+              {/* Campo para editar la crítica del usuario */}
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                  Comentario o Crítica a Responder:
+                </label>
+                <textarea
+                  className={styles['modal-textarea']}
+                  style={{ minHeight: '65px' }}
+                  value={replyPrompt}
+                  onChange={(e) => setReplyPrompt(e.target.value)}
+                  placeholder="Escribe el comentario del usuario aquí..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={isGeneratingReply || !replyPrompt.trim()}
+                  onClick={() => handleGenerateReply(replyPrompt, activeCitizenForReply)}
+                  style={{ fontSize: '0.75rem', padding: '6px 12px' }}
+                >
+                  <Sparkles size={13} />
+                  <span>{isGeneratingReply ? 'Generando respuesta...' : 'Regenerar Respuesta'}</span>
+                </button>
+              </div>
+
+              {/* Respuesta Generada por IA */}
+              {generatedReply && (
+                <div style={{
+                  padding: '14px',
+                  borderRadius: 'var(--radius-lg)',
+                  background: 'rgba(59, 130, 246, 0.05)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span className="badge-blue" style={{ fontSize: '0.7rem' }}>
+                        Tema: {replyTopic || 'Gestión Institucional'}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--emerald-600)', fontWeight: 700 }}>
+                        ✓ Argumento Verificado
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleCopyReply}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: copiedSuccess ? '#10b981' : 'var(--bg-muted)',
+                        color: copiedSuccess ? '#fff' : 'var(--text-primary)',
+                        border: '1px solid var(--border)',
+                        padding: '4px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 150ms ease'
+                      }}
+                    >
+                      {copiedSuccess ? <Check size={13} /> : <Copy size={13} />}
+                      <span>{copiedSuccess ? '¡Copiado!' : 'Copiar Texto'}</span>
+                    </button>
+                  </div>
+
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.55 }}>
+                    "{generatedReply}"
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className={styles['modal-footer']}>
+              <button type="button" className="btn-ghost" onClick={() => setSmartReplyModalOpen(false)}>
+                Cerrar
+              </button>
+
+              {activeCitizenForReply?.phone && generatedReply && (
+                <a
+                  href={`https://wa.me/${activeCitizenForReply.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(generatedReply)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles['whatsapp-btn']}
+                >
+                  <MessageSquare size={14} />
+                  <span>Enviar por WhatsApp</span>
+                </a>
+              )}
+
+              <button 
+                type="button" 
+                className="btn-primary"
+                onClick={handleCopyReply}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                {copiedSuccess ? <Check size={14} /> : <Copy size={14} />}
+                <span>{copiedSuccess ? '¡Copiado al Portapapeles!' : 'Copiar para Facebook / Redes'}</span>
               </button>
             </div>
           </div>

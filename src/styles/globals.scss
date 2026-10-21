@@ -41,6 +41,14 @@
   background: var(--bg-app);
   transition: background 200ms ease;
   box-sizing: border-box;
+
+  @media (max-width: 1440px) {
+    padding: 1.25rem 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 }
 
 .page-header {

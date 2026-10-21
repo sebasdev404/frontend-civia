@@ -5,7 +5,7 @@ import Link from 'next/link';
 import styles from './map.module.scss';
 import ThermometerMap, { MapIncident } from '@/components/map/ThermometerMap';
 import { 
-  Layers, Search, Filter, AlertCircle, ArrowUpRight, 
+  Layers, Search, TrendingUp, Filter, AlertCircle, ArrowUpRight, 
   RotateCcw, Radio, X, MapPin, MessageSquare, CheckCircle2 
 } from 'lucide-react';
 import { API } from '@/lib/api/client';
@@ -166,6 +166,33 @@ export default function MapPage() {
   const [selectedZone, setSelectedZone] = useState<string>('all');
   const [selectedIncident, setSelectedIncident] = useState<MapIncident | null>(null);
   const [isLive, setIsLive] = useState(true);
+  const [topBarrios, setTopBarrios] = useState<any[]>([]);
+  const [selectedBarrio, setSelectedBarrio] = useState<string | null>(null);
+  const [customCenterZoom, setCustomCenterZoom] = useState<{ center: [number, number]; zoom: number } | null>(null);
+
+  // Carga del ranking de barrios con mayor problematica
+  useEffect(() => {
+    async function fetchTopBarrios() {
+      try {
+        const res = await fetch('http://localhost:8000/api/v1/analytics/top-barrios');
+        if (res.ok) {
+          const data = await res.json();
+          setTopBarrios(data);
+        }
+      } catch (e) {
+        console.warn('Usando barrios locales:', e);
+      }
+    }
+    fetchTopBarrios();
+  }, []);
+
+  const handleSelectBarrio = (barrio: any) => {
+    setSelectedBarrio(barrio.neighborhood);
+    setCustomCenterZoom({ center: [barrio.lat, barrio.lng], zoom: 15 });
+    setSearch(barrio.neighborhood);
+    const match = incidents.find(i => i.neighborhood.toLowerCase().includes(barrio.neighborhood.toLowerCase()));
+    if (match) setSelectedIncident(match);
+  };
 
   // Carga inicial en vivo desde backend PostgreSQL / API
   useEffect(() => {
@@ -266,6 +293,8 @@ export default function MapPage() {
     setSelectedStatus('all');
     setSelectedZone('all');
     setSelectedIncident(null);
+    setSelectedBarrio(null);
+    setCustomCenterZoom(null);
   };
 
   const currentZoneSettings = ZONE_COORDINATES[selectedZone] || ZONE_COORDINATES.all;
@@ -304,6 +333,62 @@ export default function MapPage() {
             >
               + Simular Alerta
             </button>
+          </div>
+
+          {/* ─── RANKING DE BARRIOS CON MAYOR PROBLEMÁTICA (HEATMAP) ─── */}
+          <div className={styles['top-barrios-box']}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
+                <TrendingUp size={15} style={{ color: '#ef4444' }} />
+                <span>Barrios con Mayor Problemática</span>
+              </div>
+              <span className="badge-alta" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
+                IA Heat
+              </span>
+            </div>
+            <p style={{ margin: '0 0 6px', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+              Haz clic en un barrio para enfocarlo en el mapa:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxHeight: '180px', overflowY: 'auto' }}>
+              {(topBarrios.length > 0 ? topBarrios : [
+                { rank: 1, neighborhood: 'Las Granjas', commune: 'Comuna 2', total_issues: 74, top_category: 'Servicios Públicos', lat: 2.9415, lng: -75.2862 },
+                { rank: 2, neighborhood: 'Canaima', commune: 'Comuna 6', total_issues: 68, top_category: 'Servicios Públicos', lat: 2.9062, lng: -75.2848 },
+                { rank: 3, neighborhood: 'Centro - Av. La Toma', commune: 'Comuna 3', total_issues: 53, top_category: 'Infraestructura', lat: 2.9335, lng: -75.2840 },
+                { rank: 4, neighborhood: 'El Malecón - La Gaitana', commune: 'Comuna 4', total_issues: 48, top_category: 'Seguridad', lat: 2.9285, lng: -75.2935 },
+                { rank: 5, neighborhood: 'Las Palmas', commune: 'Comuna 10', total_issues: 42, top_category: 'Seguridad', lat: 2.9320, lng: -75.2650 },
+                { rank: 6, neighborhood: 'Chicalá', commune: 'Comuna 1', total_issues: 39, top_category: 'Infraestructura', lat: 2.9490, lng: -75.2910 }
+              ]).slice(0, 6).map((b, idx) => (
+                <button
+                  key={b.neighborhood}
+                  type="button"
+                  className={[styles['barrio-item-btn'], selectedBarrio === b.neighborhood ? styles.active : ''].join(' ')}
+                  onClick={() => handleSelectBarrio(b)}
+                  title={`Enfocar ${b.neighborhood} (${b.top_category})`}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.72rem', color: idx < 3 ? '#ef4444' : 'var(--text-muted)' }}>
+                      #{idx + 1}
+                    </span>
+                    <div style={{ minWidth: 0, textAlign: 'left' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.78rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {b.neighborhood}
+                      </div>
+                      <div style={{ fontSize: '0.67rem', color: 'var(--text-muted)' }}>
+                        {b.top_category} • {b.commune}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '6px' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.78rem', color: '#ef4444' }}>
+                      {b.total_issues}
+                    </span>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>casos</div>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* 1. Búsqueda por texto */}
@@ -457,8 +542,8 @@ export default function MapPage() {
             incidents={filteredIncidents}
             selectedIncident={selectedIncident}
             onSelectIncident={(inc) => setSelectedIncident(inc)}
-            center={currentZoneSettings.center}
-            zoom={currentZoneSettings.zoom}
+            center={customCenterZoom?.center || currentZoneSettings.center}
+            zoom={customCenterZoom?.zoom || currentZoneSettings.zoom}
           />
 
           {/* Tarjeta flotante de incidente seleccionado */}
