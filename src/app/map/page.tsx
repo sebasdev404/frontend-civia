@@ -187,10 +187,33 @@ export default function MapPage() {
   }, []);
 
   const handleSelectBarrio = (barrio: any) => {
+    if (selectedBarrio === barrio.neighborhood) {
+      setSelectedBarrio(null);
+      setSelectedZone('all');
+      setSearch('');
+      setCustomCenterZoom({ center: [2.9273, -75.2819], zoom: 13 });
+      setSelectedIncident(null);
+      return;
+    }
+
     setSelectedBarrio(barrio.neighborhood);
+    const targetZone = barrio.zone_key || (
+      barrio.commune?.toLowerCase().includes('comuna 2') ? 'comuna-2' :
+      barrio.commune?.toLowerCase().includes('comuna 6') ? 'comuna-6' :
+      barrio.commune?.toLowerCase().includes('comuna 3') ? 'comuna-3' :
+      barrio.commune?.toLowerCase().includes('comuna 4') ? 'comuna-4' :
+      barrio.commune?.toLowerCase().includes('comuna 10') ? 'comuna-10' :
+      barrio.commune?.toLowerCase().includes('comuna 1') ? 'comuna-1' : 'all'
+    );
+
+    setSelectedZone(targetZone);
+    setSearch('');
     setCustomCenterZoom({ center: [barrio.lat, barrio.lng], zoom: 15 });
-    setSearch(barrio.neighborhood);
-    const match = incidents.find(i => i.neighborhood.toLowerCase().includes(barrio.neighborhood.toLowerCase()));
+    
+    const match = incidents.find(i => 
+      (targetZone !== 'all' && i.zone === targetZone) ||
+      i.neighborhood.toLowerCase().includes(barrio.neighborhood.toLowerCase())
+    );
     if (match) setSelectedIncident(match);
   };
 
@@ -320,22 +343,7 @@ export default function MapPage() {
             </button>
           </div>
 
-          {/* Banner de Monitoreo Activo / Tiempo Real */}
-          <div className={styles['live-banner']}>
-            <div className={styles['live-indicator']}>
-              <div className={styles['pulse-dot']} />
-              <span>{isLive ? 'Monitoreo En Vivo' : 'Pausado'}</span>
-            </div>
-            <button 
-              className={styles['sim-button']} 
-              onClick={handleSimulateAlert}
-              title="Simula una nueva queja captada por la IA"
-            >
-              + Simular Alerta
-            </button>
-          </div>
-
-          {/* ─── RANKING DE BARRIOS CON MAYOR PROBLEMÁTICA (HEATMAP) ─── */}
+          {/* ─── RANKING Y FILTRO DE BARRIOS CON MAYOR PROBLEMÁTICA (HEATMAP) ─── */}
           <div className={styles['top-barrios-box']}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
@@ -346,9 +354,24 @@ export default function MapPage() {
                 IA Heat
               </span>
             </div>
-            <p style={{ margin: '0 0 6px', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              Haz clic en un barrio para enfocarlo en el mapa:
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 6px' }}>
+              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                {selectedBarrio ? `Filtro activo: ${selectedBarrio}` : 'Haz clic en un barrio para filtrar sus casos:'}
+              </p>
+              {selectedBarrio && (
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', color: 'var(--blue-500)', fontSize: '0.68rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                  onClick={() => {
+                    setSelectedBarrio(null);
+                    setSelectedZone('all');
+                    setCustomCenterZoom({ center: [2.9273, -75.2819], zoom: 13 });
+                  }}
+                >
+                  Ver toda la ciudad
+                </button>
+              )}
+            </div>
 
             <div className={styles['barrios-scroll-list']}>
               {(topBarrios.length > 0 ? topBarrios : [
