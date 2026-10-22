@@ -348,6 +348,7 @@ export default function CasesPage() {
   const [casesList, setCasesList] = useState<any[]>(MOCK_CASES);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+  const [lastAutoSync, setLastAutoSync] = useState<string>('En tiempo real');
   const [autoPilotActive, setAutoPilotActive] = useState<boolean>(true);
   const [drawerCommentFilter, setDrawerCommentFilter] = useState<'all' | 'cases_only' | 'general_only' | 'positive_only' | 'critics_only' | 'bots_only'>('all');
   const [activeSmartReplyCommentId, setActiveSmartReplyCommentId] = useState<string | null>(null);
@@ -582,59 +583,83 @@ export default function CasesPage() {
     }, 2800);
   };
 
+  const refreshCasesAndPosts = React.useCallback(async (silent = false) => {
+    try {
+      const [casesRes, postsRes, monthsRes] = await Promise.allSettled([
+        API.cases.getAll(),
+        API.meta.getPosts(300),
+        API.meta.getMonths()
+      ]);
+
+      if (casesRes.status === 'fulfilled' && Array.isArray(casesRes.value) && casesRes.value.length > 0) {
+        const formatted = casesRes.value.map((item: any) => ({
+          id: item.id,
+          institutional_radicado: item.institutional_radicado || `RAD-INF-2026-${item.id.replace(/\D/g, '').slice(-4) || '0042'}`,
+          source: item.source,
+          author: item.author,
+          priority: item.priority,
+          title: item.title,
+          content: item.content,
+          category: item.category,
+          sentiment: item.sentiment,
+          location: item.location,
+          dateTime: item.date_time || item.dateTime,
+          mediaType: item.media_type || item.mediaType || 'none',
+          imageUrl: item.image_url || item.imageUrl,
+          internal_notes: item.internal_notes,
+          impact_if_solved: item.impact_if_solved,
+          impact_if_ignored: item.impact_if_ignored,
+          status: item.status || 'Pendiente',
+          assigned_department: item.assigned_department,
+          assigned_to: item.assigned_to,
+          priority_action: item.priority_action || false,
+          comments_count: item.comments_count ? parseInt(item.comments_count, 10) : 1,
+        }));
+        setCasesList(formatted);
+      }
+
+      if (postsRes.status === 'fulfilled' && Array.isArray(postsRes.value)) {
+        setPostsList(postsRes.value);
+      }
+
+      if (monthsRes.status === 'fulfilled' && Array.isArray(monthsRes.value)) {
+        setMonthsList(monthsRes.value);
+      }
+
+      const now = new Date();
+      setLastAutoSync(now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    } catch (err) {
+      console.warn('Backend offline o usando datos locales:', err);
+    } finally {
+      setLoadingPosts(false);
+    }
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
-    async function loadData() {
-      try {
-        const [casesRes, postsRes, monthsRes] = await Promise.allSettled([
-          API.cases.getAll(),
-          API.meta.getPosts(300),
-          API.meta.getMonths()
-        ]);
+    refreshCasesAndPosts(false);
 
-        if (isMounted && casesRes.status === 'fulfilled' && Array.isArray(casesRes.value) && casesRes.value.length > 0) {
-          const formatted = casesRes.value.map((item: any) => ({
-            id: item.id,
-            institutional_radicado: item.institutional_radicado || `RAD-INF-2026-${item.id.replace(/\D/g, '').slice(-4) || '0042'}`,
-            source: item.source,
-            author: item.author,
-            priority: item.priority,
-            title: item.title,
-            content: item.content,
-            category: item.category,
-            sentiment: item.sentiment,
-            location: item.location,
-            dateTime: item.date_time || item.dateTime,
-            mediaType: item.media_type || item.mediaType || 'none',
-            imageUrl: item.image_url || item.imageUrl,
-            internal_notes: item.internal_notes,
-            impact_if_solved: item.impact_if_solved,
-            impact_if_ignored: item.impact_if_ignored,
-            status: item.status || 'Pendiente',
-            assigned_department: item.assigned_department,
-            assigned_to: item.assigned_to,
-            priority_action: item.priority_action || false,
-            comments_count: item.comments_count ? parseInt(item.comments_count, 10) : 1,
-          }));
-          setCasesList(formatted);
-        }
-
-        if (isMounted && postsRes.status === 'fulfilled' && Array.isArray(postsRes.value)) {
-          setPostsList(postsRes.value);
-        }
-
-        if (isMounted && monthsRes.status === 'fulfilled' && Array.isArray(monthsRes.value)) {
-          setMonthsList(monthsRes.value);
-        }
-      } catch (err) {
-        console.warn('Backend offline o usando datos locales:', err);
-      } finally {
-        if (isMounted) setLoadingPosts(false);
+    // Auto-actualización periódica en vivo cada 45 segundos
+    const pollInterval = setInterval(() => {
+      if (isMounted) {
+        refreshCasesAndPosts(true);
       }
-    }
-    loadData();
-    return () => { isMounted = false; };
-  }, []);
+    }, 45000);
+
+    // Actualizar inmediatamente al volver a enfocar la pestaña del navegador
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && isMounted) {
+        refreshCasesAndPosts(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [refreshCasesAndPosts]);
 
   const filteredPosts = useMemo(() => {
     return postsList.filter((p: any) => {
@@ -812,6 +837,9 @@ export default function CasesPage() {
             <span style={{ fontWeight: 600 }}>Escucha activa multicanal:</span>
             <span style={{ background: '#1877f2', color: '#fff', padding: '2px 7px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>Facebook</span>
             <span style={{ background: 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)', color: '#fff', padding: '2px 7px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>Instagram @johansteed_</span>
+            <span className="badge-tag" style={{ background: 'rgba(16, 185, 129, 0.12)', color: 'var(--emerald-600)', border: '1px solid rgba(16, 185, 129, 0.25)', fontSize: '0.68rem', fontWeight: 600 }}>
+              🟢 Auto-Sync en Vivo (cada 45s) • {lastAutoSync}
+            </span>
           </div>
         </div>
       </div>
