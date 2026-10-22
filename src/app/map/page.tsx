@@ -260,23 +260,23 @@ export default function MapPage() {
     };
   }, [incidents]);
 
-  // Simulación en tiempo real: Inyectar un incidente dinámico detectado por IA
+  // Simulación en tiempo real: Inyectar un reporte ciudadano detectado por IA desde Meta
   const handleSimulateAlert = () => {
     const newId = `CASO-00${incidents.length + 1}`;
     const newAlert: MapIncident = {
       id: newId,
-      lat: 2.9273 + (Math.random() - 0.5) * 0.03,
-      lng: -75.2819 + (Math.random() - 0.5) * 0.03,
-      title: '🚨 Fuga de gas y fuerte olor en microcentro',
-      description: 'Reporte ciudadano urgente desde Twitter y WhatsApp: olor a gas en Carrera 5ta con Calle 10. Evacuación preventiva.',
-      category: 'Servicios Públicos',
+      lat: 2.9050 + (Math.random() - 0.5) * 0.015,
+      lng: -75.2850 + (Math.random() - 0.5) * 0.015,
+      title: '🚨 Daño crítico en malla vial y huecos profundos',
+      description: 'Reporte ciudadano detectado por IA en comentarios de la publicación de Instagram (@johansteed_): Cráter en la vía principal de El Limonar (Comuna 6).',
+      category: 'Infraestructura',
       priority: 'Alta',
-      sentiment: 'Alerta',
-      source: 'WhatsApp',
-      neighborhood: 'Microcentro - Carrera 5ta',
-      zone: 'comuna-4',
+      sentiment: 'Indignación',
+      source: 'Instagram',
+      neighborhood: 'El Limonar (Comuna 6)',
+      zone: 'comuna-6',
       status: 'Pendiente',
-      reportsCount: 43,
+      reportsCount: 28,
       dateTime: 'Justo ahora (En Vivo)',
       isNew: true,
     };
@@ -358,7 +358,7 @@ export default function MapPage() {
                 { rank: 4, neighborhood: 'El Malecón - La Gaitana', commune: 'Comuna 4', total_issues: 48, top_category: 'Seguridad', lat: 2.9285, lng: -75.2935 },
                 { rank: 5, neighborhood: 'Las Palmas', commune: 'Comuna 10', total_issues: 42, top_category: 'Seguridad', lat: 2.9320, lng: -75.2650 },
                 { rank: 6, neighborhood: 'Chicalá', commune: 'Comuna 1', total_issues: 39, top_category: 'Infraestructura', lat: 2.9490, lng: -75.2910 }
-              ]).slice(0, 6).map((b, idx) => (
+              ]).slice(0, 5).map((b, idx) => (
                 <button
                   key={b.neighborhood}
                   type="button"

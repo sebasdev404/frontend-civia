@@ -395,6 +395,7 @@
 // ─── Ranking de Barrios con Mayor Problemática ──────────────
 .top-barrios-box {
   width: 100%;
+  box-sizing: border-box;
   padding: 12px 14px;
   background: var(--bg-muted);
   border: 1px solid var(--border);
@@ -402,34 +403,16 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow: hidden;
 }
 
 .barrios-scroll-list {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  max-height: 185px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 4px;
+  width: 100%;
   box-sizing: border-box;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
-
-  &::-webkit-scrollbar {
-    width: 5px;
-    height: 0px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.35);
-    border-radius: 4px;
-    &:hover {
-      background: rgba(148, 163, 184, 0.6);
-    }
-  }
+  overflow: hidden;
 }
 
 .barrio-item-btn {
