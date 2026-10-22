@@ -666,9 +666,35 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: '0.74rem', color: '#38bdf8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ fontSize: '0.74rem', color: '#38bdf8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                             <span style={{ fontWeight: 600 }}>{citizen.handle}</span>
                             <span style={{ color: 'var(--text-muted)' }}>({citizen.channel})</span>
+                            <a
+                              href={
+                                citizen.channel === 'Instagram'
+                                  ? `https://instagram.com/${citizen.handle.replace(/[@\s]/g, '')}`
+                                  : `https://facebook.com/${citizen.handle.replace(/[@\s]/g, '')}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                fontSize: '0.67rem',
+                                color: citizen.channel === 'Instagram' ? '#E1306C' : '#1877F2',
+                                background: citizen.channel === 'Instagram' ? 'rgba(225, 48, 108, 0.1)' : 'rgba(24, 119, 242, 0.1)',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                textDecoration: 'none',
+                                fontWeight: 700,
+                                border: `1px solid ${citizen.channel === 'Instagram' ? 'rgba(225, 48, 108, 0.25)' : 'rgba(24, 119, 242, 0.25)'}`
+                              }}
+                              title={`Ir al perfil de ${citizen.name} en ${citizen.channel}`}
+                            >
+                              <span>{citizen.channel === 'Instagram' ? 'Ver en Instagram' : 'Ver en Facebook'}</span>
+                              <ExternalLink size={10} />
+                            </a>
                           </div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <MapPin size={11} style={{ color: '#ef4444', flexShrink: 0 }} />
@@ -770,6 +796,28 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                     {/* Acciones de Historial y Respuesta */}
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        <a
+                          href={
+                            citizen.channel === 'Instagram'
+                              ? `https://instagram.com/${citizen.handle.replace(/[@\s]/g, '')}`
+                              : `https://facebook.com/${citizen.handle.replace(/[@\s]/g, '')}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-ghost"
+                          style={{
+                            padding: '6px 10px',
+                            fontSize: '0.75rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            color: citizen.channel === 'Instagram' ? '#E1306C' : '#38bdf8'
+                          }}
+                          title={`Ver perfil de ${citizen.name} en ${citizen.channel}`}
+                        >
+                          <span>{citizen.channel === 'Instagram' ? 'Perfil IG' : 'Perfil FB'}</span>
+                          <ExternalLink size={11} />
+                        </a>
                         <button
                           type="button"
                           className="btn-primary"
@@ -1182,18 +1230,35 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                     <span>
                       📊 <strong>{selectedCitizenHistory?.total_comments} publicaciones comentadas</strong> por este usuario. Puedes revisar el post original, verificar lo que escribió y gestionar la respuesta institucional.
                     </span>
-                    {selectedCitizenHistory?.citizen?.whatsapp_link && (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <a 
-                        href={selectedCitizenHistory.citizen.whatsapp_link} 
+                        href={
+                          selectedCitizenHistory?.citizen?.channel === 'Instagram'
+                            ? `https://instagram.com/${selectedCitizenHistory.citizen.handle.replace(/[@\s]/g, '')}`
+                            : `https://facebook.com/${selectedCitizenHistory?.citizen?.handle ? selectedCitizenHistory.citizen.handle.replace(/[@\s]/g, '') : ''}`
+                        }
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="btn-primary"
-                        style={{ fontSize: '0.75rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                        className="btn-ghost"
+                        style={{ fontSize: '0.75rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        title="Ver perfil oficial del usuario en redes"
                       >
-                        <MessageSquare size={12} />
-                        <span>WhatsApp Directo</span>
+                        <span>Ver Perfil en {selectedCitizenHistory?.citizen?.channel || 'Facebook'}</span>
+                        <ExternalLink size={12} />
                       </a>
-                    )}
+                      {selectedCitizenHistory?.citizen?.whatsapp_link && (
+                        <a 
+                          href={selectedCitizenHistory.citizen.whatsapp_link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="btn-primary"
+                          style={{ fontSize: '0.75rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                        >
+                          <MessageSquare size={12} />
+                          <span>WhatsApp Directo</span>
+                        </a>
+                      )}
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
