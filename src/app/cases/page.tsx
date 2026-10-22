@@ -1062,23 +1062,36 @@ export default function CasesPage() {
                       </div>
                     )}
 
-                    {/* Badge de Red Social */}
+                    {/* Badges superiores sobre la portada: Red Social a la izquierda y Formato a la derecha */}
                     <div style={{
-                      position: 'absolute', top: '10px', left: '10px', zIndex: 2,
-                      display: 'flex', alignItems: 'center', gap: '4px',
-                      padding: '3px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, color: '#fff',
-                      background: (post.source === 'Instagram' || String(post.id).startsWith('IG_'))
-                        ? 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)'
-                        : '#1877f2',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                      position: 'absolute', top: '10px', left: '10px', right: '10px',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      zIndex: 2, pointerEvents: 'none'
                     }}>
-                      <span>{(post.source === 'Instagram' || String(post.id).startsWith('IG_')) ? '📷 Instagram' : '📘 Facebook'}</span>
+                      {/* Badge de Red Social */}
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        padding: '3px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, color: '#fff',
+                        background: (post.source === 'Instagram' || String(post.id).startsWith('IG_'))
+                          ? 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)'
+                          : '#1877f2',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.35)'
+                      }}>
+                        <span>{(post.source === 'Instagram' || String(post.id).startsWith('IG_')) ? '📷 Instagram' : '📘 Facebook'}</span>
+                      </div>
+
+                      {/* Badge Formato (Reel / Video / Publicación) */}
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        padding: '3px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, color: '#fff',
+                        background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(4px)',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.35)'
+                      }}>
+                        {post.media_type === 'video' ? <Video size={12} /> : <Tag size={12} />}
+                        <span>{post.media_type === 'video' ? 'REEL' : 'PUBLICACIÓN'}</span>
+                      </div>
                     </div>
 
-                    <div className={styles['post-card-badge']}>
-                      {post.media_type === 'video' ? <Video size={12} /> : <Tag size={12} />}
-                      <span>{post.media_type === 'video' ? '🎥 VIDEO / REEL' : '📷 PUBLICACIÓN'}</span>
-                    </div>
                     <div className={styles['post-card-date']}>
                       <span>🕒 {post.published_at}</span>
                     </div>
