@@ -17,52 +17,15 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
   const { user } = useAuth();
   const role = user?.role || 'ALCALDE';
 
-  let navItems = [
+  // Nombres estandarizados e intuitivos para todos los roles
+  const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/cases', label: 'Casos', icon: FolderOpen, badge: '12' },
+    { href: '/cases', label: 'Casos', icon: FolderOpen, badge: role === 'SECRETARIO' ? '5' : '12' },
     { href: '/map', label: 'Mapa Interactivo', icon: MapIcon },
     { href: '/analytics', label: 'Análisis', icon: PieChart },
     { href: '/citizens', label: 'Ciudadanos', icon: Users },
     { href: '/settings', label: 'Configuración', icon: Settings },
   ];
-
-  if (role === 'ADMIN') {
-    navItems = [
-      { href: '/dashboard', label: 'Dashboard Integral', icon: Home },
-      { href: '/cases', label: 'Bandeja de Casos', icon: FolderOpen, badge: '12' },
-      { href: '/map', label: 'Mapa Territorial GIS', icon: MapIcon },
-      { href: '/analytics', label: 'Analítica & Métricas', icon: PieChart },
-      { href: '/citizens', label: 'Directorio Ciudadano', icon: Users },
-      { href: '/settings', label: 'Configuración & Usuarios', icon: Settings },
-    ];
-  } else if (role === 'ALCALDE') {
-    navItems = [
-      { href: '/dashboard', label: 'Dashboard Ejecutivo', icon: Home },
-      { href: '/cases', label: 'Casos Territoriales', icon: FolderOpen, badge: '12' },
-      { href: '/map', label: 'Mapa de Calor Neiva', icon: MapIcon },
-      { href: '/analytics', label: 'Inteligencia Social', icon: PieChart },
-      { href: '/citizens', label: 'Directorio Ciudadano', icon: Users },
-      { href: '/settings', label: 'Configuración & Gobernanza', icon: Settings },
-    ];
-  } else if (role === 'SECRETARIO') {
-    navItems = [
-      { href: '/dashboard', label: 'Dashboard Sectorial', icon: Home },
-      { href: '/cases', label: 'Casos Asignados', icon: FolderOpen, badge: '5' },
-      { href: '/map', label: 'Mapa Comunal', icon: MapIcon },
-      { href: '/analytics', label: 'Métricas de Gestión', icon: PieChart },
-      { href: '/citizens', label: 'Directorio Ciudadano', icon: Users },
-      { href: '/settings', label: 'Configuración', icon: Settings },
-    ];
-  } else if (role === 'OPERADOR') {
-    navItems = [
-      { href: '/dashboard', label: 'Bandeja Operativa', icon: Home },
-      { href: '/cases', label: 'Comentarios y Casos', icon: FolderOpen, badge: '12' },
-      { href: '/map', label: 'Mapa de Incidencias', icon: MapIcon },
-      { href: '/analytics', label: 'Analítica', icon: PieChart },
-      { href: '/citizens', label: 'Directorio Ciudadano', icon: Users },
-      { href: '/settings', label: 'Configuración', icon: Settings },
-    ];
-  }
 
   return (
     <aside className={[styles.sidebar, isMobileOpen ? styles['mobile-open'] : ''].join(' ').trim()}>
@@ -106,4 +69,3 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
     </aside>
   );
 }
-
