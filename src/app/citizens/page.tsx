@@ -195,6 +195,69 @@ export default function CitizensPage() {
   const [smartReplyModalOpen, setSmartReplyModalOpen] = useState(false);
   const [activeCitizenForReply, setActiveCitizenForReply] = useState<CitizenItem | null>(null);
 
+  // Modal 3: Expediente de Comentarios y Posts
+  const [commentsModalOpen, setCommentsModalOpen] = useState(false);
+  const [selectedCitizenHistory, setSelectedCitizenHistory] = useState<any | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [savingReplyId, setSavingReplyId] = useState<string | null>(null);
+  const [savedReplySuccess, setSavedReplySuccess] = useState<string | null>(null);
+  const [copiedCommentId, setCopiedCommentId] = useState<string | null>(null);
+
+  const handleOpenCitizenHistory = async (citizen: CitizenItem) => {
+    setCommentsModalOpen(true);
+    setLoadingHistory(true);
+    setSelectedCitizenHistory(null);
+    setSavedReplySuccess(null);
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/citizens/${citizen.id}/comments`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedCitizenHistory(data);
+        const drafts: Record<string, string> = {};
+        data.comments?.forEach((c: any) => {
+          drafts[c.case_id] = c.public_response || c.ai_suggestion?.suggested_reply || '';
+        });
+        setReplyDrafts(drafts);
+      }
+    } catch (e) {
+      console.warn('Error loading citizen history:', e);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleSaveCitizenReply = async (caseId: string) => {
+    if (!selectedCitizenHistory?.citizen?.id) return;
+    setSavingReplyId(caseId);
+    setSavedReplySuccess(null);
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/citizens/${selectedCitizenHistory.citizen.id}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          case_id: caseId,
+          reply_text: replyDrafts[caseId] || '',
+          status: 'En Gestión'
+        })
+      });
+      if (res.ok) {
+        setSavedReplySuccess(caseId);
+        setTimeout(() => setSavedReplySuccess(null), 3000);
+      }
+    } catch (e) {
+      console.error('Error saving reply:', e);
+    } finally {
+      setSavingReplyId(null);
+    }
+  };
+
+  const handleCopyReplyText = (caseId: string, textToCopy: string) => {
+    navigator.clipboard.writeText(textToCopy);
+    setCopiedCommentId(caseId);
+    setTimeout(() => setCopiedCommentId(null), 2000);
+  };
+
   // Estado del Uploader
   const [rawUploadText, setRawUploadText] = useState('');
   const [uploadSuccessMsg, setUploadSuccessMsg] = useState<string | null>(null);
@@ -699,18 +762,30 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                       )}
                     </td>
 
-                    {/* Acciones de Respuesta IA */}
-                    <td style={{ textAlign: 'right' }}>
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        onClick={() => handleOpenSmartReplyForCitizen(citizen)}
-                        style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-                        title="Generar respuesta inteligente según el tema (PAE, Huecos, Agua, Desescalar Bot)"
-                      >
-                        <Sparkles size={13} style={{ color: 'var(--blue-600)' }} />
-                        <span>Respuesta IA</span>
-                      </button>
+                    {/* Acciones de Historial y Respuesta */}
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          onClick={() => handleOpenCitizenHistory(citizen)}
+                          style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                          title="Ver en qué publicaciones comentó, qué respondió y qué podemos responder"
+                        >
+                          <MessageSquare size={13} />
+                          <span>Ver Comentarios ({citizen.total_reports})</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={() => handleOpenSmartReplyForCitizen(citizen)}
+                          style={{ padding: '6px 9px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          title="Respuesta rápida por IA"
+                        >
+                          <Sparkles size={13} style={{ color: 'var(--blue-600)' }} />
+                          <span>IA</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -1005,6 +1080,387 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
           </div>
         </div>
       )}
+
+      {/* ─── MODAL 3: EXPEDIENTE DE COMENTARIOS, POSTS Y QUÉ PODEMOS RESPONDER ─── */}
+      {commentsModalOpen && (
+        <div className={styles['modal-overlay']} onClick={() => setCommentsModalOpen(false)}>
+          <div 
+            className={styles['modal-card']} 
+            onClick={(e) => e.stopPropagation()} 
+            style={{ maxWidth: '920px', width: '92vw', maxHeight: '88vh' }}
+          >
+            {/* Header del Expediente Ciudadano */}
+            <div className={styles['modal-header']} style={{ background: 'rgba(15, 23, 42, 0.75)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: selectedCitizenHistory?.citizen?.user_type === 'Bot' ? 'rgba(239, 68, 68, 0.2)' : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: selectedCitizenHistory?.citizen?.user_type === 'Bot' ? '#ef4444' : '#fff',
+                  fontWeight: 800,
+                  fontSize: '1rem',
+                  border: '1px solid var(--border)'
+                }}>
+                  {selectedCitizenHistory?.citizen?.user_type === 'Bot' ? <Bot size={22} /> : (selectedCitizenHistory?.citizen?.name ? selectedCitizenHistory.citizen.name.charAt(0).toUpperCase() : 'C')}
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                      {selectedCitizenHistory?.citizen?.name || 'Expediente de Comentarios'}
+                    </h3>
+                    <code style={{ fontSize: '0.78rem', color: '#93c5fd', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                      {selectedCitizenHistory?.citizen?.handle}
+                    </code>
+                    {selectedCitizenHistory?.citizen?.user_type === 'Bot' ? (
+                      <span className="badge-alta" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>🤖 Bot / Troll</span>
+                    ) : (
+                      <span className="badge-baja" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>
+                        {selectedCitizenHistory?.citizen?.user_type === 'Positivo' ? '🟢 Ciudadano Favorable' : '🟡 Ciudadano Crítico'}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    <span>📍 {selectedCitizenHistory?.citizen?.neighborhood || 'Neiva'}</span>
+                    <span style={{ margin: '0 6px' }}>•</span>
+                    <span>Canal: <strong>{selectedCitizenHistory?.citizen?.channel || 'Facebook'}</strong></span>
+                    {selectedCitizenHistory?.citizen?.phone && (
+                      <>
+                        <span style={{ margin: '0 6px' }}>•</span>
+                        <span style={{ color: '#10b981' }}>📞 {selectedCitizenHistory.citizen.phone}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                className={styles['modal-close-btn']} 
+                onClick={() => setCommentsModalOpen(false)}
+                title="Cerrar expediente"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Cuerpo con Historial de Posts, Comentarios y Propuestas de Respuesta */}
+            <div className={styles['modal-body']} style={{ padding: '20px 24px', overflowY: 'auto' }}>
+              {loadingHistory ? (
+                <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <RefreshCw size={32} className="spin" style={{ margin: '0 auto 12px', display: 'block', color: 'var(--blue-500)' }} />
+                  <p style={{ margin: 0, fontSize: '0.9rem' }}>Consultando publicaciones y generando propuestas de respuesta con IA...</p>
+                </div>
+              ) : selectedCitizenHistory?.comments?.length === 0 ? (
+                <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <MessageSquare size={32} style={{ margin: '0 auto 10px', display: 'block', opacity: 0.5 }} />
+                  <p>No se encontraron comentarios registrados para este perfil.</p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ 
+                    padding: '10px 14px', 
+                    background: 'rgba(59, 130, 246, 0.08)', 
+                    border: '1px solid rgba(59, 130, 246, 0.25)', 
+                    borderRadius: '8px', 
+                    marginBottom: '18px',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '10px'
+                  }}>
+                    <span>
+                      📊 <strong>{selectedCitizenHistory?.total_comments} publicaciones comentadas</strong> por este usuario. Puedes revisar el post original, verificar lo que escribió y gestionar la respuesta institucional.
+                    </span>
+                    {selectedCitizenHistory?.citizen?.whatsapp_link && (
+                      <a 
+                        href={selectedCitizenHistory.citizen.whatsapp_link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="btn-primary"
+                        style={{ fontSize: '0.75rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                      >
+                        <MessageSquare size={12} />
+                        <span>WhatsApp Directo</span>
+                      </a>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {selectedCitizenHistory?.comments?.map((item: any, idx: number) => (
+                      <div 
+                        key={item.case_id || idx}
+                        style={{
+                          background: 'var(--bg-card)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+                        }}
+                      >
+                        {/* 1. SECCIÓN: INFORMACIÓN DE LA PUBLICACIÓN DE META */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '14px',
+                          padding: '12px 16px',
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          borderBottom: '1px solid var(--border)'
+                        }}>
+                          <img 
+                            src={item.post.cover_image} 
+                            alt="Portada del post"
+                            style={{
+                              width: '85px',
+                              height: '56px',
+                              borderRadius: '6px',
+                              objectFit: 'cover',
+                              border: '1px solid var(--border)',
+                              flexShrink: 0
+                            }}
+                            onError={(e: any) => { e.target.src = 'http://localhost:8000/static/covers/default_cover.jpg'; }}
+                          />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                              <span style={{ 
+                                fontSize: '0.67rem', 
+                                padding: '1px 8px', 
+                                borderRadius: '4px', 
+                                background: item.post.source === 'Instagram' ? '#E1306C' : '#1877F2', 
+                                color: '#fff', 
+                                fontWeight: 700 
+                              }}>
+                                {item.post.source}
+                              </span>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                Publicado: {item.post.published_at}
+                              </span>
+                            </div>
+                            <h4 style={{ 
+                              margin: 0, 
+                              fontSize: '0.85rem', 
+                              color: 'var(--text-primary)', 
+                              lineHeight: 1.3,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis' 
+                            }}>
+                              {item.post.title}
+                            </h4>
+                          </div>
+                          {item.post.permalink_url && (
+                            <a 
+                              href={item.post.permalink_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="btn-ghost"
+                              style={{ fontSize: '0.75rem', padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}
+                              title="Abrir post en Meta"
+                            >
+                              <span>Ver Post</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          )}
+                        </div>
+
+                        {/* 2. SECCIÓN: LO QUE RESPONDIÓ / COMENTÓ EL CIUDADANO */}
+                        <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+                              💬 Comentario del Ciudadano en esta publicación:
+                            </span>
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              <span style={{
+                                fontSize: '0.68rem',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontWeight: 700,
+                                background: item.sentiment === 'Positivo' ? 'rgba(16, 185, 129, 0.15)' : item.sentiment === 'Indignación' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                color: item.sentiment === 'Positivo' ? '#10b981' : item.sentiment === 'Indignación' ? '#ef4444' : '#f59e0b'
+                              }}>
+                                {item.sentiment}
+                              </span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                {item.date_time}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{
+                            padding: '12px 14px',
+                            background: 'rgba(15, 23, 42, 0.5)',
+                            borderLeft: `4px solid ${item.sentiment === 'Positivo' ? '#10b981' : item.sentiment === 'Indignación' ? '#ef4444' : '#3b82f6'}`,
+                            borderRadius: '0 8px 8px 0',
+                            fontSize: '0.875rem',
+                            color: 'var(--text-primary)',
+                            lineHeight: 1.5,
+                            fontStyle: 'italic'
+                          }}>
+                            "{item.comment_text}"
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '12px', marginTop: '8px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            <span>Categoría: <strong style={{ color: 'var(--text-secondary)' }}>{item.category}</strong></span>
+                            <span>Ubicación: <strong style={{ color: 'var(--text-secondary)' }}>{item.location}</strong></span>
+                            <span>Estado Caso: <strong style={{ color: item.status === 'Resuelto' ? '#10b981' : item.status === 'En Gestión' ? '#38bdf8' : '#f59e0b' }}>{item.status}</strong></span>
+                          </div>
+                        </div>
+
+                        {/* 3. SECCIÓN: QUÉ PODEMOS RESPONDER (RESPUESTA INTELIGENTE IA) */}
+                        <div style={{ padding: '14px 16px', background: 'rgba(59, 130, 246, 0.02)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <Sparkles size={14} style={{ color: 'var(--blue-500)' }} />
+                              <strong style={{ fontSize: '0.78rem', color: '#93c5fd' }}>
+                                ¿Qué podemos responder? (Propuesta Institucional IA):
+                              </strong>
+                            </div>
+                            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
+                              Tono: {item.ai_suggestion?.tone || 'Institucional Asertivo'}
+                            </span>
+                          </div>
+
+                          <textarea
+                            rows={3}
+                            value={replyDrafts[item.case_id] ?? (item.public_response || item.ai_suggestion?.suggested_reply || '')}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setReplyDrafts(prev => ({ ...prev, [item.case_id]: val }));
+                            }}
+                            placeholder="Redacta o edita la respuesta institucional aquí..."
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid var(--border)',
+                              background: 'var(--bg-card)',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.8125rem',
+                              lineHeight: 1.45,
+                              resize: 'vertical',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+
+                          {/* Puntos de Apoyo sugeridos */}
+                          {item.ai_suggestion?.talking_points?.length > 0 && (
+                            <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                              {item.ai_suggestion.talking_points.map((pt: string, pidx: number) => (
+                                <span key={pidx} style={{ fontSize: '0.67rem', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.04)', padding: '1px 6px', borderRadius: '3px' }}>
+                                  ✓ {pt}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Botones de Acción de Respuesta */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <button
+                                type="button"
+                                className="btn-primary"
+                                onClick={() => handleSaveCitizenReply(item.case_id)}
+                                disabled={savingReplyId === item.case_id}
+                                style={{ fontSize: '0.75rem', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                              >
+                                {savingReplyId === item.case_id ? (
+                                  <>
+                                    <RefreshCw size={12} className="spin" />
+                                    <span>Guardando...</span>
+                                  </>
+                                ) : savedReplySuccess === item.case_id ? (
+                                  <>
+                                    <Check size={12} style={{ color: '#10b981' }} />
+                                    <span>¡Guardado Oficialmente!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle2 size={12} />
+                                    <span>Guardar Respuesta Oficial</span>
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                className="btn-ghost"
+                                onClick={() => handleCopyReplyText(item.case_id, replyDrafts[item.case_id] || item.ai_suggestion?.suggested_reply || '')}
+                                style={{ fontSize: '0.75rem', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                              >
+                                {copiedCommentId === item.case_id ? (
+                                  <>
+                                    <Check size={12} style={{ color: '#10b981' }} />
+                                    <span style={{ color: '#10b981' }}>¡Copiado!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy size={12} />
+                                    <span>Copiar para Pegar en Redes</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              {selectedCitizenHistory?.citizen?.phone && (
+                                <a
+                                  href={`https://wa.me/${selectedCitizenHistory.citizen.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(replyDrafts[item.case_id] || item.ai_suggestion?.suggested_reply || '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn-secondary"
+                                  style={{ fontSize: '0.75rem', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                                  title="Enviar esta respuesta al WhatsApp del ciudadano"
+                                >
+                                  <MessageSquare size={12} />
+                                  <span>Enviar WhatsApp</span>
+                                </a>
+                              )}
+                              {item.post.permalink_url && (
+                                <a
+                                  href={item.post.permalink_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn-ghost"
+                                  style={{ fontSize: '0.75rem', padding: '6px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                  title="Abrir post en Meta para responder directamente"
+                                >
+                                  <span>Responder en Red</span>
+                                  <ExternalLink size={11} />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer del Modal */}
+            <div className={styles['modal-footer']} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                CIVIA Social Intelligence • Alcaldía de Neiva 2026
+              </div>
+              <button 
+                type="button" 
+                className="btn-primary" 
+                onClick={() => setCommentsModalOpen(false)}
+                style={{ padding: '6px 18px', fontSize: '0.8125rem' }}
+              >
+                Cerrar Expediente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
