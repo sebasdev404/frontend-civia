@@ -1340,10 +1340,38 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
 
                         {/* 2. SECCIÓN: LO QUE RESPONDIÓ / COMENTÓ EL CIUDADANO */}
                         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
-                              💬 Comentario del Ciudadano en esta publicación:
-                            </span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+                                💬 Comentario de {selectedCitizenHistory?.citizen?.name}:
+                              </span>
+                              <a
+                                href={
+                                  item.post.source === 'Instagram' || selectedCitizenHistory?.citizen?.channel === 'Instagram'
+                                    ? `https://instagram.com/${selectedCitizenHistory?.citizen?.handle ? selectedCitizenHistory.citizen.handle.replace(/[@\s]/g, '') : ''}`
+                                    : `https://facebook.com/${selectedCitizenHistory?.citizen?.handle ? selectedCitizenHistory.citizen.handle.replace(/[@\s]/g, '') : ''}`
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  color: (item.post.source === 'Instagram' || selectedCitizenHistory?.citizen?.channel === 'Instagram') ? '#E1306C' : '#38bdf8',
+                                  background: (item.post.source === 'Instagram' || selectedCitizenHistory?.citizen?.channel === 'Instagram') ? 'rgba(225, 48, 108, 0.12)' : 'rgba(56, 189, 248, 0.12)',
+                                  border: `1px solid ${(item.post.source === 'Instagram' || selectedCitizenHistory?.citizen?.channel === 'Instagram') ? 'rgba(225, 48, 108, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  textDecoration: 'none'
+                                }}
+                                title={`Ver perfil de ${selectedCitizenHistory?.citizen?.name} en ${item.post.source || 'Instagram'}`}
+                              >
+                                <span>Ver Perfil en {item.post.source || selectedCitizenHistory?.citizen?.channel || 'Instagram'} ({selectedCitizenHistory?.citizen?.handle})</span>
+                                <ExternalLink size={10} />
+                              </a>
+                            </div>
                             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                               <span style={{
                                 fontSize: '0.68rem',
