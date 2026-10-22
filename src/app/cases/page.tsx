@@ -300,6 +300,7 @@ export default function CasesPage() {
   const [monthsList, setMonthsList] = useState<{ key: string; label: string; count: number }[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [postSearch, setPostSearch] = useState<string>('');
+  const [postNetworkFilter, setPostNetworkFilter] = useState<'all' | 'Facebook' | 'Instagram'>('all');
   const [postFilterCasesOnly, setPostFilterCasesOnly] = useState<boolean>(false);
   const [rawComments, setRawComments] = useState(MOCK_RAW_COMMENTS);
   const [selectedCommentIds, setSelectedCommentIds] = useState<string[]>(['COMM-101', 'COMM-102', 'COMM-103']);
@@ -642,9 +643,11 @@ export default function CasesPage() {
         (p.title && p.title.toLowerCase().includes(postSearch.toLowerCase())) || 
         (p.message && p.message.toLowerCase().includes(postSearch.toLowerCase()));
       const matchesCasesOnly = !postFilterCasesOnly || (p.cases_count && p.cases_count > 0);
-      return matchesMonth && matchesSearch && matchesCasesOnly;
+      const postSrc = (p.source || (p.id && String(p.id).startsWith('IG_') ? 'Instagram' : 'Facebook')).toLowerCase();
+      const matchesNetwork = postNetworkFilter === 'all' || postSrc === postNetworkFilter.toLowerCase();
+      return matchesMonth && matchesSearch && matchesCasesOnly && matchesNetwork;
     });
-  }, [postsList, selectedMonth, postSearch, postFilterCasesOnly]);
+  }, [postsList, selectedMonth, postSearch, postFilterCasesOnly, postNetworkFilter]);
 
   const filteredCases = useMemo(() => {
     return casesList.filter(c => {
@@ -804,9 +807,11 @@ export default function CasesPage() {
             <RefreshCw size={15} className={isSyncing ? styles['spin-icon'] : ''} />
             <span>{isSyncing ? 'Sincronizando con Meta...' : 'Sincronizar en Tiempo Real con Meta'}</span>
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></span>
-            <span>Escucha activa en Facebook Oficial</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }}></span>
+            <span style={{ fontWeight: 600 }}>Escucha activa multicanal:</span>
+            <span style={{ background: '#1877f2', color: '#fff', padding: '2px 7px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>Facebook</span>
+            <span style={{ background: 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)', color: '#fff', padding: '2px 7px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>Instagram @johansteed_</span>
           </div>
         </div>
       </div>
@@ -912,11 +917,49 @@ export default function CasesPage() {
                 <Search size={16} />
                 <input 
                   type="text" 
-                  placeholder="Buscar en publicaciones de Facebook..." 
+                  placeholder="Buscar en publicaciones de Facebook e Instagram..." 
                   className={styles['search-input']} 
                   value={postSearch}
                   onChange={(e) => setPostSearch(e.target.value)}
                 />
+              </div>
+
+              {/* Selector de Red Social (Todas / Facebook / Instagram) */}
+              <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-muted)', padding: '3px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                <button
+                  type="button"
+                  style={{
+                    padding: '4px 10px', fontSize: '0.74rem', fontWeight: 600, borderRadius: '4px', border: 'none', cursor: 'pointer',
+                    background: postNetworkFilter === 'all' ? 'var(--card-bg)' : 'transparent',
+                    color: postNetworkFilter === 'all' ? 'var(--blue-600)' : 'var(--text-muted)',
+                    boxShadow: postNetworkFilter === 'all' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                  }}
+                  onClick={() => setPostNetworkFilter('all')}
+                >
+                  Todas ({postsList.length})
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    padding: '4px 10px', fontSize: '0.74rem', fontWeight: 600, borderRadius: '4px', border: 'none', cursor: 'pointer',
+                    background: postNetworkFilter === 'Facebook' ? '#1877f2' : 'transparent',
+                    color: postNetworkFilter === 'Facebook' ? '#fff' : 'var(--text-muted)'
+                  }}
+                  onClick={() => setPostNetworkFilter('Facebook')}
+                >
+                  Facebook ({postsList.filter((p: any) => !p.source || p.source.toLowerCase() === 'facebook' || !String(p.id).startsWith('IG_')).length})
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    padding: '4px 10px', fontSize: '0.74rem', fontWeight: 600, borderRadius: '4px', border: 'none', cursor: 'pointer',
+                    background: postNetworkFilter === 'Instagram' ? 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)' : 'transparent',
+                    color: postNetworkFilter === 'Instagram' ? '#fff' : 'var(--text-muted)'
+                  }}
+                  onClick={() => setPostNetworkFilter('Instagram')}
+                >
+                  Instagram ({postsList.filter((p: any) => (p.source && p.source.toLowerCase() === 'instagram') || String(p.id).startsWith('IG_')).length})
+                </button>
               </div>
 
               {/* Selector de Mes (Enero - Octubre 2026) */}
@@ -1001,23 +1044,40 @@ export default function CasesPage() {
                   key={post.id} 
                   className={[styles['post-card'], selectedPost?.id === post.id ? styles.expanded : ''].join(' ')}
                 >
-                  <div className={styles['post-card-cover']}>
+                  <div className={styles['post-card-cover']} style={{ position: 'relative', overflow: 'hidden', backgroundColor: '#1e293b' }}>
                     {post.cover_image ? (
                       <img 
                         src={post.cover_image} 
                         alt={post.title} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
+                          (e.target as HTMLImageElement).src = 'http://localhost:8000/static/covers/default_cover.jpg';
                         }}
                       />
                     ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-muted)', color: 'var(--text-muted)' }}>
-                        <MessageSquare size={36} />
+                      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: '#94a3b8', padding: '16px', textAlign: 'center' }}>
+                        <Sparkles size={28} style={{ color: '#38bdf8', marginBottom: '8px' }} />
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#f8fafc' }}>CIVIA Inteligencia</span>
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Johan Steed Oficial</span>
                       </div>
                     )}
+
+                    {/* Badge de Red Social */}
+                    <div style={{
+                      position: 'absolute', top: '10px', left: '10px', zIndex: 2,
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                      padding: '3px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, color: '#fff',
+                      background: (post.source === 'Instagram' || String(post.id).startsWith('IG_'))
+                        ? 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)'
+                        : '#1877f2',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                    }}>
+                      <span>{(post.source === 'Instagram' || String(post.id).startsWith('IG_')) ? '📷 Instagram' : '📘 Facebook'}</span>
+                    </div>
+
                     <div className={styles['post-card-badge']}>
                       {post.media_type === 'video' ? <Video size={12} /> : <Tag size={12} />}
-                      <span>{post.media_type === 'video' ? '🎥 VIDEO / REEL' : '📷 IMAGEN'}</span>
+                      <span>{post.media_type === 'video' ? '🎥 VIDEO / REEL' : '📷 PUBLICACIÓN'}</span>
                     </div>
                     <div className={styles['post-card-date']}>
                       <span>🕒 {post.published_at}</span>
