@@ -2253,28 +2253,33 @@ export default function CasesPage() {
                                 }}>
                                   {(rc.author || 'C').charAt(0)}
                                 </div>
-                                <a
-                                  href={
-                                    selectedPost?.source === 'Instagram' || (rc.author && rc.author.startsWith('@'))
-                                      ? `https://instagram.com/${rc.author.replace(/[@\s]/g, '')}`
-                                      : `https://facebook.com/${rc.author.replace(/[@\s]/g, '')}`
-                                  }
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{
-                                    fontWeight: 700,
-                                    fontSize: '0.8125rem',
-                                    color: selectedPost?.source === 'Instagram' ? '#E1306C' : 'var(--text-primary)',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    textDecoration: 'none'
-                                  }}
-                                  title={`Ver perfil de ${rc.author} en ${selectedPost?.source || 'redes'}`}
-                                >
-                                  <span>{rc.author}</span>
-                                  <ExternalLink size={11} style={{ opacity: 0.7 }} />
-                                </a>
+{(() => {
+                                  const cleanName = (rc.author || '').trim();
+                                  const isIg = selectedPost?.source === 'Instagram' || cleanName.startsWith('@');
+                                  const targetUrl = isIg 
+                                    ? `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(cleanName.replace(/@/g, ''))}`
+                                    : `https://www.facebook.com/search/people/?q=${encodeURIComponent(cleanName + ' Neiva')}`;
+                                  return (
+                                    <a
+                                      href={targetUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{
+                                        fontWeight: 700,
+                                        fontSize: '0.8125rem',
+                                        color: isIg ? '#E1306C' : 'var(--text-primary)',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        textDecoration: 'none'
+                                      }}
+                                      title={`Buscar perfil oficial de ${cleanName} en ${isIg ? 'Instagram' : 'Facebook Neiva'}`}
+                                    >
+                                      <span>{rc.author}</span>
+                                      <ExternalLink size={11} style={{ opacity: 0.7 }} />
+                                    </a>
+                                  );
+                                })()}
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>

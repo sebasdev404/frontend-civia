@@ -8,6 +8,49 @@ import {
   Filter, Users, UserX, Phone, ChevronRight, Check
 } from 'lucide-react';
 
+export function getCitizenSocialLink(name?: string, handle?: string, channel?: string) {
+  const cleanName = (name || '').trim();
+  const rawHandle = (handle || '').replace(/[@\s]/g, '').trim();
+  const isInstagram = (channel || '').toLowerCase().includes('instagram') || rawHandle.startsWith('ig_') || rawHandle.includes('insta');
+
+  if (isInstagram) {
+    const isSynthetic = /bot|troll|user\d+/i.test(rawHandle);
+    const searchUrl = `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(cleanName || rawHandle)}`;
+    const normalizedHandle = rawHandle.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._]/g, '');
+    const directUrl = (!isSynthetic && normalizedHandle.length > 2 && !normalizedHandle.includes('pagina') && !normalizedHandle.includes('cuenta')) 
+      ? `https://www.instagram.com/${normalizedHandle}/` 
+      : null;
+
+    return {
+      channel: 'Instagram',
+      url: directUrl || searchUrl,
+      label: directUrl ? 'Ver Perfil IG' : 'Buscar en Instagram',
+      shortLabel: 'Perfil IG',
+      tooltip: `Buscar o ver perfil oficial de ${cleanName || 'ciudadano'} en Instagram`,
+      color: '#E1306C',
+      bg: 'rgba(225, 48, 108, 0.12)',
+      border: 'rgba(225, 48, 108, 0.28)'
+    };
+  }
+
+  // Para Facebook:
+  // Facebook no admite URLs arbitrarias basadas en slugs si el usuario no tiene vanity URL pública configurada.
+  // La búsqueda oficial de personas de Facebook (search/people) garantiza abrir siempre el perfil real en Neiva
+  // con su foto, biografía y botones de contacto sin arrojar "Este contenido no está disponible".
+  const searchUrl = `https://www.facebook.com/search/people/?q=${encodeURIComponent((cleanName || 'Ciudadano') + ' Neiva')}`;
+  
+  return {
+    channel: 'Facebook',
+    url: searchUrl,
+    label: 'Buscar Perfil FB',
+    shortLabel: 'Perfil FB',
+    tooltip: `Abrir búsqueda oficial del perfil de ${cleanName || 'ciudadano'} en Facebook Neiva`,
+    color: '#1877F2',
+    bg: 'rgba(24, 119, 242, 0.12)',
+    border: 'rgba(24, 119, 242, 0.28)'
+  };
+}
+
 interface CitizenItem {
   id: string;
   name: string;
@@ -669,32 +712,33 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                           <div style={{ fontSize: '0.74rem', color: '#38bdf8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                             <span style={{ fontWeight: 600 }}>{citizen.handle}</span>
                             <span style={{ color: 'var(--text-muted)' }}>({citizen.channel})</span>
-                            <a
-                              href={
-                                citizen.channel === 'Instagram'
-                                  ? `https://instagram.com/${citizen.handle.replace(/[@\s]/g, '')}`
-                                  : `https://facebook.com/${citizen.handle.replace(/[@\s]/g, '')}`
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                fontSize: '0.67rem',
-                                color: citizen.channel === 'Instagram' ? '#E1306C' : '#1877F2',
-                                background: citizen.channel === 'Instagram' ? 'rgba(225, 48, 108, 0.1)' : 'rgba(24, 119, 242, 0.1)',
-                                padding: '1px 6px',
-                                borderRadius: '4px',
-                                textDecoration: 'none',
-                                fontWeight: 700,
-                                border: `1px solid ${citizen.channel === 'Instagram' ? 'rgba(225, 48, 108, 0.25)' : 'rgba(24, 119, 242, 0.25)'}`
-                              }}
-                              title={`Ir al perfil de ${citizen.name} en ${citizen.channel}`}
-                            >
-                              <span>{citizen.channel === 'Instagram' ? 'Ver en Instagram' : 'Ver en Facebook'}</span>
-                              <ExternalLink size={10} />
-                            </a>
+{(() => {
+                              const sLink = getCitizenSocialLink(citizen.name, citizen.handle, citizen.channel);
+                              return (
+                                <a
+                                  href={sLink.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    fontSize: '0.67rem',
+                                    color: sLink.color,
+                                    background: sLink.bg,
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    textDecoration: 'none',
+                                    fontWeight: 700,
+                                    border: `1px solid ${sLink.border}`
+                                  }}
+                                  title={sLink.tooltip}
+                                >
+                                  <span>{sLink.label}</span>
+                                  <ExternalLink size={10} />
+                                </a>
+                              );
+                            })()}
                           </div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <MapPin size={11} style={{ color: '#ef4444', flexShrink: 0 }} />
@@ -796,28 +840,29 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                     {/* Acciones de Historial y Respuesta */}
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                        <a
-                          href={
-                            citizen.channel === 'Instagram'
-                              ? `https://instagram.com/${citizen.handle.replace(/[@\s]/g, '')}`
-                              : `https://facebook.com/${citizen.handle.replace(/[@\s]/g, '')}`
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn-ghost"
-                          style={{
-                            padding: '6px 10px',
-                            fontSize: '0.75rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            color: citizen.channel === 'Instagram' ? '#E1306C' : '#38bdf8'
-                          }}
-                          title={`Ver perfil de ${citizen.name} en ${citizen.channel}`}
-                        >
-                          <span>{citizen.channel === 'Instagram' ? 'Perfil IG' : 'Perfil FB'}</span>
-                          <ExternalLink size={11} />
-                        </a>
+{(() => {
+                          const sLink = getCitizenSocialLink(citizen.name, citizen.handle, citizen.channel);
+                          return (
+                            <a
+                              href={sLink.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-ghost"
+                              style={{
+                                padding: '6px 10px',
+                                fontSize: '0.75rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                color: sLink.color
+                              }}
+                              title={sLink.tooltip}
+                            >
+                              <span>{sLink.shortLabel}</span>
+                              <ExternalLink size={11} />
+                            </a>
+                          );
+                        })()}
                         <button
                           type="button"
                           className="btn-primary"
@@ -1231,21 +1276,23 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                       📊 <strong>{selectedCitizenHistory?.total_comments} publicaciones comentadas</strong> por este usuario. Puedes revisar el post original, verificar lo que escribió y gestionar la respuesta institucional.
                     </span>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <a 
-                        href={
-                          selectedCitizenHistory?.citizen?.channel === 'Instagram'
-                            ? `https://instagram.com/${selectedCitizenHistory.citizen.handle.replace(/[@\s]/g, '')}`
-                            : `https://facebook.com/${selectedCitizenHistory?.citizen?.handle ? selectedCitizenHistory.citizen.handle.replace(/[@\s]/g, '') : ''}`
-                        }
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="btn-ghost"
-                        style={{ fontSize: '0.75rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                        title="Ver perfil oficial del usuario en redes"
-                      >
-                        <span>Ver Perfil en {selectedCitizenHistory?.citizen?.channel || 'Facebook'}</span>
-                        <ExternalLink size={12} />
-                      </a>
+{(() => {
+                        const cit = selectedCitizenHistory?.citizen;
+                        const sLink = getCitizenSocialLink(cit?.name, cit?.handle, cit?.channel);
+                        return (
+                          <a 
+                            href={sLink.url}
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="btn-ghost"
+                            style={{ fontSize: '0.75rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: sLink.color }}
+                            title={sLink.tooltip}
+                          >
+                            <span>{sLink.label}</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        );
+                      })()}
                       {selectedCitizenHistory?.citizen?.whatsapp_link && (
                         <a 
                           href={selectedCitizenHistory.citizen.whatsapp_link} 
@@ -1345,32 +1392,34 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                               <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
                                 💬 Comentario de {selectedCitizenHistory?.citizen?.name}:
                               </span>
-                              <a
-                                href={
-                                  item.post.source === 'Instagram' || selectedCitizenHistory?.citizen?.channel === 'Instagram'
-                                    ? `https://instagram.com/${selectedCitizenHistory?.citizen?.handle ? selectedCitizenHistory.citizen.handle.replace(/[@\s]/g, '') : ''}`
-                                    : `https://facebook.com/${selectedCitizenHistory?.citizen?.handle ? selectedCitizenHistory.citizen.handle.replace(/[@\s]/g, '') : ''}`
-                                }
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 700,
-                                  color: (item.post.source === 'Instagram' || selectedCitizenHistory?.citizen?.channel === 'Instagram') ? '#E1306C' : '#38bdf8',
-                                  background: (item.post.source === 'Instagram' || selectedCitizenHistory?.citizen?.channel === 'Instagram') ? 'rgba(225, 48, 108, 0.12)' : 'rgba(56, 189, 248, 0.12)',
-                                  border: `1px solid ${(item.post.source === 'Instagram' || selectedCitizenHistory?.citizen?.channel === 'Instagram') ? 'rgba(225, 48, 108, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
-                                  padding: '2px 8px',
-                                  borderRadius: '4px',
-                                  textDecoration: 'none'
-                                }}
-                                title={`Ver perfil de ${selectedCitizenHistory?.citizen?.name} en ${item.post.source || 'Instagram'}`}
-                              >
-                                <span>Ver Perfil en {item.post.source || selectedCitizenHistory?.citizen?.channel || 'Instagram'} ({selectedCitizenHistory?.citizen?.handle})</span>
-                                <ExternalLink size={10} />
-                              </a>
+{(() => {
+                                const cit = selectedCitizenHistory?.citizen;
+                                const sLink = getCitizenSocialLink(cit?.name, cit?.handle, item.post.source || cit?.channel);
+                                return (
+                                  <a
+                                    href={sLink.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                      color: sLink.color,
+                                      background: sLink.bg,
+                                      border: `1px solid ${sLink.border}`,
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      textDecoration: 'none'
+                                    }}
+                                    title={sLink.tooltip}
+                                  >
+                                    <span>{sLink.label} ({cit?.handle})</span>
+                                    <ExternalLink size={10} />
+                                  </a>
+                                );
+                              })()}
                             </div>
                             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                               <span style={{
