@@ -62,15 +62,15 @@ export default function SettingsPage() {
     latency_ms: 1005.0,
     cases_analyzed: 1795,
     tokens_processed: 628250,
-    consumed_usd: 0.0,
-    remaining_usd: 10.0,
+    consumed_usd: 0.1571,
+    remaining_usd: 9.8429,
     initial_budget_usd: 10.0,
-    percent_consumed: 0.0,
-    percent_remaining: 100.0,
+    percent_consumed: 1.6,
+    percent_remaining: 98.4,
     model: 'OpenAI GPT-4o-mini',
     masked_key: 'sk-proj-...RngA',
     billing_url: 'https://platform.openai.com/settings/organization/billing/overview',
-    detail: 'Conexión activa con OpenAI. Cupo de $10.00 USD disponible para el procesamiento de casos ciudadanos.'
+    detail: 'Conexión activa con OpenAI. Saldo disponible de $9.84 USD de $10.00 USD asignados (1.6% consumido) para el procesamiento de casos ciudadanos.'
   });
 
   const [isEditingBalance, setIsEditingBalance] = useState<boolean>(false);

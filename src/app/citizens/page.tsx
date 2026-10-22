@@ -176,12 +176,12 @@ export default function CitizensPage() {
   const [citizens, setCitizens] = useState<CitizenItem[]>(FALLBACK_CITIZENS);
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
-    total_registered: 8,
-    total_with_phone: 5,
-    total_bots_detected: 3,
-    total_positives: 2,
-    total_negatives: 3,
-    bot_percentage: 37.5
+    total_registered: 128,
+    total_with_phone: 118,
+    total_bots_detected: 10,
+    total_positives: 41,
+    total_negatives: 77,
+    bot_percentage: 7.8
   });
 
   // Filtros
@@ -217,7 +217,7 @@ export default function CitizensPage() {
       if (accountAgeFilter !== 'all') params.append('account_age_filter', accountAgeFilter);
       if (search.trim()) params.append('search', search.trim());
 
-      const res = await fetch(`http://localhost:8000/api/v1/citizens?${params.toString()}`);
+      const res = await fetch(`http://localhost:8000/api/v1/citizens?limit=200&${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setCitizens(data.items || FALLBACK_CITIZENS);
