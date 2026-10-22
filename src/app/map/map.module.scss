@@ -404,6 +404,34 @@
   gap: 8px;
 }
 
+.barrios-scroll-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 185px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+    height: 0px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 4px;
+    &:hover {
+      background: rgba(148, 163, 184, 0.6);
+    }
+  }
+}
+
 .barrio-item-btn {
   display: flex;
   align-items: center;
@@ -414,17 +442,17 @@
   background: var(--bg-card);
   cursor: pointer;
   width: 100%;
+  box-sizing: border-box;
   text-align: left;
-  transition: all 130ms ease;
+  transition: background-color 130ms ease, border-color 130ms ease;
 
   &:hover {
     border-color: var(--blue-500);
-    background: rgba(59, 130, 246, 0.06);
-    transform: translateX(2px);
+    background: rgba(59, 130, 246, 0.08);
   }
 
   &.active {
     border-color: var(--blue-600);
-    background: rgba(59, 130, 246, 0.12);
+    background: rgba(59, 130, 246, 0.15);
   }
 }

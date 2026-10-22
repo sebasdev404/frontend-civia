@@ -350,7 +350,7 @@ export default function MapPage() {
               Haz clic en un barrio para enfocarlo en el mapa:
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxHeight: '180px', overflowY: 'auto' }}>
+            <div className={styles['barrios-scroll-list']}>
               {(topBarrios.length > 0 ? topBarrios : [
                 { rank: 1, neighborhood: 'Las Granjas', commune: 'Comuna 2', total_issues: 74, top_category: 'Servicios Públicos', lat: 2.9415, lng: -75.2862 },
                 { rank: 2, neighborhood: 'Canaima', commune: 'Comuna 6', total_issues: 68, top_category: 'Servicios Públicos', lat: 2.9062, lng: -75.2848 },
@@ -366,7 +366,7 @@ export default function MapPage() {
                   onClick={() => handleSelectBarrio(b)}
                   title={`Enfocar ${b.neighborhood} (${b.top_category})`}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
                     <span style={{ fontWeight: 800, fontSize: '0.72rem', color: idx < 3 ? '#ef4444' : 'var(--text-muted)' }}>
                       #{idx + 1}
                     </span>
