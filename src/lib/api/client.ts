@@ -134,5 +134,11 @@ export const API = {
   },
   ai: {
     getCredits: () => fetcher('/ai/credits'),
+    syncBalance: (payload: { initial_budget?: number; real_balance?: number; consumed_usd?: number }) =>
+      fetcher('/ai/sync-balance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }),
   },
 };

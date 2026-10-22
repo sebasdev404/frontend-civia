@@ -59,15 +59,50 @@ export default function SettingsPage() {
     status: 'Conectado / Operativo',
     has_key: true,
     quota_status: 'Cuota disponible (Activa)',
-    latency_ms: 1107.0,
-    cases_analyzed: 1115,
-    estimated_tokens: 390250,
-    estimated_cost_usd: 0.0976,
+    latency_ms: 1005.0,
+    cases_analyzed: 1795,
+    tokens_processed: 628250,
+    consumed_usd: 0.0,
+    remaining_usd: 10.0,
+    initial_budget_usd: 10.0,
+    percent_consumed: 0.0,
+    percent_remaining: 100.0,
     model: 'OpenAI GPT-4o-mini',
     masked_key: 'sk-proj-...RngA',
     billing_url: 'https://platform.openai.com/settings/organization/billing/overview',
-    detail: 'La llave de inferencia responde en 1.1s. 1,115 casos territoriales clasificados con costo estimado de $0.09 USD.'
+    detail: 'Conexión activa con OpenAI. Cupo de $10.00 USD disponible para el procesamiento de casos ciudadanos.'
   });
+
+  const [isEditingBalance, setIsEditingBalance] = useState<boolean>(false);
+  const [syncBudgetInput, setSyncBudgetInput] = useState<string>('10.00');
+  const [syncBalanceInput, setSyncBalanceInput] = useState<string>('10.00');
+  const [savingBalance, setSavingBalance] = useState<boolean>(false);
+  const [balanceSaveMessage, setBalanceSaveMessage] = useState<string | null>(null);
+
+  const handleSaveRealBalance = async () => {
+    setSavingBalance(true);
+    setBalanceSaveMessage(null);
+    try {
+      const budgetNum = parseFloat(syncBudgetInput) || 10.0;
+      const balanceNum = parseFloat(syncBalanceInput) || 10.0;
+      const res = await API.ai.syncBalance({
+        initial_budget: budgetNum,
+        real_balance: balanceNum
+      });
+      if (res && res.success) {
+        setBalanceSaveMessage('¡Saldo real actualizado correctamente!');
+        await loadAiCredits();
+        setTimeout(() => {
+          setIsEditingBalance(false);
+          setBalanceSaveMessage(null);
+        }, 1500);
+      }
+    } catch (err: any) {
+      setBalanceSaveMessage('Error al guardar: ' + (err.message || 'Verifique la conexión.'));
+    } finally {
+      setSavingBalance(false);
+    }
+  };
 
   const loadAiCredits = async () => {
     try {
@@ -501,29 +536,29 @@ export default function SettingsPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(185px, 1fr))', gap: '12px', marginBottom: '14px' }}>
                 <div style={{ padding: '14px 16px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.35)' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#10b981', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>💰 Saldo Disponible</span>
+                  <span style={{ fontSize: '0.72rem', color: '#10b981', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>💰 Saldo Real Disponible</span>
                   <strong style={{ fontSize: '1.45rem', color: '#10b981', display: 'block', marginBottom: '2px' }}>
-                    ${aiCredits.remaining_usd !== undefined ? Number(aiCredits.remaining_usd).toFixed(2) : '9.84'} USD
+                    ${Number(aiCredits.remaining_usd !== undefined ? aiCredits.remaining_usd : 10.00).toFixed(2)} USD
                   </strong>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {aiCredits.percent_remaining || 98.4}% restante del fondo OpenAI
+                    {aiCredits.percent_remaining !== undefined ? aiCredits.percent_remaining : 100}% disponible en OpenAI
                   </span>
                 </div>
 
                 <div style={{ padding: '14px 16px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.35)' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#38bdf8', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>📉 Saldo Consumido IA</span>
+                  <span style={{ fontSize: '0.72rem', color: '#38bdf8', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>📉 Saldo Real Consumido</span>
                   <strong style={{ fontSize: '1.45rem', color: '#38bdf8', display: 'block', marginBottom: '2px' }}>
-                    ${aiCredits.consumed_usd !== undefined ? Number(aiCredits.consumed_usd).toFixed(4) : (aiCredits.estimated_cost_usd || '0.1568')} USD
+                    ${Number(aiCredits.consumed_usd !== undefined ? aiCredits.consumed_usd : 0.00).toFixed(2)} USD
                   </strong>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {aiCredits.percent_consumed || 1.6}% consumido en clasificación
+                    {aiCredits.percent_consumed !== undefined ? aiCredits.percent_consumed : 0}% consumido en plataforma
                   </span>
                 </div>
 
                 <div style={{ padding: '14px 16px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>💳 Cupo Asignado</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>💳 Cupo Total Asignado</span>
                   <strong style={{ fontSize: '1.45rem', color: 'var(--text-primary)', display: 'block', marginBottom: '2px' }}>
-                    ${aiCredits.initial_budget_usd !== undefined ? Number(aiCredits.initial_budget_usd).toFixed(2) : '10.00'} USD
+                    ${Number(aiCredits.initial_budget_usd !== undefined ? aiCredits.initial_budget_usd : 10.00).toFixed(2)} USD
                   </strong>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                     Fondo asignado del proyecto
@@ -531,12 +566,12 @@ export default function SettingsPage() {
                 </div>
 
                 <div style={{ padding: '14px 16px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>📊 Actividad IA</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>📊 Actividad del Sistema</span>
                   <strong style={{ fontSize: '1.3rem', color: 'var(--text-primary)', display: 'block', marginBottom: '2px' }} suppressHydrationWarning>
-                    {formatNumber(aiCredits.cases_analyzed || 1792)} Casos
+                    {formatNumber(aiCredits.cases_analyzed || 1795)} Casos
                   </strong>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {formatNumber(aiCredits.estimated_tokens || 627200)} tokens procesados
+                    {formatNumber(aiCredits.tokens_processed || aiCredits.estimated_tokens || 628250)} tokens procesados
                   </span>
                 </div>
               </div>
@@ -544,31 +579,102 @@ export default function SettingsPage() {
               {/* Barra visual de monitoreo de saldo consumido vs disponible */}
               <div style={{ padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '6px', color: 'var(--text-secondary)', flexWrap: 'wrap', gap: '6px' }}>
-                  <span>Consumido: <strong style={{ color: '#38bdf8' }}>{aiCredits.percent_consumed || 1.6}% (${aiCredits.consumed_usd !== undefined ? Number(aiCredits.consumed_usd).toFixed(4) : (aiCredits.estimated_cost_usd || '0.1568')} USD)</strong></span>
-                  <span>Disponible: <strong style={{ color: '#10b981' }}>${aiCredits.remaining_usd !== undefined ? Number(aiCredits.remaining_usd).toFixed(2) : '9.84'} USD ({aiCredits.percent_remaining || 98.4}%)</strong></span>
+                  <span>Consumido: <strong style={{ color: '#38bdf8' }}>{aiCredits.percent_consumed || 0}% (${Number(aiCredits.consumed_usd || 0).toFixed(2)} USD)</strong></span>
+                  <span>Disponible: <strong style={{ color: '#10b981' }}>${Number(aiCredits.remaining_usd !== undefined ? aiCredits.remaining_usd : 10.00).toFixed(2)} USD ({aiCredits.percent_remaining !== undefined ? aiCredits.percent_remaining : 100}%)</strong></span>
                 </div>
                 <div style={{ width: '100%', height: '8px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.min(100, Math.max(3, aiCredits.percent_consumed || 3.1))}%`, height: '100%', background: 'linear-gradient(90deg, #38bdf8, #10b981)', borderRadius: '4px' }} />
+                  <div style={{ width: `${Math.min(100, Math.max(aiCredits.percent_consumed > 0 ? 3 : 0, aiCredits.percent_consumed || 0))}%`, height: '100%', background: 'linear-gradient(90deg, #38bdf8, #10b981)', borderRadius: '4px' }} />
                 </div>
               </div>
 
+              {/* Controles de Acción y Sincronización */}
               <div style={{ padding: '12px 16px', background: 'rgba(15, 23, 42, 0.65)', borderRadius: '8px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ fontSize: '0.85rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Llave de Producción: </span>
                   <code style={{ color: '#93c5fd', fontWeight: 600 }}>{aiCredits.masked_key || 'sk-proj-...RngA'}</code>
                   <span style={{ marginLeft: '12px', color: '#94a3b8' }}>• Motor: <strong>{aiCredits.model || 'GPT-4o-mini'}</strong></span>
                 </div>
-                <a 
-                  href={aiCredits.billing_url || "https://platform.openai.com/settings/organization/billing/overview"} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="btn-ghost"
-                  style={{ fontSize: '0.8125rem', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <span>Ver Saldo en Consola OpenAI</span>
-                  <ArrowUpRight size={14} />
-                </a>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => {
+                      setSyncBudgetInput(String(aiCredits.initial_budget_usd || 10.00));
+                      setSyncBalanceInput(String(aiCredits.remaining_usd !== undefined ? aiCredits.remaining_usd : 10.00));
+                      setIsEditingBalance(!isEditingBalance);
+                    }}
+                    style={{ fontSize: '0.8125rem', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <span>{isEditingBalance ? 'Cerrar Ajuste' : '⚙️ Ajustar Saldo Real'}</span>
+                  </button>
+                  <a 
+                    href={aiCredits.billing_url || "https://platform.openai.com/settings/organization/billing/overview"} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="btn-ghost"
+                    style={{ fontSize: '0.8125rem', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <span>Ver Facturación OpenAI</span>
+                    <ArrowUpRight size={14} />
+                  </a>
+                </div>
               </div>
+
+              {/* Panel de Ajuste Rápido de Saldo Real */}
+              {isEditingBalance && (
+                <div style={{ marginTop: '12px', padding: '16px', background: 'rgba(30, 41, 59, 0.55)', border: '1px dashed rgba(59, 130, 246, 0.45)', borderRadius: '8px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '0.9rem', color: '#93c5fd' }}>Sincronización de Saldo Real OpenAI</h4>
+                  <p style={{ margin: '0 0 14px 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    Ingresa los valores exactos reflejados en tu consola de facturación de OpenAI para que el sistema mantenga la precisión contable oficial.
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '14px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Cupo Total Asignado ($ USD)</label>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        value={syncBudgetInput} 
+                        onChange={(e) => setSyncBudgetInput(e.target.value)}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: '#fff' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Saldo Real Disponible ($ USD)</label>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        value={syncBalanceInput} 
+                        onChange={(e) => setSyncBalanceInput(e.target.value)}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: '#fff' }}
+                      />
+                    </div>
+                  </div>
+                  {balanceSaveMessage && (
+                    <div style={{ fontSize: '0.8rem', color: balanceSaveMessage.includes('¡') ? '#10b981' : '#f87171', marginBottom: '10px' }}>
+                      {balanceSaveMessage}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      type="button" 
+                      className="btn-primary" 
+                      onClick={handleSaveRealBalance}
+                      disabled={savingBalance}
+                      style={{ fontSize: '0.8125rem', padding: '6px 16px' }}
+                    >
+                      {savingBalance ? 'Guardando...' : 'Guardar y Sincronizar'}
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn-ghost" 
+                      onClick={() => setIsEditingBalance(false)}
+                      style={{ fontSize: '0.8125rem', padding: '6px 14px' }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className={styles['settings-card']}>
