@@ -777,70 +777,34 @@ export default function CasesPage() {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <h1>Gestión de Interacciones y Casos Ciudadanos</h1>
-        <p>Transformación de comentarios Meta (Facebook & Instagram) en casos y necesidades comunales de Neiva</p>
-      </div>
-
-      {/* BANNER EJECUTIVO: CIVIA AUTONOMOUS AI ENGINE (PILOTO AUTOMÁTICO ACTIVO) */}
-      <div className={styles['automation-banner']}>
-        <div className={styles['automation-info']}>
-          <div className={styles['automation-header-row']}>
-            <div className={styles['pulse-dot']} />
-            <span style={{ fontWeight: 800, fontSize: '0.98rem', color: 'var(--text-primary)', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Bot size={18} style={{ color: 'var(--emerald-600)' }} />
-              CIVIA Autonomous Engine: PILOTO AUTOMÁTICO ACTIVO
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>Gestión de Interacciones y Casos Ciudadanos</h1>
+          <p style={{ margin: '4px 0 10px', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Transformación y triaje de comentarios de Facebook e Instagram en radicados comunales de Neiva</p>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.74rem', flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Canales de Escucha:</span>
+            <span style={{ background: '#1877f2', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>📘 Facebook</span>
+            <span style={{ background: 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>📷 Instagram @johansteed_</span>
+            <span className="badge-tag" style={{ background: 'rgba(16, 185, 129, 0.12)', color: 'var(--emerald-600)', border: '1px solid rgba(16, 185, 129, 0.25)', fontSize: '0.68rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }} />
+              Auto-Sync en Vivo (cada 45s) • {lastAutoSync}
             </span>
-            <span className="badge-tag" style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--emerald-600)', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 700, fontSize: '0.72rem' }}>
-              ⚡ 0 Fila Manual • 100% Despacho por IA
-            </span>
-            <span className="badge-tag" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--blue-600)', border: '1px solid rgba(59, 130, 246, 0.25)', fontSize: '0.72rem' }}>
-              Meta Graph API v21.0
-            </span>
-          </div>
-          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            El sistema ingesta, analiza semánticamente con <strong>OpenAI GPT-4o</strong>, georreferencia por comuna y radica las problemáticas en tiempo real sin intervención humana. Diseñado para que un equipo ágil de <strong>solo 3 operadores de supervisión</strong> gestione hasta <strong>50,000 interacciones ciudadanas</strong> de forma continua.
-          </p>
-          <div className={styles['automation-kpis']}>
-            <div className={styles['kpi-chip']} title="Porcentaje de casos clasificados sin digitación manual">
-              <Zap size={13} />
-              <span><strong>98.7%</strong> Despacho Autónomo</span>
-            </div>
-            <div className={styles['kpi-chip']} title="Tiempo promedio de análisis y radicado de caso">
-              <Sparkles size={13} />
-              <span><strong>&lt; 1.1 seg</strong> Latencia Triaje</span>
-            </div>
-            <div className={styles['kpi-chip']} title="Personal necesario para control y supervisión">
-              <Users size={13} />
-              <span><strong>3 Operadores</strong> Supervisión</span>
-            </div>
-            <div className={styles['kpi-chip']} title="Consolidación de comentarios idénticos en un solo radicado">
-              <ShieldAlert size={13} />
-              <span>Anti-Duplicidad Automática</span>
-            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             type="button"
             className={styles['sync-live-btn']}
             onClick={handleSyncLive}
             disabled={isSyncing}
             title="Sincronizar en tiempo real con Facebook e Instagram Graph API"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '0.84rem' }}
           >
             <RefreshCw size={15} className={isSyncing ? styles['spin-icon'] : ''} />
-            <span>{isSyncing ? 'Sincronizando con Meta...' : 'Sincronizar en Tiempo Real con Meta'}</span>
+            <span>{isSyncing ? 'Sincronizando con Meta...' : 'Sincronizar en Tiempo Real'}</span>
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }}></span>
-            <span style={{ fontWeight: 600 }}>Escucha activa multicanal:</span>
-            <span style={{ background: '#1877f2', color: '#fff', padding: '2px 7px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>Facebook</span>
-            <span style={{ background: 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)', color: '#fff', padding: '2px 7px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>Instagram @johansteed_</span>
-            <span className="badge-tag" style={{ background: 'rgba(16, 185, 129, 0.12)', color: 'var(--emerald-600)', border: '1px solid rgba(16, 185, 129, 0.25)', fontSize: '0.68rem', fontWeight: 600 }}>
-              🟢 Auto-Sync en Vivo (cada 45s) • {lastAutoSync}
-            </span>
-          </div>
         </div>
       </div>
 

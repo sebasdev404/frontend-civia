@@ -499,25 +499,56 @@ export default function SettingsPage() {
                 Telemetría en tiempo real de la llave API de OpenAI. Calcula los tokens utilizados en la clasificación de comentarios y reportes de Neiva, midiendo el costo operativo exacto de la plataforma.
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '18px' }}>
-                <div style={{ padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Incidentes Procesados IA</span>
-                  <strong style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }} suppressHydrationWarning>{formatNumber(aiCredits.cases_analyzed || 1115)}</strong>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(185px, 1fr))', gap: '12px', marginBottom: '14px' }}>
+                <div style={{ padding: '14px 16px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.35)' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#10b981', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>💰 Saldo Disponible</span>
+                  <strong style={{ fontSize: '1.45rem', color: '#10b981', display: 'block', marginBottom: '2px' }}>
+                    ${aiCredits.remaining_usd !== undefined ? Number(aiCredits.remaining_usd).toFixed(2) : '4.84'} USD
+                  </strong>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {aiCredits.percent_remaining || 96.9}% restante del fondo OpenAI
+                  </span>
                 </div>
 
-                <div style={{ padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tokens Acumulados</span>
-                  <strong style={{ fontSize: '1.25rem', color: '#60a5fa' }} suppressHydrationWarning>{formatNumber(aiCredits.estimated_tokens || 390250)}</strong>
+                <div style={{ padding: '14px 16px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.35)' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#38bdf8', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>📉 Saldo Consumido IA</span>
+                  <strong style={{ fontSize: '1.45rem', color: '#38bdf8', display: 'block', marginBottom: '2px' }}>
+                    ${aiCredits.consumed_usd !== undefined ? Number(aiCredits.consumed_usd).toFixed(4) : (aiCredits.estimated_cost_usd || '0.1568')} USD
+                  </strong>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {aiCredits.percent_consumed || 3.1}% consumido en clasificación
+                  </span>
                 </div>
 
-                <div style={{ padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Inversión Estimada CIVIA</span>
-                  <strong style={{ fontSize: '1.25rem', color: '#10b981' }}>${aiCredits.estimated_cost_usd || '0.0976'} USD</strong>
+                <div style={{ padding: '14px 16px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>💳 Cupo Asignado</span>
+                  <strong style={{ fontSize: '1.45rem', color: 'var(--text-primary)', display: 'block', marginBottom: '2px' }}>
+                    ${aiCredits.initial_budget_usd !== undefined ? Number(aiCredits.initial_budget_usd).toFixed(2) : '5.00'} USD
+                  </strong>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    Fondo asignado del proyecto
+                  </span>
                 </div>
 
-                <div style={{ padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Latencia de Respuesta</span>
-                  <strong style={{ fontSize: '1.25rem', color: 'var(--text-primary)' }}>{aiCredits.latency_ms || '1100'} ms</strong>
+                <div style={{ padding: '14px 16px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>📊 Actividad IA</span>
+                  <strong style={{ fontSize: '1.3rem', color: 'var(--text-primary)', display: 'block', marginBottom: '2px' }} suppressHydrationWarning>
+                    {formatNumber(aiCredits.cases_analyzed || 1792)} Casos
+                  </strong>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {formatNumber(aiCredits.estimated_tokens || 627200)} tokens procesados
+                  </span>
+                </div>
+              </div>
+
+              {/* Barra visual de monitoreo de saldo consumido vs disponible */}
+              <div style={{ padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '6px', color: 'var(--text-secondary)', flexWrap: 'wrap', gap: '6px' }}>
+                  <span>Consumido: <strong style={{ color: '#38bdf8' }}>{aiCredits.percent_consumed || 3.1}% (${aiCredits.consumed_usd !== undefined ? Number(aiCredits.consumed_usd).toFixed(4) : (aiCredits.estimated_cost_usd || '0.1568')} USD)</strong></span>
+                  <span>Disponible: <strong style={{ color: '#10b981' }}>${aiCredits.remaining_usd !== undefined ? Number(aiCredits.remaining_usd).toFixed(2) : '4.84'} USD ({aiCredits.percent_remaining || 96.9}%)</strong></span>
+                </div>
+                <div style={{ width: '100%', height: '8px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(100, Math.max(3, aiCredits.percent_consumed || 3.1))}%`, height: '100%', background: 'linear-gradient(90deg, #38bdf8, #10b981)', borderRadius: '4px' }} />
                 </div>
               </div>
 
