@@ -648,7 +648,7 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                 const isBot = citizen.user_type === 'Bot' || citizen.bot_probability >= 0.55;
                 return (
                   <tr key={citizen.id} className={isBot ? styles['bot-row'] : ''}>
-                    {/* Nombre y Avatar */}
+                    {/* Nombre, Red Social y De Dónde Pertenece */}
                     <td>
                       <div className={styles['citizen-info']}>
                         <div className={[
@@ -659,15 +659,20 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                         </div>
                         <div>
                           <div className={styles['citizen-name']}>
-                            <span>{citizen.name}</span>
+                            <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{citizen.name}</span>
                             {isBot && (
                               <span style={{ fontSize: '0.65rem', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
                                 BOT
                               </span>
                             )}
                           </div>
-                          <div className={styles['citizen-handle']}>
-                            {citizen.handle} • {citizen.channel}
+                          <div style={{ fontSize: '0.74rem', color: '#38bdf8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontWeight: 600 }}>{citizen.handle}</span>
+                            <span style={{ color: 'var(--text-muted)' }}>({citizen.channel})</span>
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <MapPin size={11} style={{ color: '#ef4444', flexShrink: 0 }} />
+                            <span>{citizen.neighborhood || 'Neiva'}</span>
                           </div>
                         </div>
                       </div>
@@ -711,10 +716,10 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                     <td>
                       <div className={styles['profile-meta-pills']}>
                         <span className={styles['meta-pill']} title="Seguidores en la red social">
-                          👥 <strong>{citizen.followers_count.toLocaleString()}</strong> seg
+                          👥 <strong suppressHydrationWarning>{Number(citizen.followers_count || 0).toLocaleString('es-CO')}</strong> seg
                         </span>
                         <span className={styles['meta-pill']} title="Cuentas seguidas">
-                          👤 <strong>{citizen.following_count}</strong> seguidos
+                          👤 <strong suppressHydrationWarning>{Number(citizen.following_count || 0).toLocaleString('es-CO')}</strong> seguidos
                         </span>
                         <span className={styles['meta-pill']} title="Fecha estimada de creación de la cuenta">
                           📅 {citizen.account_created_at}
