@@ -503,10 +503,10 @@ export default function SettingsPage() {
                 <div style={{ padding: '14px 16px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.35)' }}>
                   <span style={{ fontSize: '0.72rem', color: '#10b981', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>💰 Saldo Disponible</span>
                   <strong style={{ fontSize: '1.45rem', color: '#10b981', display: 'block', marginBottom: '2px' }}>
-                    ${aiCredits.remaining_usd !== undefined ? Number(aiCredits.remaining_usd).toFixed(2) : '4.84'} USD
+                    ${aiCredits.remaining_usd !== undefined ? Number(aiCredits.remaining_usd).toFixed(2) : '9.84'} USD
                   </strong>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {aiCredits.percent_remaining || 96.9}% restante del fondo OpenAI
+                    {aiCredits.percent_remaining || 98.4}% restante del fondo OpenAI
                   </span>
                 </div>
 
@@ -516,14 +516,14 @@ export default function SettingsPage() {
                     ${aiCredits.consumed_usd !== undefined ? Number(aiCredits.consumed_usd).toFixed(4) : (aiCredits.estimated_cost_usd || '0.1568')} USD
                   </strong>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {aiCredits.percent_consumed || 3.1}% consumido en clasificación
+                    {aiCredits.percent_consumed || 1.6}% consumido en clasificación
                   </span>
                 </div>
 
                 <div style={{ padding: '14px 16px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>💳 Cupo Asignado</span>
                   <strong style={{ fontSize: '1.45rem', color: 'var(--text-primary)', display: 'block', marginBottom: '2px' }}>
-                    ${aiCredits.initial_budget_usd !== undefined ? Number(aiCredits.initial_budget_usd).toFixed(2) : '5.00'} USD
+                    ${aiCredits.initial_budget_usd !== undefined ? Number(aiCredits.initial_budget_usd).toFixed(2) : '10.00'} USD
                   </strong>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                     Fondo asignado del proyecto
@@ -544,8 +544,8 @@ export default function SettingsPage() {
               {/* Barra visual de monitoreo de saldo consumido vs disponible */}
               <div style={{ padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '6px', color: 'var(--text-secondary)', flexWrap: 'wrap', gap: '6px' }}>
-                  <span>Consumido: <strong style={{ color: '#38bdf8' }}>{aiCredits.percent_consumed || 3.1}% (${aiCredits.consumed_usd !== undefined ? Number(aiCredits.consumed_usd).toFixed(4) : (aiCredits.estimated_cost_usd || '0.1568')} USD)</strong></span>
-                  <span>Disponible: <strong style={{ color: '#10b981' }}>${aiCredits.remaining_usd !== undefined ? Number(aiCredits.remaining_usd).toFixed(2) : '4.84'} USD ({aiCredits.percent_remaining || 96.9}%)</strong></span>
+                  <span>Consumido: <strong style={{ color: '#38bdf8' }}>{aiCredits.percent_consumed || 1.6}% (${aiCredits.consumed_usd !== undefined ? Number(aiCredits.consumed_usd).toFixed(4) : (aiCredits.estimated_cost_usd || '0.1568')} USD)</strong></span>
+                  <span>Disponible: <strong style={{ color: '#10b981' }}>${aiCredits.remaining_usd !== undefined ? Number(aiCredits.remaining_usd).toFixed(2) : '9.84'} USD ({aiCredits.percent_remaining || 98.4}%)</strong></span>
                 </div>
                 <div style={{ width: '100%', height: '8px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '4px', overflow: 'hidden' }}>
                   <div style={{ width: `${Math.min(100, Math.max(3, aiCredits.percent_consumed || 3.1))}%`, height: '100%', background: 'linear-gradient(90deg, #38bdf8, #10b981)', borderRadius: '4px' }} />
