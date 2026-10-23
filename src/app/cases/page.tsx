@@ -2256,9 +2256,10 @@ export default function CasesPage() {
 {(() => {
                                   const cleanName = (rc.author || '').trim();
                                   const isIg = selectedPost?.source === 'Instagram' || cleanName.startsWith('@');
+                                  const slug = cleanName.replace(/[@\s]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._]/g, '');
                                   const targetUrl = isIg 
-                                    ? `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(cleanName.replace(/@/g, ''))}`
-                                    : `https://www.facebook.com/search/people/?q=${encodeURIComponent(cleanName + ' Neiva')}`;
+                                    ? `https://www.instagram.com/${slug}/`
+                                    : `https://www.facebook.com/${slug}`;
                                   return (
                                     <a
                                       href={targetUrl}
@@ -2273,7 +2274,7 @@ export default function CasesPage() {
                                         gap: '4px',
                                         textDecoration: 'none'
                                       }}
-                                      title={`Buscar perfil oficial de ${cleanName} en ${isIg ? 'Instagram' : 'Facebook Neiva'}`}
+                                      title={`Ver perfil oficial de ${cleanName} en ${isIg ? 'Instagram' : 'Facebook'}`}
                                     >
                                       <span>{rc.author}</span>
                                       <ExternalLink size={11} style={{ opacity: 0.7 }} />

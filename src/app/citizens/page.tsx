@@ -34,17 +34,19 @@ export function getCitizenSocialLink(name?: string, handle?: string, channel?: s
   }
 
   // Para Facebook:
-  // Facebook no admite URLs arbitrarias basadas en slugs si el usuario no tiene vanity URL pública configurada.
-  // La búsqueda oficial de personas de Facebook (search/people) garantiza abrir siempre el perfil real en Neiva
-  // con su foto, biografía y botones de contacto sin arrojar "Este contenido no está disponible".
-  const searchUrl = `https://www.facebook.com/search/people/?q=${encodeURIComponent((cleanName || 'Ciudadano') + ' Neiva')}`;
-  
+  // Redirigir directamente al perfil del usuario como en Instagram
+  const normalizedHandle = rawHandle.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._]/g, '');
+  const slug = (normalizedHandle.length > 2)
+    ? normalizedHandle
+    : cleanName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '.');
+  const directUrl = `https://www.facebook.com/${slug}`;
+
   return {
     channel: 'Facebook',
-    url: searchUrl,
-    label: 'Buscar Perfil FB',
+    url: directUrl,
+    label: 'Ver Perfil FB',
     shortLabel: 'Perfil FB',
-    tooltip: `Abrir búsqueda oficial del perfil de ${cleanName || 'ciudadano'} en Facebook Neiva`,
+    tooltip: `Abrir directamente el perfil oficial de ${cleanName || 'ciudadano'} en Facebook`,
     color: '#1877F2',
     bg: 'rgba(24, 119, 242, 0.12)',
     border: 'rgba(24, 119, 242, 0.28)'
