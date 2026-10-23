@@ -1311,7 +1311,16 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {selectedCitizenHistory?.comments?.map((item: any, idx: number) => (
+                    {(!selectedCitizenHistory?.comments || selectedCitizenHistory.comments.length === 0) ? (
+                      <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                        <Info size={32} style={{ color: 'var(--text-muted)', marginBottom: '12px', display: 'inline-block' }} />
+                        <h4 style={{ margin: '0 0 6px', fontSize: '1rem', color: 'var(--text-primary)' }}>Sin comentarios radicados para este perfil</h4>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '450px', marginInline: 'auto' }}>
+                          Este perfil no registra comentarios directos en las publicaciones analizadas de 2026.
+                        </p>
+                      </div>
+                    ) : (
+                      selectedCitizenHistory.comments.map((item: any, idx: number) => (
                       <div 
                         key={item.case_id || idx}
                         style={{
@@ -1392,11 +1401,13 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
-                                💬 Comentario de {selectedCitizenHistory?.citizen?.name}:
+                                💬 Comentario de {item.author || selectedCitizenHistory?.citizen?.name}:
                               </span>
 {(() => {
+                                const authorName = item.author || selectedCitizenHistory?.citizen?.name;
                                 const cit = selectedCitizenHistory?.citizen;
-                                const sLink = getCitizenSocialLink(cit?.name, cit?.handle, item.post.source || cit?.channel);
+                                const authorHandle = (authorName === cit?.name) ? cit?.handle : `@${authorName.toLowerCase().replace(/[^a-z0-9]/g, '.')}`;
+                                const sLink = getCitizenSocialLink(authorName, authorHandle, item.post.source || cit?.channel);
                                 return (
                                   <a
                                     href={sLink.url}
@@ -1417,7 +1428,7 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                                     }}
                                     title={sLink.tooltip}
                                   >
-                                    <span>{sLink.label} ({cit?.handle})</span>
+                                    <span>{sLink.label} ({authorHandle})</span>
                                     <ExternalLink size={10} />
                                   </a>
                                 );
@@ -1586,8 +1597,8 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    ))
+                  )}</div>
                 </>
               )}
             </div>
