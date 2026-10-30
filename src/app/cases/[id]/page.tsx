@@ -6,12 +6,13 @@ import { useParams } from 'next/navigation';
 import { 
   ArrowLeft, MapPin, Clock, MessageSquare, AlertTriangle, Send, Share2, 
   Flame, CheckCircle2, ShieldAlert, Building2, UserCheck, Check,
-  FileText, CornerDownRight, RefreshCw, Sparkles, MessageCircle, Layers
+  FileText, CornerDownRight, RefreshCw, Sparkles, MessageCircle, Layers,
+  ExternalLink, Copy, ThumbsUp, HelpCircle
 } from 'lucide-react';
 import { API } from '@/lib/api/client';
 import { useAuth, UserRole } from '@/context/AuthContext';
 import styles from './case-detail.module.scss';
-import { getEmotionConfig } from '@/lib/emotions';
+import { getEmotionConfig, getCitizenSocialLink } from '@/lib/emotions';
 
 // Departamentos e Instituciones de Neiva, Huila
 const NEIVA_DEPARTMENTS = [
@@ -51,6 +52,18 @@ interface CaseDetailData {
   institutional_radicado?: string | null;
   comments_count?: number;
   channel_contact_allowed?: boolean;
+  post_data?: {
+    id: string;
+    title: string;
+    message?: string;
+    cover_image?: string;
+    media_type?: string;
+    permalink_url?: string;
+    published_at?: string;
+    source?: string;
+    total_comments?: number;
+    likes_count?: number;
+  } | null;
   contact_person?: {
     name: string;
     handle: string;
@@ -66,133 +79,35 @@ const FALLBACK_CASES: Record<string, CaseDetailData> = {
     id: 'CIV-2026-0001',
     institutional_radicado: 'RAD-MOV-2026-0001',
     source: 'Facebook Oficial - Johan Steed',
-    author: 'Ciudadano',
+    author: 'Rodolfo Escobar',
     priority: 'Alta',
     title: 'Movilidad: Falta de semáforo en horario pico',
     content: 'aguantese un semaforo a medio dia',
     category: 'Movilidad',
-    sentiment: 'Crítico',
+    sentiment: 'Enojo o ira: Frustración',
     location: 'Neiva (General)',
     dateTime: '13 Oct 2026, 10:44 AM',
     status: 'Pendiente',
     mediaType: 'video',
-    imageUrl: 'https://scontent.fnva2-1.fna.fbcdn.net/v/t51.71878-10/844616706_2012953836090006_1577298243066674440_n.jpg?_nc_cat=105&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=5fad0e&_nc_eui2=AeEbnZSHvkeoORSo5EQnLYrM__d63phQk63_93remFCTrfpYg5tLfskbvWTWDC2s_m8&_nc_ohc=QjJBXZ9fpK4Q7kNvwFG1Ygt&_nc_oc=AdrFaEU1wO1c9QvHntWU7oIbaEk4QECLcBhtQxC1Lh5e9T2TLQzcl4TB5D62rajvQeA&_nc_zt=23&_nc_ht=scontent.fnva2-1.fna&edm=AKIiGfEEAAAA&_nc_gid=TjqvpXOtha05KzHoYNxAWQ&_nc_tpa=Q5bMBQJW8i1JZkVc8Y10i7GEB6Uc0kVwUs5p52DRQJqJEwTs4ZxU33ExZmyanpPqRTpCAXbqhrB8KAzwmg&oh=00_AQPD5WMpkCuyWoCjgPzQtEleANwaTJ3NK4-8Ny8BEPh7Wg&oe=6AD4C00A',
+    imageUrl: 'http://localhost:8000/static/covers/275486829735525_1634488622025887.jpg',
     impact_if_solved: 'Optimización de controladores viales en puntos neurálgicos de Neiva.',
     impact_if_ignored: 'Riesgo de colapso en corredores principales y siniestralidad.',
     assigned_department: 'Secretaría de Movilidad y Tránsito',
     assigned_to: 'Técnicos de Semaforización Neiva',
     priority_action: true,
-    comments_count: 3,
-  },
-  'CIV-2026-0002': {
-    id: 'CIV-2026-0002',
-    institutional_radicado: 'RAD-GOB-2026-0002',
-    source: 'Facebook Oficial - Johan Steed',
-    author: 'Ciudadano',
-    priority: 'Media',
-    title: 'General: Descontento general con la gestión municipal',
-    content: 'la misma mierda y suben y no hacen nada',
-    category: 'General',
-    sentiment: 'Indignación',
-    location: 'Neiva (General)',
-    dateTime: '13 Oct 2026, 07:57 PM',
-    status: 'Pendiente',
-    mediaType: 'video',
-    imageUrl: 'https://scontent.fnva2-1.fna.fbcdn.net/v/t51.71878-10/844616706_2012953836090006_1577298243066674440_n.jpg?_nc_cat=105&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=5fad0e&_nc_eui2=AeEbnZSHvkeoORSo5EQnLYrM__d63phQk63_93remFCTrfpYg5tLfskbvWTWDC2s_m8&_nc_ohc=QjJBXZ9fpK4Q7kNvwFG1Ygt&_nc_oc=AdrFaEU1wO1c9QvHntWU7oIbaEk4QECLcBhtQxC1Lh5e9T2TLQzcl4TB5D62rajvQeA&_nc_zt=23&_nc_ht=scontent.fnva2-1.fna&edm=AKIiGfEEAAAA&_nc_gid=TjqvpXOtha05KzHoYNxAWQ&_nc_tpa=Q5bMBQJW8i1JZkVc8Y10i7GEB6Uc0kVwUs5p52DRQJqJEwTs4ZxU33ExZmyanpPqRTpCAXbqhrB8KAzwmg&oh=00_AQPD5WMpkCuyWoCjgPzQtEleANwaTJ3NK4-8Ny8BEPh7Wg&oe=6AD4C00A',
-    impact_if_solved: 'Comunicación transparente y rendición de cuentas pública.',
-    impact_if_ignored: 'Deterioro de la confianza en las instituciones municipales.',
-    assigned_department: 'Secretaría de Gobierno y Convivencia Ciudadana',
-    assigned_to: 'Dirección de Participación Ciudadana',
-    priority_action: false,
-    comments_count: 3,
-  },
-  'CIV-2026-0003': {
-    id: 'CIV-2026-0003',
-    institutional_radicado: 'RAD-GOB-2026-0003',
-    source: 'Facebook Oficial - Johan Steed',
-    author: 'Ciudadano',
-    priority: 'Alta',
-    title: 'General: Corrupción y mal manejo de recursos en la ciudad',
-    content: 'Aquí la ley es para el más guevon y la gente trabajadora pero la delincuencia el desorden la corrupción y el mal manejo de los recursos y la corrupción nadie la mira que tristeza ver a neiva convertida en solo lucrar a politiqueros y mientras tanto gente trabajadora son los que llevan del vulto',
-    category: 'General',
-    sentiment: 'Indignación',
-    location: 'Neiva (General)',
-    dateTime: '13 Oct 2026, 02:06 PM',
-    status: 'Pendiente',
-    mediaType: 'video',
-    imageUrl: 'https://scontent.fnva2-1.fna.fbcdn.net/v/t51.71878-10/844616706_2012953836090006_1577298243066674440_n.jpg?_nc_cat=105&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=5fad0e&_nc_eui2=AeEbnZSHvkeoORSo5EQnLYrM__d63phQk63_93remFCTrfpYg5tLfskbvWTWDC2s_m8&_nc_ohc=QjJBXZ9fpK4Q7kNvwFG1Ygt&_nc_oc=AdrFaEU1wO1c9QvHntWU7oIbaEk4QECLcBhtQxC1Lh5e9T2TLQzcl4TB5D62rajvQeA&_nc_zt=23&_nc_ht=scontent.fnva2-1.fna&edm=AKIiGfEEAAAA&_nc_gid=TjqvpXOtha05KzHoYNxAWQ&_nc_tpa=Q5bMBQJW8i1JZkVc8Y10i7GEB6Uc0kVwUs5p52DRQJqJEwTs4ZxU33ExZmyanpPqRTpCAXbqhrB8KAzwmg&oh=00_AQPD5WMpkCuyWoCjgPzQtEleANwaTJ3NK4-8Ny8BEPh7Wg&oe=6AD4C00A',
-    impact_if_solved: 'Implementación de veedurías ciudadanas y control en contratación.',
-    impact_if_ignored: 'Creciente desafección institucional y descontento barrial.',
-    assigned_department: 'Secretaría de Gobierno y Convivencia Ciudadana',
-    assigned_to: 'Veedurías Neiva',
-    priority_action: true,
-    comments_count: 3,
-  },
-  'CIV-2026-0004': {
-    id: 'CIV-2026-0004',
-    institutional_radicado: 'RAD-DES-2026-0004',
-    source: 'Facebook Oficial - Johan Steed',
-    author: 'Ciudadano',
-    priority: 'Baja',
-    title: 'General: Apoyo ciudadano para renovación y liderazgo',
-    content: 'Ojalá que la gente te apoye para alcanzar la alcaldía.para acabar con los mismos de siempre mañosos y torcidos.que tenemos hoy en día...',
-    category: 'General',
-    sentiment: 'Positivo',
-    location: 'Neiva (General)',
-    dateTime: '12 Oct 2026, 04:07 PM',
-    status: 'Pendiente',
-    mediaType: 'video',
-    imageUrl: 'https://scontent.fnva2-1.fna.fbcdn.net/v/t51.71878-10/845961823_4634800416665273_4337931023863517376_n.jpg?_nc_cat=111&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=5fad0e&_nc_eui2=AeFiPxMjeUyv8ySVkSWaA0HXlTZK-kXHJt6VNkr6Rccm3obDFFrk3uXzyjqj3xIzO80&_nc_ohc=jbLt4auIR1cQ7kNvwEswdMs&_nc_oc=AdoqwEGsLAYioWF946GOgE6X_EWMG5ihGcvNPMkOjX-EWpiQMmqgbP5rSoi6wFFy3to&_nc_zt=23&_nc_ht=scontent.fnva2-1.fna&edm=AKIiGfEEAAAA&_nc_gid=TjqvpXOtha05KzHoYNxAWQ&_nc_tpa=Q5bMBQKbpqUXih33w9CxEN7rqgmMPzTiU4REs6pkDn2xIqvwuyy3rRH8EBJ_TLEt0csr5DnPfy611VIauw&oh=00_AQMurHjNGLOvOs2KzPnmLzm6G4oG9XP0Mog224pvsyegmQ&oe=6AD4A307',
-    impact_if_solved: 'Consolidación de respaldo social y participación en mesas de trabajo.',
-    impact_if_ignored: 'Sin riesgo inmediato.',
-    assigned_department: 'Despacho Municipal',
-    assigned_to: 'Equipo de Participación',
-    priority_action: false,
     comments_count: 1,
-  },
-  'CIV-2026-0005': {
-    id: 'CIV-2026-0005',
-    institutional_radicado: 'RAD-GOB-2026-0005',
-    source: 'Facebook Oficial - Johan Steed',
-    author: 'Ciudadano',
-    priority: 'Media',
-    title: 'General: Descontento con la gestión administrativa',
-    content: 'Los mismo peleando .. por la plata de neiva',
-    category: 'General',
-    sentiment: 'Crítico',
-    location: 'Neiva (General)',
-    dateTime: '12 Oct 2026, 12:21 AM',
-    status: 'Pendiente',
-    mediaType: 'image',
-    imageUrl: 'https://scontent.fnva2-1.fna.fbcdn.net/v/t51.82787-15/841639987_18637397275046485_2085644438902040396_n.jpg?stp=dst-jpg_p720x720_tt6&_nc_cat=102&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=127cfc&_nc_eui2=AeHUyJBLuepOy6N2lQHZiC3UVL3DKvGUtexUvcMq8ZS17G8jkGi-SH-RIyTUQ4zQBD8&_nc_ohc=HHgJ3qpRlSgQ7kNvwGQehpe&_nc_oc=AdrxmUQqR7Rh5VxCOXkvvb_5AV5l0s-tYl8f6V0J5HZgEriM69vnG9NhHlEBuuucSLg&_nc_zt=23&_nc_ht=scontent.fnva2-1.fna&edm=AKIiGfEEAAAA&_nc_gid=TjqvpXOtha05KzHoYNxAWQ&_nc_tpa=Q5bMBQI4Rjrwnq1orRI90znRuMe1BcPBIj2FWuIc9NktHgWz0Uy0rqyDyWTwmuUn7zbd4H8yiz5gemuFxw&oh=00_AQOmShgdHBlFv1imWVXjhHLoVwJ11AAJJgE9yoXjGa-Plg&oe=6AD4A79E',
-    impact_if_solved: 'Fortalecimiento de la transparencia en la inversión comunal.',
-    impact_if_ignored: 'Sensación de desamparo presupuestal en las comunas.',
-    assigned_department: 'Secretaría de Gobierno y Convivencia Ciudadana',
-    assigned_to: 'Despacho de Gobierno',
-    priority_action: false,
-    comments_count: 4,
-  },
-  'CIV-2026-0008': {
-    id: 'CIV-2026-0008',
-    institutional_radicado: 'RAD-SEG-2026-0008',
-    source: 'Facebook Oficial - Johan Steed',
-    author: 'Ciudadano',
-    priority: 'Alta',
-    title: 'General: Percepción de inseguridad y deterioro social en Neiva',
-    content: 'Se fue para europa o que... OJO CON LOS ASESORES DE IMAGEN ESTAN MAL ENFOCADOS NO EXPONGA SU FAMILIA EXPONGA LA REALIDAD DE NEIVA: HURTOS, ASESINATOS, ATAQUES, NEIVA MUY DESBARATADA',
-    category: 'Seguridad',
-    sentiment: 'Indignación',
-    location: 'Neiva (General)',
-    dateTime: '12 Oct 2026, 11:33 AM',
-    status: 'Pendiente',
-    mediaType: 'image',
-    imageUrl: 'https://scontent.fnva2-1.fna.fbcdn.net/v/t51.82787-15/841639987_18637397275046485_2085644438902040396_n.jpg?stp=dst-jpg_p720x720_tt6&_nc_cat=102&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=127cfc&_nc_eui2=AeHUyJBLuepOy6N2lQHZiC3UVL3DKvGUtexUvcMq8ZS17G8jkGi-SH-RIyTUQ4zQBD8&_nc_ohc=HHgJ3qpRlSgQ7kNvwGQehpe&_nc_oc=AdrxmUQqR7Rh5VxCOXkvvb_5AV5l0s-tYl8f6V0J5HZgEriM69vnG9NhHlEBuuucSLg&_nc_zt=23&_nc_ht=scontent.fnva2-1.fna&edm=AKIiGfEEAAAA&_nc_gid=TjqvpXOtha05KzHoYNxAWQ&_nc_tpa=Q5bMBQI4Rjrwnq1orRI90znRuMe1BcPBIj2FWuIc9NktHgWz0Uy0rqyDyWTwmuUn7zbd4H8yiz5gemuFxw&oh=00_AQOmShgdHBlFv1imWVXjhHLoVwJ11AAJJgE9yoXjGa-Plg&oe=6AD4A79E',
-    impact_if_solved: 'Diseño de plan de choque contra el hurto y articulación con cuadrantes de Policía.',
-    impact_if_ignored: 'Escalamiento de denuncias ciudadanas y miedo en zonas residenciales.',
-    assigned_department: 'Secretaría de Gobierno y Convivencia Ciudadana',
-    assigned_to: 'Observatorio de Seguridad y Convivencia',
-    priority_action: true,
-    comments_count: 4,
+    post_data: {
+      id: '275486829735525_1634488622025887',
+      title: 'En Neiva, esperar el semáforo en rojo es todo un reto entre el calor y el tráfico...',
+      message: 'En Neiva, esperar el semáforo en rojo es todo un reto entre el calor y el tráfico. A veces, hasta nos da tiempo de hacer de todo mientras esperamos la luz verde.\n\nLa movilidad también necesita orden.',
+      cover_image: 'http://localhost:8000/static/covers/275486829735525_1634488622025887.jpg',
+      media_type: 'video',
+      permalink_url: 'https://www.facebook.com/reel/1418971067098225/',
+      published_at: '20 Oct 2026, 05:52 PM',
+      source: 'Facebook',
+      total_comments: 18,
+      likes_count: 319
+    }
   }
 };
 
@@ -222,7 +137,7 @@ export default function CaseDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
-  // Estados de formularios para cada rol
+  // Estados de formularios para cada acción
   const [newNote, setNewNote] = useState('');
   const [dispatchDept, setDispatchDept] = useState(() => getFallbackCase(caseId).assigned_department || NEIVA_DEPARTMENTS[0]);
   const [dispatchAssignee, setDispatchAssignee] = useState(() => getFallbackCase(caseId).assigned_to || '');
@@ -230,8 +145,7 @@ export default function CaseDetailPage() {
   const [resolutionText, setResolutionText] = useState(() => getFallbackCase(caseId).resolution_note || '');
   const [publicRespText, setPublicRespText] = useState(() => getFallbackCase(caseId).public_response || '');
   const [mayoralDirective, setMayoralDirective] = useState('');
-  const [operatorSolution, setOperatorSolution] = useState('');
-  const [operatorEvidence, setOperatorEvidence] = useState('');
+  const [copiedResponse, setCopiedResponse] = useState(false);
 
   // Cargar datos del caso desde Backend
   useEffect(() => {
@@ -243,13 +157,13 @@ export default function CaseDetailPage() {
         if (isMounted && data) {
           const parsed: CaseDetailData = {
             id: data.id || caseId,
-            source: data.source || 'Facebook Oficial',
+            source: data.source || 'Facebook',
             author: data.author || 'Ciudadano',
             priority: data.priority || 'Media',
             title: data.title || 'Reporte Ciudadano en Neiva',
             content: data.content || '',
             category: data.category || 'General',
-            sentiment: data.sentiment || 'Neutro',
+            sentiment: data.sentiment || 'Enojo o ira: Frustración',
             location: data.location || 'Neiva',
             dateTime: data.date_time || data.dateTime || 'Reciente',
             status: data.status || 'Pendiente',
@@ -265,7 +179,8 @@ export default function CaseDetailPage() {
             resolved_by: data.resolved_by || '',
             priority_action: data.priority_action || false,
             institutional_radicado: data.institutional_radicado || `RAD-${(data.category || 'GEN').substring(0,3).toUpperCase()}-2026-${caseId.replace(/\D/g, '').padStart(4, '0') || '0001'}`,
-            comments_count: data.comments_count || 1,
+            comments_count: 1,
+            post_data: data.post_data || null
           };
           setCaseData(parsed);
           setDispatchDept(parsed.assigned_department || NEIVA_DEPARTMENTS[0]);
@@ -292,6 +207,7 @@ export default function CaseDetailPage() {
         if (isMounted) setLoading(false);
       }
     }
+
     fetchCase();
     return () => { isMounted = false; };
   }, [caseId]);
@@ -301,62 +217,51 @@ export default function CaseDetailPage() {
     setTimeout(() => setFeedbackMsg(null), 4500);
   };
 
-  // ─── ACCIÓN: Alcalde Toggle Prioridad Inmediata ──────────────
-  const handleTogglePriority = async () => {
-    if (!caseData || isSubmitting) return;
+  // ─── ACCIÓN: Generar Propuesta de Respuesta Asistida por IA CIVIA ────
+  const handleGenerateAiReply = () => {
+    if (!caseData) return;
+    const dept = caseData.assigned_department || 'la administración municipal';
+    const cat = caseData.category || 'su reporte';
+    const citizenName = caseData.author.replace('@', '');
+    const suggestion = `Hola ${citizenName}, gracias por tu participación. Tu reporte respecto a ${caseData.title || cat} en ${caseData.location} se encuentra radicado con el número oficial ${caseData.institutional_radicado || caseData.id} y fue asignado formalmente a ${dept}. Desde el despacho municipal estamos dando seguimiento directo para atender esta solicitud.`;
+    setPublicRespText(suggestion);
+    showFeedback('✨ Propuesta institucional generada con éxito por CIVIA AI.');
+  };
+
+  // ─── ACCIÓN: Guardar Respuesta Institucional Oficial ─────────────────
+  const handleSavePublicResponse = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!caseData || !publicRespText.trim() || isSubmitting) return;
     setIsSubmitting(true);
-    const nextState = !caseData.priority_action;
     try {
-      await API.cases.togglePriority(caseData.id, nextState);
-      const actionText = nextState 
-        ? `[${new Date().toLocaleDateString('es-CO')}] [Alcaldía de Neiva - Despacho]: Se ha declarado PRIORIDAD DE INTERVENCIÓN INMEDIATA.`
-        : `[${new Date().toLocaleDateString('es-CO')}] [Alcaldía de Neiva - Despacho]: Se desactiva la prioridad especial de alcaldía.`;
-      
+      await API.cases.savePublicResponse(caseData.id, publicRespText.trim());
+      const nowStr = new Date().toLocaleDateString('es-CO');
+      const actionText = `[${nowStr}] [Respuesta Institucional Publicada]: ${publicRespText.trim()}`;
       setCaseData(prev => prev ? {
         ...prev,
-        priority_action: nextState,
-        internal_notes: prev.internal_notes ? `${prev.internal_notes}\n${actionText}` : actionText,
+        public_response: publicRespText.trim(),
+        status: prev.status === 'Pendiente' ? 'En Gestión' : prev.status,
+        internal_notes: prev.internal_notes ? `${prev.internal_notes}\n${actionText}` : actionText
       } : null);
-
-      showFeedback(nextState 
-        ? '🔥 ¡Prioridad Inmediata Alcaldía activada! Se notificó a secretarías con SLA < 24h.' 
-        : 'Prioridad especial de Alcaldía desactivada.');
+      showFeedback('💾 Respuesta institucional guardada en base de datos oficial.');
     } catch (err) {
       console.error(err);
-      // Fallback optimista local
-      setCaseData(prev => prev ? { ...prev, priority_action: nextState } : null);
-      showFeedback(`Prioridad actualizada localmente (${nextState ? 'Activada' : 'Desactivada'}).`);
+      showFeedback('Respuesta oficial guardada localmente.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ─── ACCIÓN: Alcalde Añadir Directriz ────────────────────────
-  const handleAddMayoralDirective = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!caseData || !mayoralDirective.trim() || isSubmitting) return;
-    setIsSubmitting(true);
-    const noteText = `[DIRECTRIZ ALCALDÍA - Johan Steed]: ${mayoralDirective.trim()}`;
-    try {
-      await API.cases.addNote(caseData.id, {
-        note: noteText,
-        author_name: 'Johan Steed (Alcalde)'
-      });
-      setCaseData(prev => prev ? {
-        ...prev,
-        internal_notes: prev.internal_notes ? `${prev.internal_notes}\n[${new Date().toLocaleDateString('es-CO')}] ${noteText}` : `[${new Date().toLocaleDateString('es-CO')}] ${noteText}`
-      } : null);
-      setMayoralDirective('');
-      showFeedback('🏛️ Directriz del Alcalde registrada y emitida a los despachos correspondientes.');
-    } catch (err) {
-      console.error(err);
-      showFeedback('Directriz registrada localmente.');
-    } finally {
-      setIsSubmitting(false);
-    }
+  // ─── ACCIÓN: Copiar Respuesta Oficial al Portapapeles ────────────────
+  const handleCopyPublicResponse = () => {
+    if (!publicRespText.trim()) return;
+    navigator.clipboard.writeText(publicRespText.trim());
+    setCopiedResponse(true);
+    showFeedback('📋 Respuesta copiada al portapapeles. Lista para publicar en Meta.');
+    setTimeout(() => setCopiedResponse(false), 2500);
   };
 
-  // ─── ACCIÓN: Despacho a Terreno (Secretario / Operador) ─────
+  // ─── ACCIÓN: Despacho a Terreno (Secretario / Operador) ──────────────
   const handleDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!caseData || isSubmitting) return;
@@ -378,7 +283,7 @@ export default function CaseDetailPage() {
         internal_notes: prev.internal_notes ? `${prev.internal_notes}\n${noteEntry}` : noteEntry
       } : null);
       setDispatchNote('');
-      showFeedback(`🚀 Caso canalizado a ${dispatchDept}. Estado actualizado a "En Gestión".`);
+      showFeedback(`🚀 Caso canalizado formalmente a ${dispatchDept}. Estado: "En Gestión".`);
     } catch (err) {
       console.error(err);
       showFeedback(`Caso actualizado localmente a En Gestión.`);
@@ -387,7 +292,7 @@ export default function CaseDetailPage() {
     }
   };
 
-  // ─── ACCIÓN: Resolver Caso (Secretario) ──────────────────────
+  // ─── ACCIÓN: Resolver Caso (Secretario) ──────────────────────────────
   const handleResolveCase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!caseData || !resolutionText.trim() || isSubmitting) return;
@@ -408,7 +313,7 @@ export default function CaseDetailPage() {
         resolved_by: resolvedBy,
         internal_notes: prev.internal_notes ? `${prev.internal_notes}\n${noteEntry}` : noteEntry
       } : null);
-      showFeedback('✅ ¡Caso cerrado satisfactoriamente con reporte técnico oficial!');
+      showFeedback('✅ ¡Caso resuelto y cerrado satisfactoriamente con reporte técnico oficial!');
     } catch (err) {
       console.error(err);
       showFeedback('Caso marcado como resuelto localmente.');
@@ -417,61 +322,41 @@ export default function CaseDetailPage() {
     }
   };
 
-  // ─── ACCIÓN: Registrar Solución y Evidencias de Terreno (Operador) ───
-  const handleOperatorSolution = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!caseData || !operatorSolution.trim() || isSubmitting) return;
+  // ─── ACCIÓN: Alcalde Toggle Prioridad Inmediata ──────────────────────
+  const handleTogglePriority = async () => {
+    if (!caseData || isSubmitting) return;
     setIsSubmitting(true);
-    const authorName = user?.full_name ? `${user.full_name} (${user.role})` : 'Operador CIVIA';
-    const noteEntry = `[${new Date().toLocaleDateString('es-CO')}] [Solución y Evidencias Registradas por ${authorName}]: ${operatorSolution.trim()} ${operatorEvidence ? '• Evidencia: ' + operatorEvidence : ''}`;
+    const nextState = !caseData.priority_action;
     try {
-      await API.cases.addNote(caseData.id, {
-        note: noteEntry,
-        author_name: authorName,
-      });
+      await API.cases.togglePriority(caseData.id, nextState);
+      const actionText = nextState 
+        ? `[${new Date().toLocaleDateString('es-CO')}] [Alcaldía de Neiva - Despacho]: Se ha declarado PRIORIDAD DE INTERVENCIÓN INMEDIATA.`
+        : `[${new Date().toLocaleDateString('es-CO')}] [Alcaldía de Neiva - Despacho]: Se desactiva la prioridad especial de alcaldía.`;
+      
       setCaseData(prev => prev ? {
         ...prev,
-        status: 'Solución Registrada',
-        internal_notes: prev.internal_notes ? `${prev.internal_notes}\n${noteEntry}` : noteEntry,
+        priority_action: nextState,
+        internal_notes: prev.internal_notes ? `${prev.internal_notes}\n${actionText}` : actionText,
       } : null);
-      setOperatorSolution('');
-      setOperatorEvidence('');
-      showFeedback('📦 Solución y evidencias técnicas registradas. El caso pasa a Pendiente de Validación de Cierre por el Secretario.');
+
+      showFeedback(nextState 
+        ? '🔥 ¡Prioridad Inmediata Alcaldía activada! Se notificó a secretarías con SLA < 24h.' 
+        : 'Prioridad especial de Alcaldía desactivada.');
     } catch (err) {
       console.error(err);
-      setCaseData(prev => prev ? { ...prev, status: 'Solución Registrada' } : null);
-      showFeedback('Solución registrada localmente.');
+      setCaseData(prev => prev ? { ...prev, priority_action: nextState } : null);
+      showFeedback(`Prioridad actualizada localmente (${nextState ? 'Activada' : 'Desactivada'}).`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ─── ACCIÓN: Guardar Respuesta Pública (Secretario / Alcalde) ─
-  const handleSavePublicResponse = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!caseData || !publicRespText.trim() || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      await API.cases.savePublicResponse(caseData.id, publicRespText.trim());
-      setCaseData(prev => prev ? {
-        ...prev,
-        public_response: publicRespText.trim()
-      } : null);
-      showFeedback('📢 Comunicado oficial guardado listo para publicación institucional.');
-    } catch (err) {
-      console.error(err);
-      showFeedback('Respuesta oficial guardada localmente.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // ─── ACCIÓN: Agregar Nota Interna en Bitácora ────────────────
+  // ─── ACCIÓN: Añadir Nota Interna en Bitácora ─────────────────────────
   const handleAddInternalNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!caseData || !newNote.trim() || isSubmitting) return;
     setIsSubmitting(true);
-    const authorName = user?.full_name ? `${user.full_name} (${user.role})` : 'Operador';
+    const authorName = user?.full_name ? `${user.full_name} (${user.role})` : 'Operador CIVIA';
     try {
       await API.cases.addNote(caseData.id, {
         note: newNote.trim(),
@@ -504,16 +389,22 @@ export default function CaseDetailPage() {
   }
 
   const currentRole = user?.role || 'OPERADOR';
+  const emotionConfig = getEmotionConfig(caseData.sentiment);
+  const socialLink = getCitizenSocialLink(caseData.author, caseData.author, caseData.source);
 
-  const LIFECYCLE_STEPS = [
-    { id: 'NUEVO', label: '1. Nuevo' },
-    { id: 'VALIDADO', label: '2. Validado' },
-    { id: 'ASIGNADO', label: '3. Asignado' },
-    { id: 'EN_GESTION', label: '4. En Gestión' },
-    { id: 'SOLUCION_REGISTRADA', label: '5. Solución Registrada' },
-    { id: 'PENDIENTE_VALIDACION_CIERRE', label: '6. Validación Cierre' },
-    { id: 'CERRADO', label: '7. Cerrado' },
-  ];
+  // Datos del post oficial
+  const postData = caseData.post_data || {
+    id: 'post_oficial_neiva',
+    title: caseData.title,
+    message: 'Publicación institucional oficial del Alcalde Johan Steed abordando problemáticas ciudadanas y avances de gestión en Neiva.',
+    cover_image: caseData.imageUrl || 'http://localhost:8000/static/covers/275486829735525_1634488622025887.jpg',
+    media_type: caseData.mediaType || 'image',
+    permalink_url: caseData.source.toLowerCase().includes('instagram') ? 'https://instagram.com/johansteed_' : 'https://facebook.com/1627414346066648',
+    published_at: caseData.dateTime,
+    source: caseData.source,
+    total_comments: 18,
+    likes_count: 319
+  };
 
   return (
     <div className={styles['page-container']}>
@@ -524,10 +415,10 @@ export default function CaseDetailPage() {
             <span className={styles['banner-icon']}>🔥</span>
             <div>
               <h4>Prioridad Institucional – Despacho del Alcalde</h4>
-              <p>Intervención de máxima prioridad institucional. SLA especial configurable (Parámetro actual: 24 horas por defecto).</p>
+              <p>Intervención de máxima prioridad institucional. Protocolo con SLA prioritario de 24 horas.</p>
             </div>
           </div>
-          <span className={styles['banner-tag']}>SLA ACTIVO: ESPECIAL CONFIGURABLE</span>
+          <span className={styles['banner-tag']}>SLA PRIORITARIO ACTIVADO</span>
         </div>
       )}
 
@@ -538,14 +429,13 @@ export default function CaseDetailPage() {
             <ArrowLeft size={16} /> Volver a la Bandeja de Casos
           </Link>
           <div className={styles['title-row']}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <h1>{caseData.id}</h1>
-              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-muted)', padding: '3px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                {caseData.institutional_radicado ? `Radicado Institucional: ${caseData.institutional_radicado}` : 'Radicado Institucional: Pendiente / Opcional'}
-              </span>
-            </div>
+            <h1 className={styles['case-title']}>{caseData.title}</h1>
+            <span className={styles['case-id-badge']}>{caseData.institutional_radicado || caseData.id}</span>
+          </div>
+          <div className={styles['tags-row']}>
+            <span className="badge-tag">{caseData.category}</span>
             <span className={
-              caseData.priority === 'Alta' ? 'badge-alta' :
+              caseData.priority === 'Alta' || caseData.priority === 'Crítica' ? 'badge-alta' :
               caseData.priority === 'Media' ? 'badge-media' : 'badge-baja'
             }>
               Prioridad {caseData.priority}
@@ -555,9 +445,6 @@ export default function CaseDetailPage() {
               caseData.status === 'En Gestión' ? 'badge-blue' : 'badge-media'
             }>
               {caseData.status}
-            </span>
-            <span className="badge-tag" style={{ background: 'rgba(59, 130, 246, 0.08)', color: 'var(--blue-600)', border: '1px solid rgba(59, 130, 246, 0.25)', fontWeight: 600 }}>
-              💬 {caseData.comments_count || 14} comentarios Meta agrupados
             </span>
             {caseData.assigned_department && (
               <span className="badge-tag">
@@ -569,7 +456,7 @@ export default function CaseDetailPage() {
             <span><Clock size={14} /> {caseData.dateTime}</span>
             <span><MapPin size={14} /> {caseData.location}, Neiva</span>
             <span><MessageSquare size={14} /> Red: {caseData.source}</span>
-            <span><UserCheck size={14} /> Autor: {caseData.author}</span>
+            <span><UserCheck size={14} /> Autor: <strong>{caseData.author}</strong></span>
           </div>
         </div>
 
@@ -579,7 +466,7 @@ export default function CaseDetailPage() {
             onClick={() => {
               if (navigator.clipboard) {
                 navigator.clipboard.writeText(window.location.href);
-                showFeedback('📋 Enlace del caso copiado al portapapeles');
+                showFeedback('📋 Enlace del expediente copiado al portapapeles');
               }
             }}
           >
@@ -587,7 +474,7 @@ export default function CaseDetailPage() {
             <span>Compartir</span>
           </button>
 
-          {/* Acción rápida de Alcalde */}
+          {/* Acción de Alcalde */}
           {currentRole === 'ALCALDE' && (
             <button 
               className={`${styles.btn} ${caseData.priority_action ? styles['btn-danger-outline'] : styles['btn-danger']}`}
@@ -598,47 +485,8 @@ export default function CaseDetailPage() {
               <span>{caseData.priority_action ? 'Quitar Prioridad Alcaldía' : 'Declarar Prioridad Inmediata'}</span>
             </button>
           )}
-
-          {/* Acción rápida de Secretario */}
-          {currentRole === 'SECRETARIO' && caseData.status !== 'Resuelto' && (
-            <button 
-              className={`${styles.btn} ${styles['btn-success']}`}
-              onClick={() => {
-                const el = document.getElementById('resolution-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
-            >
-              <CheckCircle2 size={16} />
-              <span>Cierre Técnico</span>
-            </button>
-          )}
         </div>
       </header>
-
-      {/* ─── TRAZADOR VISUAL DE CICLO DE VIDA FORMAL CIVIA ──────── */}
-      <div className={styles['lifecycle-tracker']}>
-        {LIFECYCLE_STEPS.map((step, idx) => {
-          const isCurrent = 
-            (step.id === 'EN_GESTION' && caseData.status === 'En Gestión') ||
-            (step.id === 'CERRADO' && (caseData.status === 'Resuelto' || caseData.status === 'Cerrado')) ||
-            (step.id === 'SOLUCION_REGISTRADA' && caseData.status === 'Solución Registrada') ||
-            (step.id === 'PENDIENTE_VALIDACION_CIERRE' && caseData.status === 'Pendiente Validación Cierre') ||
-            (step.id === 'NUEVO' && (caseData.status === 'Pendiente' || caseData.status === 'Nuevo')) ||
-            (step.id === 'ASIGNADO' && caseData.assigned_department && caseData.status !== 'Resuelto' && caseData.status !== 'Solución Registrada');
-
-          return (
-            <React.Fragment key={step.id}>
-              <span className={[
-                styles['lifecycle-step'],
-                isCurrent ? styles.current : '',
-              ].join(' ')}>
-                {step.label}
-              </span>
-              {idx < LIFECYCLE_STEPS.length - 1 && <span className={styles['lifecycle-arrow']}>➔</span>}
-            </React.Fragment>
-          );
-        })}
-      </div>
 
       {/* FEEDBACK TOAST / BANNER */}
       {feedbackMsg && (
@@ -648,675 +496,549 @@ export default function CaseDetailPage() {
         </div>
       )}
 
-      {/* ─── GRID DE DETALLE Y ACCIONES ────────────────────────── */}
+      {/* ─── GRID DE DETALLE Y GESTIÓN OPERATIVA ────────────────── */}
       <div className={styles['detail-grid']}>
         {/* ======================================================== */}
-        {/* COLUMNA IZQUIERDA: EXPEDIENTE, IA Y BITÁCORA             */}
+        {/* COLUMNA IZQUIERDA: POST OFICIAL, COMENTARIO Y TRAZABILIDAD */}
         {/* ======================================================== */}
-        <div>
-          {/* 1. Contenido Original del Reporte */}
-          <div className={styles.card}>
-            <div className={styles['card-title']}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+          {/* 1. PUBLICACIÓN OFICIAL DE ORIGEN (Johan Steed) */}
+          <div className={styles.card} style={{ border: '1px solid rgba(59, 130, 246, 0.35)', background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%)' }}>
+            <div className={styles['card-title']} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '10px' }}>
               <div className={styles['title-content']}>
-                <MessageSquare size={18} className="text-blue-500" />
-                <span>Reporte Ciudadano Detectado</span>
+                <span style={{ fontSize: '1.2rem' }}>{postData.source?.toLowerCase().includes('instagram') ? '📸' : '📘'}</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fff' }}>Publicación Oficial de Johan Steed</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Canal: {postData.source} • Publicado: {postData.published_at}</div>
+                </div>
               </div>
-              <span className="badge-tag">{caseData.source}</span>
+              {postData.permalink_url && (
+                <a 
+                  href={postData.permalink_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="btn-secondary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', padding: '5px 10px', textDecoration: 'none' }}
+                >
+                  <span>Ver Post en {postData.source}</span>
+                  <ExternalLink size={13} />
+                </a>
+              )}
             </div>
 
-            <div className={styles['citizen-box']}>
-              <div className={styles['author-row']}>
+            <div style={{ marginTop: '12px' }}>
+              {/* Cover o miniatura de la publicación */}
+              {(postData.cover_image || caseData.imageUrl) && (
+                <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', maxHeight: '240px', marginBottom: '12px', border: '1px solid var(--border)' }}>
+                  <img 
+                    src={postData.cover_image || caseData.imageUrl || ''} 
+                    alt="Portada del Post de Johan Steed" 
+                    style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block' }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '10px',
+                    left: '10px',
+                    background: 'rgba(15, 23, 42, 0.85)',
+                    backdropFilter: 'blur(4px)',
+                    color: '#fff',
+                    padding: '3px 10px',
+                    borderRadius: '4px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span>{postData.media_type === 'video' ? '🎥 Reel Oficial' : '📷 Foto Oficial'}</span>
+                    <span>• {postData.likes_count || 320} me gusta</span>
+                    <span>• {postData.total_comments || 18} comentarios</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Texto de la publicación oficial de Johan Steed */}
+              <div style={{
+                padding: '12px 14px',
+                background: 'rgba(15, 23, 42, 0.55)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                color: '#e2e8f0',
+                lineHeight: 1.5,
+                whiteSpace: 'pre-line'
+              }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.5px' }}>
+                  Contenido de la publicación institucional:
+                </div>
+                "{postData.message || postData.title}"
+              </div>
+            </div>
+          </div>
+
+          {/* 2. EXCLUSIVAMENTE ESE COMENTARIO (Ciudadano) */}
+          <div className={styles.card} style={{ border: '1px solid rgba(239, 68, 68, 0.35)', background: 'rgba(15, 23, 42, 0.8)' }}>
+            <div className={styles['card-title']}>
+              <div className={styles['title-content']}>
+                <MessageSquare size={18} className="text-red-500" />
+                <span style={{ fontWeight: 700 }}>Comentario Ciudadano del Caso (Exclusivo)</span>
+              </div>
+              <span 
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  backgroundColor: emotionConfig.bg,
+                  border: `1px solid ${emotionConfig.border}`,
+                  color: emotionConfig.color
+                }}
+                title={`Rueda de Sentimientos: ${emotionConfig.primary} - ${emotionConfig.sub}`}
+              >
+                <span>{emotionConfig.emoji}</span>
+                <span>{caseData.sentiment}</span>
+              </span>
+            </div>
+
+            <div className={styles['citizen-box']} style={{ padding: '14px', background: 'rgba(30, 41, 59, 0.35)', borderRadius: '8px' }}>
+              <div className={styles['author-row']} style={{ marginBottom: '12px' }}>
                 <div className={styles['author-info']}>
-                  <div className={styles['author-avatar']}>
+                  <div className={styles['author-avatar']} style={{ background: socialLink.channel === 'Instagram' ? '#E1306C' : '#1877F2' }}>
                     {caseData.author.replace('@', '').slice(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <div className={styles['author-name']}>{caseData.author}</div>
-                    <div className={styles['author-channel']}>Publicado en {caseData.source} • {caseData.location}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <strong style={{ fontSize: '0.95rem', color: '#fff' }}>{caseData.author}</strong>
+                      {socialLink.url && (
+                        <a 
+                          href={socialLink.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.72rem',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            background: socialLink.bg,
+                            border: `1px solid ${socialLink.border}`,
+                            color: socialLink.color,
+                            textDecoration: 'none',
+                            fontWeight: 600
+                          }}
+                        >
+                          <span>{socialLink.label}</span>
+                          <ExternalLink size={11} />
+                        </a>
+                      )}
+                    </div>
+                    <div className={styles['author-channel']}>
+                      Comentó el {caseData.dateTime} • Sector: {caseData.location}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className={styles['citizen-quote']}>
+              {/* El comentario íntegro y exclusivo */}
+              <div style={{
+                padding: '14px 16px',
+                background: 'rgba(15, 23, 42, 0.75)',
+                borderLeft: `4px solid ${emotionConfig.color}`,
+                borderRadius: '0 8px 8px 0',
+                fontSize: '1rem',
+                lineHeight: 1.6,
+                color: '#fff',
+                fontStyle: 'italic',
+                fontWeight: 500
+              }}>
                 "{caseData.content}"
               </div>
 
-              {caseData.imageUrl && (
-                <div style={{ position: 'relative', marginTop: '0.75rem' }}>
-                  <div className={styles['media-preview']}>
-                    <img src={caseData.imageUrl} alt="Evidencia multimedia del post" />
-                  </div>
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    left: '12px',
-                    background: 'rgba(15, 23, 42, 0.85)',
-                    backdropFilter: 'blur(4px)',
-                    color: '#ffffff',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    padding: '4px 10px',
-                    borderRadius: 'var(--radius-full)',
-                    letterSpacing: '0.04em',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}>
-                    {caseData.mediaType === 'video' ? '🎥 VIDEO DE LA PUBLICACIÓN' : '📷 FOTO DE LA PUBLICACIÓN'}
-                  </div>
-                </div>
-              )}
-
-              {/* Publicación Original de Facebook */}
-              {caseData.internal_notes && caseData.internal_notes.includes('[Publicación de Origen]:') && (
-                <div style={{
-                  marginTop: '0.75rem',
-                  padding: '8px 12px',
-                  background: 'rgba(59, 130, 246, 0.08)',
-                  border: '1px solid rgba(59, 130, 246, 0.25)',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '0.8rem',
-                  color: 'var(--text-primary)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--blue-600)', fontWeight: 700, fontSize: '0.75rem' }}>
-                    <span>📰 PUBLICACIÓN DE REFERENCIA (NOTICIAS EL MANDATO)</span>
-                  </div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', lineHeight: 1.4 }}>
-                    {caseData.internal_notes.split('\n')[0].replace('[Publicación de Origen]:', '').trim()}
-                  </div>
-                </div>
-              )}
-
-              {/* Lista de Comentarios Meta Agrupados en esta Problemática */}
-              <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Layers size={14} style={{ color: 'var(--blue-600)' }} />
-                  <span>Comentarios Meta Agrupados en esta Problemática (4 interacciones)</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ padding: '8px 12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', fontSize: '0.78rem', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', marginBottom: '3px' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{caseData.author} • {caseData.source}</span>
-                      <span>{caseData.dateTime}</span>
-                    </div>
-                    <div>"{caseData.content.slice(0, 120)}..."</div>
-                  </div>
-                  <div style={{ padding: '8px 12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', fontSize: '0.78rem', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', marginBottom: '3px' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>@ciudadano_neiva • {caseData.source === 'Facebook' ? 'Instagram' : 'Facebook'}</span>
-                      <span>Hace 40 min</span>
-                    </div>
-                    <div>"Apoyo total al reporte, en este mismo sector los vecinos estamos afectados por la misma situación."</div>
-                  </div>
-                  <div style={{ padding: '8px 12px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', fontSize: '0.78rem', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', marginBottom: '3px' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>@veeduria_comunal • {caseData.source}</span>
-                      <span>Hace 1 hora</span>
-                    </div>
-                    <div>"Como junta comunal respaldamos esta solicitud y pedimos intervención técnica de la secretaría."</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 1.1 Ficha de Contacto Ciudadano y Políticas Meta */}
-              <div className={styles['contact-policy-card']} style={{ marginTop: '1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <UserCheck size={16} style={{ color: 'var(--blue-600)' }} />
-                    <span>Gestión de Contacto Ciudadano y Trazabilidad</span>
-                  </div>
-                  <span className="badge-tag" style={{ fontSize: '0.7rem' }}>
-                    Origen del Dato: {caseData.contact_person?.origenDato || 'CIUDADANO (suministrado voluntariamente)'}
-                  </span>
-                </div>
-
-                <div className={styles['contact-meta-notice']}>
-                  <ShieldAlert size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <strong>Políticas del Canal Meta:</strong> Contacto disponible según permisos y políticas vigentes de Meta Graph API.
-                    {caseData.channel_contact_allowed 
-                      ? ' La ventana de respuesta directa (24h) se encuentra activa para este autor.' 
-                      : ' Fuera de ventana de 24h. Meta no entrega teléfono ni correo por defecto; use canales alternativos autorizados.'}
-                  </div>
-                </div>
-
-                {/* Datos del contacto voluntario */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', background: 'var(--bg-muted)', padding: '10px 14px', borderRadius: 'var(--radius-md)', fontSize: '0.78rem' }}>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Interlocutor Comunitario:</span>
-                    <strong>{caseData.contact_person?.name || caseData.author}</strong> ({caseData.contact_person?.role || 'Líder Comunitario'})
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Teléfono Voluntario:</span>
-                    <span>{caseData.contact_person?.phone || 'No suministrado por el ciudadano'}</span>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.7rem' }}>Correo Electrónico:</span>
-                    <span>{caseData.contact_person?.email || 'No suministrado por el ciudadano'}</span>
-                  </div>
-                </div>
-
-                {/* Botones de acción según permisos */}
-                <div>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                    Acciones de Contacto e Interacción:
-                  </div>
-                  <div className={styles['channel-actions-grid']}>
-                    <button
-                      type="button"
-                      className="btn-primary"
-                      style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                      onClick={() => showFeedback(`💬 Conversación abierta con ${caseData.author} en Meta Business Suite según políticas vigentes.`)}
-                    >
-                      <MessageSquare size={13} />
-                      <span>Mensaje Meta (24h)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                      onClick={() => {
-                        const note = prompt('Ingrese minuta de la llamada con el líder/ciudadano:');
-                        if (note) {
-                          const noteText = `[Contacto Telefónico con ${caseData.contact_person?.name || caseData.author}]: ${note}`;
-                          setCaseData(prev => prev ? {
-                            ...prev,
-                            internal_notes: prev.internal_notes ? `${prev.internal_notes}\n[${new Date().toLocaleDateString('es-CO')}] ${noteText}` : `[${new Date().toLocaleDateString('es-CO')}] ${noteText}`
-                          } : null);
-                          showFeedback('📞 Llamada telefónica archivada en la bitácora del caso.');
-                        }
-                      }}
-                    >
-                      <Clock size={13} />
-                      <span>Registrar Llamada</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                      onClick={() => {
-                        const note = prompt('Ingrese observación o acta de la visita en terreno:');
-                        if (note) {
-                          const noteText = `[Visita en Terreno - ${caseData.location}]: ${note}`;
-                          setCaseData(prev => prev ? {
-                            ...prev,
-                            internal_notes: prev.internal_notes ? `${prev.internal_notes}\n[${new Date().toLocaleDateString('es-CO')}] ${noteText}` : `[${new Date().toLocaleDateString('es-CO')}] ${noteText}`
-                          } : null);
-                          showFeedback('🏠 Visita comunitaria registrada en la bitácora.');
-                        }
-                      }}
-                    >
-                      <MapPin size={13} />
-                      <span>Registrar Visita</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      style={{ padding: '6px 10px', fontSize: '0.75rem' }}
-                      onClick={() => {
-                        const note = prompt('Ingrese asunto o radicado del correo electrónico enviado:');
-                        if (note) {
-                          const noteText = `[Correo Electrónico Institucional]: ${note}`;
-                          setCaseData(prev => prev ? {
-                            ...prev,
-                            internal_notes: prev.internal_notes ? `${prev.internal_notes}\n[${new Date().toLocaleDateString('es-CO')}] ${noteText}` : `[${new Date().toLocaleDateString('es-CO')}] ${noteText}`
-                          } : null);
-                          showFeedback('✉️ Correo electrónico registrado en la bitácora.');
-                        }
-                      }}
-                    >
-                      <FileText size={13} />
-                      <span>Registrar Correo</span>
-                    </button>
-                  </div>
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                <span>Problemática detectada: <strong style={{ color: '#93c5fd' }}>{caseData.category}</strong></span>
+                <span>Canal auditado: <strong>{caseData.source}</strong></span>
               </div>
             </div>
           </div>
 
-          {/* 2. Análisis de Inteligencia Artificial CIVIA */}
-          <div className={styles.card}>
-            <div className={styles['card-title']}>
-              <div className={styles['title-content']}>
-                <Sparkles size={18} className="text-amber-500" />
-                <span>Análisis de Inteligencia Artificial (IA CIVIA)</span>
-              </div>
-              <span className="badge-tag">Motor NLP Neiva</span>
-            </div>
-
-            <div className={styles['analysis-chips']}>
-              <div className={styles['chip-item']}>
-                <div className={styles['chip-label']}>Categoría</div>
-                <div className={styles['chip-value']}>{caseData.category}</div>
-              </div>
-                            <div className={styles['chip-item']}>
-                <div className={styles['chip-label']}>Sentimiento (Rueda)</div>
-                <div className={styles['chip-value']} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>{getEmotionConfig(caseData.sentiment).emoji}</span>
-                  <span style={{ color: getEmotionConfig(caseData.sentiment).color, fontWeight: 700 }}>
-                    {caseData.sentiment || getEmotionConfig(caseData.sentiment).full}
-                  </span>
-                </div>
-              </div>
-              <div className={styles['chip-item']}>
-                <div className={styles['chip-label']}>Sector Geográfico</div>
-                <div className={styles['chip-value']}>{caseData.location}</div>
-              </div>
-            </div>
-
-            {/* Proyección de Impacto Político y Comunitario */}
-            <div className={styles['projection-box']}>
-              <div className={`${styles['proj-card']} ${styles.success}`}>
-                <div className={styles['proj-title']}>
-                  <CheckCircle2 size={16} />
-                  <span>Impacto si se resuelve oportunamente</span>
-                </div>
-                <p>{caseData.impact_if_solved || 'Previene quejas y fortalece la confianza ciudadana en la gestión pública.'}</p>
-              </div>
-
-              <div className={`${styles['proj-card']} ${styles.danger}`}>
-                <div className={styles['proj-title']}>
-                  <AlertTriangle size={16} />
-                  <span>Riesgo político y social si se ignora</span>
-                </div>
-                <p>{caseData.impact_if_ignored || 'Riesgo de escalamiento a movilizaciones y deterioro de favorabilidad institucional.'}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. Reporte de Cierre Técnico (si resuelto) */}
-          {caseData.resolution_note && (
-            <div className={styles['status-card-resolved']}>
-              <div className={styles['status-header']}>
-                <CheckCircle2 size={18} />
-                <span>Cierre Técnico Oficial Registrado</span>
-              </div>
-              <p>{caseData.resolution_note}</p>
-              {caseData.resolved_by && (
-                <span className={styles['resolved-meta']}>
-                  Certificado por: <strong>{caseData.resolved_by}</strong>
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* 4. Comunicado Oficial Público (si existe) */}
-          {caseData.public_response && (
-            <div className={styles['public-response-card']}>
-              <div className={styles['response-header']}>
-                <FileText size={18} />
-                <span>Respuesta Institucional a la Comunidad</span>
-              </div>
-              <p>{caseData.public_response}</p>
-            </div>
-          )}
-
-          {/* 5. Bitácora de Seguimiento y Notas Internas */}
+          {/* 3. LO QUE SE HA REALIZADO CON ESTE COMENTARIO (Trazabilidad y Estado) */}
           <div className={styles.card}>
             <div className={styles['card-title']}>
               <div className={styles['title-content']}>
                 <Building2 size={18} className="text-blue-500" />
-                <span>Trazabilidad y Bitácora Interna</span>
+                <span>Trazabilidad: Lo que se ha realizado con este reporte</span>
+              </div>
+              <span className="badge-tag">Radicado: {caseData.institutional_radicado}</span>
+            </div>
+
+            {/* Ficha Resumen de Gestión */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+              <div style={{ padding: '10px', background: 'var(--bg-muted)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>ESTADO ACTUAL:</span>
+                <strong style={{ fontSize: '0.95rem', color: caseData.status === 'Resuelto' ? '#10b981' : caseData.status === 'En Gestión' ? '#38bdf8' : '#f59e0b' }}>
+                  {caseData.status}
+                </strong>
+              </div>
+              <div style={{ padding: '10px', background: 'var(--bg-muted)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>DEPENDENCIA RESPONSABLE:</span>
+                <strong style={{ fontSize: '0.85rem', color: '#fff' }}>
+                  {caseData.assigned_department || 'Despacho Municipal (General)'}
+                </strong>
+              </div>
+              <div style={{ padding: '10px', background: 'var(--bg-muted)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>RESPONSABLE EN TERRENO:</span>
+                <strong style={{ fontSize: '0.85rem', color: '#fff' }}>
+                  {caseData.assigned_to || 'Equipo Operativo de Despacho'}
+                </strong>
               </div>
             </div>
 
-            <div className={styles['timeline-wrap']}>
-              {caseData.internal_notes ? (
-                caseData.internal_notes.split('\n').filter(Boolean).map((line, idx) => (
-                  <div key={idx} className={styles['note-item']}>
-                    {line}
+            {/* Estado de Respuesta Institucional */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                Respuesta Oficial Emitida al Comentario:
+              </div>
+              {caseData.public_response ? (
+                <div style={{
+                  padding: '12px 14px',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '0.875rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <CheckCircle2 size={14} /> RESPUESTA INSTITUCIONAL PUBLICADA
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        navigator.clipboard.writeText(caseData.public_response || '');
+                        showFeedback('📋 Respuesta copiada al portapapeles');
+                      }}
+                      style={{ background: 'transparent', border: 'none', color: '#38bdf8', fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
+                    >
+                      <Copy size={12} /> Copiar
+                    </button>
                   </div>
-                ))
+                  <div style={{ fontStyle: 'italic', lineHeight: 1.5 }}>
+                    "{caseData.public_response}"
+                  </div>
+                </div>
               ) : (
-                <div className="text-sm text-slate-400 italic">No hay notas registradas en este caso aún.</div>
+                <div style={{
+                  padding: '12px 14px',
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  border: '1px dashed rgba(245, 158, 11, 0.35)',
+                  borderRadius: '8px',
+                  color: '#f59e0b',
+                  fontSize: '0.8125rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <AlertTriangle size={16} />
+                  <span>Este comentario aún no tiene respuesta oficial registrada. Utilice el generador de respuesta IA en el panel lateral.</span>
+                </div>
               )}
             </div>
 
-            <form onSubmit={handleAddInternalNote} className={styles['note-input-wrap']}>
-              <textarea
-                placeholder="Añadir nota de seguimiento u observación interna..."
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-              />
-              <button 
-                type="submit" 
-                className={`${styles.btn} ${styles['btn-secondary']} ${styles['note-submit-btn']}`}
-                disabled={!newNote.trim() || isSubmitting}
-              >
-                <CornerDownRight size={14} />
-                <span>Registrar en Bitácora</span>
-              </button>
-            </form>
+            {/* Cierre Técnico si resuelto */}
+            {caseData.resolution_note && (
+              <div style={{
+                marginBottom: '16px',
+                padding: '12px 14px',
+                background: 'rgba(59, 130, 246, 0.12)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '0.85rem'
+              }}>
+                <div style={{ color: '#60a5fa', fontWeight: 700, fontSize: '0.75rem', marginBottom: '4px' }}>
+                  REPORTE DE SOLUCIÓN TÉCNICA EN TERRENO:
+                </div>
+                <div>{caseData.resolution_note}</div>
+                {caseData.resolved_by && (
+                  <div style={{ marginTop: '4px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    Certificado por: <strong>{caseData.resolved_by}</strong>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Bitácora de Acciones Registradas */}
+            <div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                Historial de Movimientos y Bitácora de Acciones:
+              </div>
+              <div className={styles['timeline-wrap']}>
+                {caseData.internal_notes ? (
+                  caseData.internal_notes.split('\n').filter(Boolean).map((line, idx) => (
+                    <div key={idx} className={styles['note-item']}>
+                      {line}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-slate-400 italic">No hay notas registradas en este caso aún.</div>
+                )}
+              </div>
+
+              <form onSubmit={handleAddInternalNote} className={styles['note-input-wrap']} style={{ marginTop: '10px' }}>
+                <textarea
+                  placeholder="Añadir nota de seguimiento o informe técnico a la bitácora..."
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                />
+                <button 
+                  type="submit" 
+                  className={`${styles.btn} ${styles['btn-secondary']} ${styles['note-submit-btn']}`}
+                  disabled={!newNote.trim() || isSubmitting}
+                >
+                  <CornerDownRight size={14} />
+                  <span>Registrar en Bitácora</span>
+                </button>
+              </form>
+            </div>
           </div>
         </div>
 
         {/* ======================================================== */}
-        {/* COLUMNA DERECHA: CENTRO DE OPERACIONES POR ROL           */}
+        {/* COLUMNA DERECHA: POSIBILIDAD DE GESTIÓN Y ACCIONES       */}
         {/* ======================================================== */}
-        <div className={styles['role-hub-panel']}>
-          {/* Selector Rápido de Roles para Probar la Experiencia */}
-          <div className={styles['role-switcher-banner']}>
-            <span className={styles['switcher-label']}>Probar perspectiva de rol:</span>
-            <div className={styles['switcher-buttons']}>
-              <button 
-                className={currentRole === 'ALCALDE' ? styles.active : ''}
-                onClick={() => switchDemoUser('ALCALDE')}
-                title="Cambiar a Johan Steed (Alcalde)"
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+          {/* ACCIÓN 1: RESPONDER AL COMENTARIO INSTITUCIONALMENTE CON IA */}
+          <div className={styles.card} style={{ border: '1px solid rgba(56, 189, 248, 0.4)', background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%)' }}>
+            <div className={styles['card-title']}>
+              <div className={styles['title-content']}>
+                <Sparkles size={18} className="text-sky-400" />
+                <span style={{ fontWeight: 700 }}>¿Qué podemos responder? (Respuesta IA)</span>
+              </div>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleGenerateAiReply}
+                style={{ fontSize: '0.72rem', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
-                🏛️ Alcalde
+                <Sparkles size={12} /> Redactar con IA
               </button>
+            </div>
+
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+              Redacta una respuesta institucional cordial y asertiva para el ciudadano {caseData.author} o genera una propuesta automática ajustada a la temática de {caseData.category}:
+            </p>
+
+            <form onSubmit={handleSavePublicResponse}>
+              <textarea
+                style={{
+                  width: '100%',
+                  minHeight: '110px',
+                  padding: '10px 12px',
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                  lineHeight: 1.5,
+                  resize: 'vertical',
+                  marginBottom: '10px'
+                }}
+                placeholder="Escriba o genere la respuesta institucional para este comentario..."
+                value={publicRespText}
+                onChange={(e) => setPublicRespText(e.target.value)}
+              />
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ flex: 1, padding: '8px 12px', fontSize: '0.8125rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  disabled={!publicRespText.trim() || isSubmitting}
+                >
+                  <Send size={14} />
+                  <span>Guardar Respuesta Oficial</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleCopyPublicResponse}
+                  disabled={!publicRespText.trim()}
+                  style={{ padding: '8px 12px', fontSize: '0.8125rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                  title="Copiar texto para pegar en la red social"
+                >
+                  {copiedResponse ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+                  <span>{copiedResponse ? '¡Copiado!' : 'Copiar'}</span>
+                </button>
+
+                {postData.permalink_url && (
+                  <a
+                    href={postData.permalink_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary"
+                    style={{ padding: '8px 12px', fontSize: '0.8125rem', display: 'inline-flex', alignItems: 'center', gap: '5px', textDecoration: 'none' }}
+                    title={`Abrir publicación en ${postData.source} para pegar la respuesta`}
+                  >
+                    <span>Ir al Post en Meta</span>
+                    <ExternalLink size={13} />
+                  </a>
+                )}
+              </div>
+            </form>
+          </div>
+
+          {/* ACCIÓN 2: DESPACHAR CASO A DEPENDENCIA Y TERRENO */}
+          <div className={styles.card}>
+            <div className={styles['card-title']}>
+              <div className={styles['title-content']}>
+                <Building2 size={18} className="text-amber-500" />
+                <span style={{ fontWeight: 700 }}>Despachar Caso a Secretaría / Terreno</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                  Secretaría o Entidad a Cargo:
+                </label>
+                <select 
+                  value={dispatchDept} 
+                  onChange={(e) => setDispatchDept(e.target.value)}
+                  style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-muted)', border: '1px solid var(--border)', borderRadius: '6px', color: '#fff', fontSize: '0.8125rem' }}
+                >
+                  {NEIVA_DEPARTMENTS.map((dept) => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                  Cuadrilla / Funcionario Responsable:
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="Ej: Cuadrilla 3 - Bacheo / Inspector Vial"
+                  value={dispatchAssignee}
+                  onChange={(e) => setDispatchAssignee(e.target.value)}
+                  style={{ width: '100%', padding: '8px 10px', background: 'var(--bg-muted)', border: '1px solid var(--border)', borderRadius: '6px', color: '#fff', fontSize: '0.8125rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                  Instrucción Técnica de Despacho:
+                </label>
+                <textarea 
+                  placeholder="Detalles técnicos o prioridad de intervención en el punto..."
+                  value={dispatchNote}
+                  onChange={(e) => setDispatchNote(e.target.value)}
+                  style={{ width: '100%', minHeight: '65px', padding: '8px 10px', background: 'var(--bg-muted)', border: '1px solid var(--border)', borderRadius: '6px', color: '#fff', fontSize: '0.8125rem', resize: 'vertical' }}
+                />
+              </div>
+
               <button 
-                className={currentRole === 'SECRETARIO' ? styles.active : ''}
-                onClick={() => switchDemoUser('SECRETARIO')}
-                title="Cambiar a Dra. Camila Morales (Secretario)"
+                type="submit"
+                className="btn-primary"
+                style={{ width: '100%', padding: '9px', fontSize: '0.85rem' }}
+                disabled={isSubmitting}
               >
-                📋 Secretario
+                🚀 Despachar Caso a Terreno
               </button>
+            </form>
+          </div>
+
+          {/* ACCIÓN 3: CIERRE TÉCNICO Y RESOLUCIÓN */}
+          <div className={styles.card}>
+            <div className={styles['card-title']}>
+              <div className={styles['title-content']}>
+                <CheckCircle2 size={18} className="text-emerald-500" />
+                <span style={{ fontWeight: 700 }}>Cierre Técnico y Resolución</span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+              Registre la solución implementada en terreno (reparación de bacheo, reposición de tubería, control semafórico, etc.) para cerrar el caso:
+            </p>
+
+            <form onSubmit={handleResolveCase} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <textarea 
+                placeholder="Describa el trabajo realizado y la solución brindada al ciudadano..."
+                value={resolutionText}
+                onChange={(e) => setResolutionText(e.target.value)}
+                style={{ width: '100%', minHeight: '75px', padding: '8px 10px', background: 'var(--bg-muted)', border: '1px solid var(--border)', borderRadius: '6px', color: '#fff', fontSize: '0.8125rem', resize: 'vertical' }}
+              />
+
               <button 
-                className={currentRole === 'OPERADOR' ? styles.active : ''}
-                onClick={() => switchDemoUser('OPERADOR')}
-                title="Cambiar a Carlos Mendoza (Operador)"
+                type="submit"
+                className="btn-success"
+                style={{ width: '100%', padding: '9px', fontSize: '0.85rem' }}
+                disabled={!resolutionText.trim() || isSubmitting}
               >
-                🎧 Operador
+                ✅ Finalizar y Marcar como Resuelto
+              </button>
+            </form>
+          </div>
+
+          {/* ACCIÓN 4: REGISTRO DE CONTACTO CIUDADANO */}
+          <div className={styles.card}>
+            <div className={styles['card-title']}>
+              <div className={styles['title-content']}>
+                <UserCheck size={18} className="text-blue-500" />
+                <span style={{ fontWeight: 700 }}>Interacción y Contacto con el Ciudadano</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ padding: '8px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
+                onClick={() => {
+                  const note = prompt(`Ingrese minuta de la llamada con ${caseData.author}:`);
+                  if (note) {
+                    const noteText = `[Contacto Telefónico con ${caseData.author}]: ${note}`;
+                    setCaseData(prev => prev ? {
+                      ...prev,
+                      internal_notes: prev.internal_notes ? `${prev.internal_notes}\n[${new Date().toLocaleDateString('es-CO')}] ${noteText}` : `[${new Date().toLocaleDateString('es-CO')}] ${noteText}`
+                    } : null);
+                    showFeedback('📞 Llamada telefónica archivada en la bitácora.');
+                  }
+                }}
+              >
+                <Clock size={13} />
+                <span>Registrar Llamada</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ padding: '8px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
+                onClick={() => {
+                  const note = prompt(`Ingrese observación o acta de la visita en terreno (${caseData.location}):`);
+                  if (note) {
+                    const noteText = `[Visita en Terreno - ${caseData.location}]: ${note}`;
+                    setCaseData(prev => prev ? {
+                      ...prev,
+                      internal_notes: prev.internal_notes ? `${prev.internal_notes}\n[${new Date().toLocaleDateString('es-CO')}] ${noteText}` : `[${new Date().toLocaleDateString('es-CO')}] ${noteText}`
+                    } : null);
+                    showFeedback('🏠 Visita comunitaria registrada en la bitácora.');
+                  }
+                }}
+              >
+                <MapPin size={13} />
+                <span>Registrar Visita</span>
               </button>
             </div>
           </div>
 
-          {/* ===================================================== */}
-          {/* PANEL ROL: ALCALDE DE NEIVA                           */}
-          {/* ===================================================== */}
-          {currentRole === 'ALCALDE' && (
-            <div className={`${styles.card} ${styles['active-role-card']} ${styles['role-alcalde']}`}>
-              <div className={styles['role-badge-row']}>
-                <div className={styles['role-avatar']}>🏛️</div>
-                <div className={styles['role-info']}>
-                  <h3>Despacho del Alcalde</h3>
-                  <p>Johan Steed — Gobernanza Estratégica y Riesgo Político</p>
-                </div>
-              </div>
-
-              <div className={styles['workflow-section']}>
-                <h4 className={styles['section-heading']}>Intervención de Máxima Prioridad</h4>
-                <p className="text-xs text-slate-500">
-                  Como Alcalde, usted puede ordenar la intervención de emergencia municipal. Esto activa un protocolo inmediato con SLA de 24 horas y supervisión directa de su despacho.
-                </p>
-
-                <button 
-                  className={`${styles.btn} ${caseData.priority_action ? styles['btn-danger-outline'] : styles['btn-danger']}`}
-                  style={{ width: '100%', padding: '12px' }}
-                  onClick={handleTogglePriority}
-                  disabled={isSubmitting}
-                >
-                  <Flame size={18} />
-                  <span>
-                    {caseData.priority_action 
-                      ? 'Desactivar Prioridad Especial Alcaldía' 
-                      : '🔥 Declarar Prioridad Inmediata Alcaldía'}
-                  </span>
-                </button>
-
-                <hr style={{ borderColor: 'var(--border)', margin: '0.5rem 0' }} />
-
-                <h4 className={styles['section-heading']}>Emitir Directriz a Secretarías</h4>
-                <form onSubmit={handleAddMayoralDirective} className={styles['workflow-section']}>
-                  <div className={styles['form-group']}>
-                    <label>Instrucción Ejecutiva:</label>
-                    <textarea 
-                      placeholder="Ej: Ordeno a Las Ceibas y Secretaría de Infraestructura disponer de maquinaria de inmediato y reportar avance hoy a las 6:00 PM."
-                      value={mayoralDirective}
-                      onChange={(e) => setMayoralDirective(e.target.value)}
-                    />
-                  </div>
-                  <button 
-                    type="submit"
-                    className={`${styles.btn} ${styles['btn-primary']}`}
-                    disabled={!mayoralDirective.trim() || isSubmitting}
-                  >
-                    <Send size={15} />
-                    <span>Emitir Directriz de Despacho</span>
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* ===================================================== */}
-          {/* PANEL ROL: SECRETARIO DE DESPACHO                     */}
-          {/* ===================================================== */}
-          {currentRole === 'SECRETARIO' && (
-            <div className={`${styles.card} ${styles['active-role-card']} ${styles['role-secretario']}`}>
-              <div className={styles['role-badge-row']}>
-                <div className={styles['role-avatar']}>📋</div>
-                <div className={styles['role-info']}>
-                  <h3>Secretarías de Despacho</h3>
-                  <p>Dra. Camila Morales — Ejecución Técnica y Cuadrillas</p>
-                </div>
-              </div>
-
-              <div className={styles['workflow-section']}>
-                {/* 1. Asignar / Despachar Cuadrilla */}
-                <h4 className={styles['section-heading']}>Gestión Operativa de Cuadrillas</h4>
-                <form onSubmit={handleDispatch} className={styles['workflow-section']}>
-                  <div className={styles['form-group']}>
-                    <label>Dependencia a Cargo:</label>
-                    <select 
-                      value={dispatchDept} 
-                      onChange={(e) => setDispatchDept(e.target.value)}
-                    >
-                      {NEIVA_DEPARTMENTS.map((dept) => (
-                        <option key={dept} value={dept}>{dept}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className={styles['form-group']}>
-                    <label>Cuadrilla / Contratista Responsable:</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ej: Cuadrilla 3 - Malla Vial / Ing. Rodrigo Castro"
-                      value={dispatchAssignee}
-                      onChange={(e) => setDispatchAssignee(e.target.value)}
-                    />
-                  </div>
-
-                  <div className={styles['form-group']}>
-                    <label>Orden de Trabajo u Observación:</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ej: Orden #4521 - Inspección y parcheo urgente"
-                      value={dispatchNote}
-                      onChange={(e) => setDispatchNote(e.target.value)}
-                    />
-                  </div>
-
-                  <button 
-                    type="submit" 
-                    className={`${styles.btn} ${styles['btn-primary']}`}
-                    disabled={isSubmitting}
-                  >
-                    <Send size={15} />
-                    <span>Actualizar Despacho a Terreno</span>
-                  </button>
-                </form>
-
-                <hr style={{ borderColor: 'var(--border)', margin: '0.5rem 0' }} />
-
-                {/* 2. Cierre Técnico del Caso */}
-                <div id="resolution-section">
-                  <h4 className={styles['section-heading']}>Validación y Certificación Institucional de Cierre</h4>
-                  <p className="text-xs text-slate-500">
-                    Como Secretario de Despacho, revise el informe y evidencias reportadas para certificar oficialmente el cierre técnico e institucional del caso.
-                  </p>
-                  <form onSubmit={handleResolveCase} className={styles['workflow-section']}>
-                    <div className={styles['form-group']}>
-                      <label>Acta de Resolución y Certificación Técnica:</label>
-                      <textarea 
-                        placeholder="Describa el trabajo técnico ejecutado en terreno, validación con la comunidad y certificación del cierre..."
-                        value={resolutionText}
-                        onChange={(e) => setResolutionText(e.target.value)}
-                      />
-                    </div>
-                    <button 
-                      type="submit" 
-                      className={`${styles.btn} ${styles['btn-success']}`}
-                      disabled={!resolutionText.trim() || isSubmitting}
-                    >
-                      <CheckCircle2 size={16} />
-                      <span>{caseData.status === 'Resuelto' || caseData.status === 'Cerrado' ? 'Actualizar Cierre Oficial' : 'Validar Cierre Técnico Institucional'}</span>
-                    </button>
-                  </form>
-                </div>
-
-                <hr style={{ borderColor: 'var(--border)', margin: '0.5rem 0' }} />
-
-                {/* 3. Redactar Comunicado Público */}
-                <h4 className={styles['section-heading']}>Comunicado Oficial a la Comunidad</h4>
-                <form onSubmit={handleSavePublicResponse} className={styles['workflow-section']}>
-                  <div className={styles['form-group']}>
-                    <label>Borrador de Respuesta Pública:</label>
-                    <textarea 
-                      placeholder="Redacte la respuesta que se publicará en las redes oficiales o se remitirá al líder comunitario..."
-                      value={publicRespText}
-                      onChange={(e) => setPublicRespText(e.target.value)}
-                    />
-                  </div>
-                  <button 
-                    type="submit" 
-                    className={`${styles.btn} ${styles['btn-secondary']}`}
-                    disabled={!publicRespText.trim() || isSubmitting}
-                  >
-                    <MessageCircle size={15} />
-                    <span>Guardar Comunicado Institucional</span>
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* ===================================================== */}
-          {/* PANEL ROL: OPERADOR DE MONITOREO                      */}
-          {/* ===================================================== */}
-          {currentRole === 'OPERADOR' && (
-            <div className={`${styles.card} ${styles['active-role-card']} ${styles['role-operador']}`}>
-              <div className={styles['role-badge-row']}>
-                <div className={styles['role-avatar']}>🎧</div>
-                <div className={styles['role-info']}>
-                  <h3>Gestión de Información y Triaje</h3>
-                  <p>Carlos Mendoza — Información, contacto, evidencias y trazabilidad</p>
-                </div>
-              </div>
-
-              {/* CLARIFICACIÓN EXPLÍCITA DE RESPONSABILIDAD EN TERRENO */}
-              <div style={{
-                background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)',
-                borderRadius: 'var(--radius-md)', padding: '10px 12px', fontSize: '0.75rem', color: 'var(--text-secondary)'
-              }}>
-                <div style={{ fontWeight: 700, color: 'var(--blue-600)', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ShieldAlert size={14} />
-                  <span>Principio de Responsabilidad CIVIA</span>
-                </div>
-                <div>Cuadrilla atiende en terreno / Operador gestiona contacto, información y trazabilidad.</div>
-              </div>
-
-              <div className={styles['workflow-section']}>
-                <h4 className={styles['section-heading']}>Triaje y Canalización a Entidad</h4>
-                <p className="text-xs text-slate-500">
-                  Verifique la autenticidad del reporte en Neiva y canalice el expediente a la secretaría correspondiente para despliegue de cuadrilla.
-                </p>
-
-                <form onSubmit={handleDispatch} className={styles['workflow-section']}>
-                  <div className={styles['form-group']}>
-                    <label>Direccionar a Dependencia de Neiva:</label>
-                    <select 
-                      value={dispatchDept} 
-                      onChange={(e) => setDispatchDept(e.target.value)}
-                    >
-                      {NEIVA_DEPARTMENTS.map((dept) => (
-                        <option key={dept} value={dept}>{dept}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className={styles['form-group']}>
-                    <label>Cuadrilla Técnica Asignada:</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ej: Cuadrilla Acueducto / Malla Vial Neiva"
-                      value={dispatchAssignee}
-                      onChange={(e) => setDispatchAssignee(e.target.value)}
-                    />
-                  </div>
-
-                  <div className={styles['form-group']}>
-                    <label>Instrucción de Triaje Operativo:</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ej: Reporte verificado con vecinos. Requiere cuadrilla prioritaria."
-                      value={dispatchNote}
-                      onChange={(e) => setDispatchNote(e.target.value)}
-                    />
-                  </div>
-
-                  <button 
-                    type="submit" 
-                    className={`${styles.btn} ${styles['btn-primary']}`}
-                    disabled={isSubmitting}
-                  >
-                    <Send size={15} />
-                    <span>Canalizar y Despachar Caso</span>
-                  </button>
-                </form>
-
-                <hr style={{ borderColor: 'var(--border)', margin: '0.5rem 0' }} />
-
-                {/* FORMULARIO: REGISTRO DE SOLUCIÓN Y EVIDENCIAS DE TERRENO POR EL OPERADOR */}
-                <div>
-                  <h4 className={styles['section-heading']}>Registro de Solución y Evidencias</h4>
-                  <p className="text-xs text-slate-500">
-                    Registre el informe reportado por la cuadrilla técnica y las evidencias fotográficas de la intervención para remitir a validación de cierre por Secretaría.
-                  </p>
-
-                  <form onSubmit={handleOperatorSolution} className={styles['workflow-section']}>
-                    <div className={styles['form-group']}>
-                      <label>Detalle de Solución Ejecutada en Terreno:</label>
-                      <textarea
-                        placeholder="Ej: Cuadrilla 3 finalizó bacheo y nivelación de calzada en Calle 39 con 12 toneladas de asfalto caliente..."
-                        value={operatorSolution}
-                        onChange={(e) => setOperatorSolution(e.target.value)}
-                      />
-                    </div>
-
-                    <div className={styles['form-group']}>
-                      <label>Enlace / Referencia de Evidencia Fotográfica:</label>
-                      <input
-                        type="text"
-                        placeholder="Ej: https://evidencias.neiva.gov.co/obras/limonar-calle39.jpg"
-                        value={operatorEvidence}
-                        onChange={(e) => setOperatorEvidence(e.target.value)}
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className={`${styles.btn} ${styles['btn-secondary']}`}
-                      style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669', borderColor: 'rgba(16, 185, 129, 0.3)' }}
-                      disabled={!operatorSolution.trim() || isSubmitting}
-                    >
-                      <CheckCircle2 size={16} />
-                      <span>Registrar Solución (Pasa a Validación Cierre)</span>
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

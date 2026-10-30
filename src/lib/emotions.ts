@@ -120,3 +120,48 @@ export function getEmotionConfig(sentiment?: string | null): EmotionInfo {
     full: sentiment.includes(':') ? sentiment : `Paz o tranquilidad: ${subRaw || 'Serenidad'}`
   };
 }
+
+
+export function getCitizenSocialLink(name?: string, handle?: string, channel?: string) {
+  const cleanName = (name || '').trim();
+  const rawHandle = (handle || '').replace(/[@\s]/g, '').trim();
+  const isInstagram = (channel || '').toLowerCase().includes('instagram') || rawHandle.startsWith('ig_') || rawHandle.includes('insta');
+
+  if (isInstagram) {
+    const isSynthetic = /bot|troll|user\d+/i.test(rawHandle);
+    const searchUrl = `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(cleanName || rawHandle)}`;
+    const normalizedHandle = rawHandle.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._]/g, '');
+    const directUrl = (!isSynthetic && normalizedHandle.length > 2 && !normalizedHandle.includes('pagina') && !normalizedHandle.includes('cuenta')) 
+      ? `https://www.instagram.com/${normalizedHandle}/` 
+      : null;
+
+    return {
+      channel: 'Instagram',
+      url: directUrl || searchUrl,
+      label: directUrl ? 'Ver Perfil IG' : 'Buscar en Instagram',
+      shortLabel: 'Perfil IG',
+      tooltip: `Ver perfil de ${cleanName || 'ciudadano'} en Instagram`,
+      color: '#E1306C',
+      bg: 'rgba(225, 48, 108, 0.12)',
+      border: 'rgba(225, 48, 108, 0.28)'
+    };
+  }
+
+  // Para Facebook:
+  const normalizedHandle = rawHandle.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._]/g, '');
+  const slug = (normalizedHandle.length > 2)
+    ? normalizedHandle
+    : cleanName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '.');
+  const directUrl = `https://www.facebook.com/${slug}`;
+
+  return {
+    channel: 'Facebook',
+    url: directUrl,
+    label: 'Ver Perfil FB',
+    shortLabel: 'Perfil FB',
+    tooltip: `Abrir perfil de ${cleanName || 'ciudadano'} en Facebook`,
+    color: '#1877F2',
+    bg: 'rgba(24, 119, 242, 0.12)',
+    border: 'rgba(24, 119, 242, 0.28)'
+  };
+}
