@@ -74,42 +74,7 @@ interface CaseDetailData {
   };
 }
 
-const FALLBACK_CASES: Record<string, CaseDetailData> = {
-  'CIV-2026-0001': {
-    id: 'CIV-2026-0001',
-    institutional_radicado: 'RAD-MOV-2026-0001',
-    source: 'Facebook Oficial - Johan Steed',
-    author: 'Rodolfo Escobar',
-    priority: 'Alta',
-    title: 'Movilidad: Falta de semáforo en horario pico',
-    content: 'aguantese un semaforo a medio dia',
-    category: 'Movilidad',
-    sentiment: 'Enojo o ira: Frustración',
-    location: 'Neiva (General)',
-    dateTime: '13 Oct 2026, 10:44 AM',
-    status: 'Pendiente',
-    mediaType: 'video',
-    imageUrl: 'http://localhost:8000/static/covers/275486829735525_1634488622025887.jpg',
-    impact_if_solved: 'Optimización de controladores viales en puntos neurálgicos de Neiva.',
-    impact_if_ignored: 'Riesgo de colapso en corredores principales y siniestralidad.',
-    assigned_department: 'Secretaría de Movilidad y Tránsito',
-    assigned_to: 'Técnicos de Semaforización Neiva',
-    priority_action: true,
-    comments_count: 1,
-    post_data: {
-      id: '275486829735525_1634488622025887',
-      title: 'En Neiva, esperar el semáforo en rojo es todo un reto entre el calor y el tráfico...',
-      message: 'En Neiva, esperar el semáforo en rojo es todo un reto entre el calor y el tráfico. A veces, hasta nos da tiempo de hacer de todo mientras esperamos la luz verde.\n\nLa movilidad también necesita orden.',
-      cover_image: 'http://localhost:8000/static/covers/275486829735525_1634488622025887.jpg',
-      media_type: 'video',
-      permalink_url: 'https://www.facebook.com/reel/1418971067098225/',
-      published_at: '20 Oct 2026, 05:52 PM',
-      source: 'Facebook',
-      total_comments: 18,
-      likes_count: 319
-    }
-  }
-};
+const FALLBACK_CASES: Record<string, CaseDetailData> = {};
 
 function getFallbackCase(id: string): CaseDetailData {
   if (FALLBACK_CASES[id]) return FALLBACK_CASES[id];
@@ -132,18 +97,18 @@ export default function CaseDetailPage() {
   const caseId = (params?.id as string) || 'CASO-001';
   const { user, switchDemoUser } = useAuth();
 
-  const [caseData, setCaseData] = useState<CaseDetailData | null>(() => getFallbackCase(caseId));
-  const [loading, setLoading] = useState(false);
+  const [caseData, setCaseData] = useState<CaseDetailData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   // Estados de formularios para cada acción
   const [newNote, setNewNote] = useState('');
-  const [dispatchDept, setDispatchDept] = useState(() => getFallbackCase(caseId).assigned_department || NEIVA_DEPARTMENTS[0]);
-  const [dispatchAssignee, setDispatchAssignee] = useState(() => getFallbackCase(caseId).assigned_to || '');
+  const [dispatchDept, setDispatchDept] = useState(NEIVA_DEPARTMENTS[0]);
+  const [dispatchAssignee, setDispatchAssignee] = useState('');
   const [dispatchNote, setDispatchNote] = useState('');
-  const [resolutionText, setResolutionText] = useState(() => getFallbackCase(caseId).resolution_note || '');
-  const [publicRespText, setPublicRespText] = useState(() => getFallbackCase(caseId).public_response || '');
+  const [resolutionText, setResolutionText] = useState('');
+  const [publicRespText, setPublicRespText] = useState('');
   const [mayoralDirective, setMayoralDirective] = useState('');
   const [copiedResponse, setCopiedResponse] = useState(false);
 

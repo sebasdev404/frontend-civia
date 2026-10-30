@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { API } from '@/lib/api/client';
 
 interface CategoryItem {
   name: string;
@@ -12,14 +13,19 @@ interface CategoryItem {
   icon: string;
 }
 
-const data: CategoryItem[] = [
-  { name: 'Servicios Públicos', department: 'Las Ceibas E.S.P.', value: 512, percentage: 28.5, color: '#3b82f6', icon: '💧' },
-  { name: 'Infraestructura y Vías', department: 'Sec. Infraestructura', value: 448, percentage: 25.0, color: '#f97316', icon: '🚧' },
-  { name: 'Seguridad y Convivencia', department: 'Sec. Gobierno / Policía', value: 358, percentage: 19.9, color: '#ef4444', icon: '🛡️' },
-  { name: 'Medio Ambiente y Aseo', department: 'Sec. Medio Ambiente', value: 234, percentage: 13.0, color: '#10b981', icon: '🌿' },
-  { name: 'Salud y Educación (PAE)', department: 'Sec. Salud / Educación', value: 143, percentage: 8.0, color: '#8b5cf6', icon: '🏥' },
-  { name: 'Movilidad y Tránsito', department: 'Sec. Movilidad', value: 100, percentage: 5.6, color: '#eab308', icon: '🚦' },
-];
+const CATEGORY_META: Record<string, { department: string; color: string; icon: string }> = {
+  'Servicios Públicos': { department: 'Las Ceibas E.S.P.', color: '#3b82f6', icon: '💧' },
+  'Infraestructura': { department: 'Sec. Infraestructura', color: '#f97316', icon: '🚧' },
+  'Infraestructura Vial': { department: 'Sec. Infraestructura', color: '#f97316', icon: '🚧' },
+  'Movilidad': { department: 'Sec. Movilidad y Tránsito', color: '#eab308', icon: '🚦' },
+  'Seguridad': { department: 'Sec. Gobierno y Convivencia', color: '#ef4444', icon: '🛡️' },
+  'Medio Ambiente': { department: 'Sec. Medio Ambiente', color: '#10b981', icon: '🌿' },
+  'Salud': { department: 'Sec. Salud Municipal', color: '#8b5cf6', icon: '🏥' },
+  'Educación': { department: 'Sec. Educación Municipal', color: '#ec4899', icon: '🎓' },
+  'Alumbrado Público': { department: 'Alumbrado Público ESIP', color: '#06b6d4', icon: '💡' },
+  'Atención Ciudadana': { department: 'Despacho Municipal', color: '#6366f1', icon: '🏛️' },
+  'General': { department: 'Despacho Municipal', color: '#64748b', icon: '🏛️' },
+};
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -55,14 +61,50 @@ const CustomTooltip = ({ active, payload }: any) => {
 export function CategoryChart() {
   const [mounted, setMounted] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [data, setData] = useState<CategoryItem[]>([]);
+  const [totalCases, setTotalCases] = useState<number>(0);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchCategories() {
+      try {
+        const summary = await API.analytics.getSummary();
+        if (isMounted && summary?.categories_distribution) {
+          const dist = summary.categories_distribution;
+          const total = summary.total_cases || Object.values(dist).reduce((a: any, b: any) => a + b, 0);
+          setTotalCases(total);
 
-  if (!mounted) {
-    return <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Cargando categorías...</div>;
+          const items: CategoryItem[] = Object.entries(dist)
+            .map(([catName, count]: [string, any]) => {
+              const meta = CATEGORY_META[catName] || { department: 'Despacho Municipal', color: '#94a3b8', icon: '📋' };
+              const pct = total > 0 ? Math.round((count / total) * 1000) / 10 : 0;
+              return {
+                name: catName,
+                department: meta.department,
+                value: count,
+                percentage: pct,
+                color: meta.color,
+                icon: meta.icon,
+              };
+            })
+            .sort((a, b) => b.value - a.value);
+
+          setData(items);
+        }
+      } catch (err) {
+        console.warn('Error fetching dynamic categories:', err);
+      } finally {
+        if (isMounted) setMounted(true);
+      }
+    }
+
+    fetchCategories();
+    return () => { isMounted = false; };
+  }, []);
+
+  if (!mounted || data.length === 0) {
+    return <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Cargando categorías en tiempo real...</div>;
   }
-
-  const totalCases = data.reduce((acc, cur) => acc + cur.value, 0);
 
   return (
     <div style={{ width: '100%' }}>
@@ -105,20 +147,21 @@ export function CategoryChart() {
             textAlign: 'center',
             pointerEvents: 'none'
           }}>
-            <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', display: 'block', lineHeight: 1.1 }}>
-              {totalCases.toLocaleString('es-CO')}
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
+              Total Casos
             </span>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Casos Neiva
-            </span>
+            <strong style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', display: 'block' }}>
+              {totalCases.toLocaleString()}
+            </strong>
+            <span style={{ fontSize: '0.68rem', color: '#38bdf8' }}>100% Meta</span>
           </div>
         </div>
 
-        {/* Desglose Detallado con porcentajes y cantidades */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {data.map((cat, idx) => (
+        {/* Leyenda interactiva */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto' }}>
+          {data.slice(0, 7).map((item, idx) => (
             <div 
-              key={cat.name} 
+              key={item.name} 
               onMouseEnter={() => setActiveIndex(idx)}
               onMouseLeave={() => setActiveIndex(null)}
               style={{
@@ -127,30 +170,21 @@ export function CategoryChart() {
                 justifyContent: 'space-between',
                 padding: '6px 10px',
                 borderRadius: '6px',
-                background: activeIndex === idx ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-card)',
-                border: `1px solid ${activeIndex === idx ? cat.color : 'var(--border)'}`,
-                transition: 'all 0.15s ease',
-                cursor: 'pointer'
+                background: activeIndex === idx ? 'rgba(255,255,255,0.06)' : 'transparent',
+                cursor: 'pointer',
+                transition: 'background 0.15s'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {cat.name}
-                  </div>
-                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                    {cat.department}
-                  </div>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }} />
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+                  {item.icon} {item.name}
+                </span>
               </div>
-
-              <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
-                <strong style={{ fontSize: '0.8rem', color: 'var(--text-primary)', display: 'block' }}>
-                  {cat.value}
-                </strong>
-                <span style={{ fontSize: '0.67rem', color: cat.color, fontWeight: 700 }}>
-                  {cat.percentage}%
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{item.value}</strong>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', minWidth: '35px', textAlign: 'right' }}>
+                  {item.percentage}%
                 </span>
               </div>
             </div>

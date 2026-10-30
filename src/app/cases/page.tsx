@@ -118,108 +118,7 @@ export function getEmotionConfig(sentiment?: string) {
   };
 }
 
-const MOCK_RAW_COMMENTS: RawCommentItem[] = [
-  {
-    id: 'COMM-101',
-    source: 'Facebook',
-    author: '@vecinolimonar',
-    postTitle: 'Publicación: Plan de Intervención Vial 2026',
-    content: 'La calle 39 del barrio Limonar está totalmente destruida, los carros ya no pueden pasar y los taxistas se niegan a entrar.',
-    detectedIntent: 'Reporte ciudadano',
-    detectedLocation: 'El Limonar (Comuna 6)',
-    referenceStreet: 'Calle 39',
-    detectedCategory: 'Infraestructura Vial',
-    detectedTopic: 'Malla Vial Urbana / Pavimentación',
-    detectedProblem: 'Deterioro vial crítico / hueco severo',
-    aiConfidence: 93,
-    requiresFollowup: true,
-    possibleCaseMatch: 'CIV-2026-0184',
-    caseMatchTitle: 'Deterioro vial crítico y hundimiento – El Limonar',
-    similarityPercent: 91,
-    metaDirectContactAllowed: true,
-    dateTime: 'Hace 25 min',
-  },
-  {
-    id: 'COMM-102',
-    source: 'Instagram',
-    author: '@maria_limonar',
-    postTitle: 'Reel: Alcaldía en tu Comuna',
-    content: 'En el Limonar tenemos el mismo problema con el pavimento, huecos gigantes en la 39 con carrera 28.',
-    detectedIntent: 'Queja ciudadana',
-    detectedLocation: 'El Limonar (Comuna 6)',
-    referenceStreet: 'Calle 39 con Carrera 28',
-    detectedCategory: 'Infraestructura Vial',
-    detectedTopic: 'Malla Vial Urbana / Pavimentación',
-    detectedProblem: 'Deterioro vial crítico / hueco severo',
-    aiConfidence: 91,
-    requiresFollowup: true,
-    possibleCaseMatch: 'CIV-2026-0184',
-    caseMatchTitle: 'Deterioro vial crítico y hundimiento – El Limonar',
-    similarityPercent: 88,
-    metaDirectContactAllowed: true,
-    dateTime: 'Hace 38 min',
-  },
-  {
-    id: 'COMM-103',
-    source: 'Facebook',
-    author: '@transporte_huila',
-    postTitle: 'Publicación: Plan de Intervención Vial 2026',
-    content: 'Por favor arreglen la vía de la 39 en el Limonar antes de que ocurra una tragedia o bloqueo.',
-    detectedIntent: 'Solicitud ciudadana',
-    detectedLocation: 'El Limonar (Comuna 6)',
-    referenceStreet: 'Calle 39',
-    detectedCategory: 'Infraestructura Vial',
-    detectedTopic: 'Malla Vial Urbana / Pavimentación',
-    detectedProblem: 'Deterioro vial / riesgo de bloqueo vial',
-    aiConfidence: 89,
-    requiresFollowup: true,
-    possibleCaseMatch: 'CIV-2026-0184',
-    caseMatchTitle: 'Deterioro vial crítico y hundimiento – El Limonar',
-    similarityPercent: 87,
-    metaDirectContactAllowed: false,
-    dateTime: 'Hace 45 min',
-  },
-  {
-    id: 'COMM-104',
-    source: 'Instagram',
-    author: '@pedro_neiva',
-    postTitle: 'Reel: Alumbrado Navideño y Luminarias',
-    content: 'En Ipanema siguen varias luminarias apagadas en la carrera 38, muy oscuro de noche.',
-    detectedIntent: 'Reporte ciudadano',
-    detectedLocation: 'Ipanema (Comuna 7)',
-    referenceStreet: 'Carrera 38',
-    detectedCategory: 'Alumbrado Público',
-    detectedTopic: 'Alumbrado Público ESIP',
-    detectedProblem: 'Falla de luminarias / oscuridad nocturna',
-    aiConfidence: 95,
-    requiresFollowup: true,
-    possibleCaseMatch: 'CASO-008',
-    caseMatchTitle: 'Alumbrado LED instalado en parque y ciclo-ruta',
-    similarityPercent: 74,
-    metaDirectContactAllowed: true,
-    dateTime: 'Hace 1 hora',
-  },
-  {
-    id: 'COMM-105',
-    source: 'Facebook',
-    author: '@veeduria_comuna2',
-    postTitle: 'Publicación: Gestión Las Ceibas E.S.P.',
-    content: 'Continuamos con baja presión de agua potable en Las Granjas, solicitamos carrotanques urgentes.',
-    detectedIntent: 'Queja ciudadana',
-    detectedLocation: 'Las Granjas (Comuna 2)',
-    referenceStreet: 'Carrera 2da con Calle 64',
-    detectedCategory: 'Servicios Públicos',
-    detectedTopic: 'Redes de Acueducto Las Ceibas E.S.P.',
-    detectedProblem: 'Baja presión de agua / suspensión de servicio',
-    aiConfidence: 96,
-    requiresFollowup: true,
-    possibleCaseMatch: 'CASO-001',
-    caseMatchTitle: 'No más abusos con el recibo del agua y cortes',
-    similarityPercent: 93,
-    metaDirectContactAllowed: false,
-    dateTime: 'Hace 1 hora',
-  },
-];
+const MOCK_RAW_COMMENTS: RawCommentItem[] = [];
 
 const NEIVA_ENTITIES = [
   'Las Ceibas - Empresas Públicas de Neiva E.S.P.',
@@ -230,140 +129,7 @@ const NEIVA_ENTITIES = [
   'Secretaría de Gobierno y Convivencia Ciudadana',
 ];
 
-const MOCK_CASES = [
-  {
-    id: 'CIV-2026-0001',
-    institutional_radicado: 'RAD-MOV-2026-0001',
-    source: 'Facebook Oficial - Johan Steed',
-    author: 'Ciudadano',
-    priority: 'Alta',
-    title: 'Movilidad: Falta de semáforo en horario pico',
-    content: 'aguantese un semaforo a medio dia',
-    category: 'Movilidad',
-    sentiment: 'Crítico',
-    location: 'Neiva (General)',
-    dateTime: '13 Oct 2026, 10:44 AM',
-    status: 'Pendiente',
-    mediaType: 'video',
-    imageUrl: 'https://scontent.fnva2-1.fna.fbcdn.net/v/t51.71878-10/844616706_2012953836090006_1577298243066674440_n.jpg?_nc_cat=105&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=5fad0e&_nc_eui2=AeEbnZSHvkeoORSo5EQnLYrM__d63phQk63_93remFCTrfpYg5tLfskbvWTWDC2s_m8&_nc_ohc=QjJBXZ9fpK4Q7kNvwFG1Ygt&_nc_oc=AdrFaEU1wO1c9QvHntWU7oIbaEk4QECLcBhtQxC1Lh5e9T2TLQzcl4TB5D62rajvQeA&_nc_zt=23&_nc_ht=scontent.fnva2-1.fna&edm=AKIiGfEEAAAA&_nc_gid=TjqvpXOtha05KzHoYNxAWQ&_nc_tpa=Q5bMBQJW8i1JZkVc8Y10i7GEB6Uc0kVwUs5p52DRQJqJEwTs4ZxU33ExZmyanpPqRTpCAXbqhrB8KAzwmg&oh=00_AQPD5WMpkCuyWoCjgPzQtEleANwaTJ3NK4-8Ny8BEPh7Wg&oe=6AD4C00A',
-    impact_if_solved: 'Optimización de controladores viales en puntos neurálgicos de Neiva.',
-    impact_if_ignored: 'Riesgo de colapso en corredores principales y siniestralidad.',
-    assigned_department: 'Secretaría de Movilidad y Tránsito',
-    assigned_to: 'Técnicos de Semaforización Neiva',
-    priority_action: true,
-    comments_count: 3,
-  },
-  {
-    id: 'CIV-2026-0002',
-    institutional_radicado: 'RAD-GOB-2026-0002',
-    source: 'Facebook Oficial - Johan Steed',
-    author: 'Ciudadano',
-    priority: 'Media',
-    title: 'General: Descontento general con la gestión municipal',
-    content: 'la misma mierda y suben y no hacen nada',
-    category: 'General',
-    sentiment: 'Indignación',
-    location: 'Neiva (General)',
-    dateTime: '13 Oct 2026, 07:57 PM',
-    status: 'Pendiente',
-    mediaType: 'video',
-    imageUrl: 'https://scontent.fnva2-1.fna.fbcdn.net/v/t51.71878-10/844616706_2012953836090006_1577298243066674440_n.jpg?_nc_cat=105&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=5fad0e&_nc_eui2=AeEbnZSHvkeoORSo5EQnLYrM__d63phQk63_93remFCTrfpYg5tLfskbvWTWDC2s_m8&_nc_ohc=QjJBXZ9fpK4Q7kNvwFG1Ygt&_nc_oc=AdrFaEU1wO1c9QvHntWU7oIbaEk4QECLcBhtQxC1Lh5e9T2TLQzcl4TB5D62rajvQeA&_nc_zt=23&_nc_ht=scontent.fnva2-1.fna&edm=AKIiGfEEAAAA&_nc_gid=TjqvpXOtha05KzHoYNxAWQ&_nc_tpa=Q5bMBQJW8i1JZkVc8Y10i7GEB6Uc0kVwUs5p52DRQJqJEwTs4ZxU33ExZmyanpPqRTpCAXbqhrB8KAzwmg&oh=00_AQPD5WMpkCuyWoCjgPzQtEleANwaTJ3NK4-8Ny8BEPh7Wg&oe=6AD4C00A',
-    impact_if_solved: 'Comunicación transparente y rendición de cuentas pública.',
-    impact_if_ignored: 'Deterioro de la confianza en las instituciones municipales.',
-    assigned_department: 'Secretaría de Gobierno y Convivencia Ciudadana',
-    assigned_to: 'Dirección de Participación Ciudadana',
-    priority_action: false,
-    comments_count: 3,
-  },
-  {
-    id: 'CIV-2026-0003',
-    institutional_radicado: 'RAD-GOB-2026-0003',
-    source: 'Facebook Oficial - Johan Steed',
-    author: 'Ciudadano',
-    priority: 'Alta',
-    title: 'General: Corrupción y mal manejo de recursos en la ciudad',
-    content: 'Aquí la ley es para el más guevon y la gente trabajadora pero la delincuencia el desorden la corrupción y el mal manejo de los recursos y la corrupción nadie la mira que tristeza ver a neiva convertida en solo lucrar a politiqueros y mientras tanto gente trabajadora son los que llevan del vulto',
-    category: 'General',
-    sentiment: 'Indignación',
-    location: 'Neiva (General)',
-    dateTime: '13 Oct 2026, 02:06 PM',
-    status: 'Pendiente',
-    mediaType: 'video',
-    imageUrl: 'https://scontent.fnva2-1.fna.fbcdn.net/v/t51.71878-10/844616706_2012953836090006_1577298243066674440_n.jpg?_nc_cat=105&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=5fad0e&_nc_eui2=AeEbnZSHvkeoORSo5EQnLYrM__d63phQk63_93remFCTrfpYg5tLfskbvWTWDC2s_m8&_nc_ohc=QjJBXZ9fpK4Q7kNvwFG1Ygt&_nc_oc=AdrFaEU1wO1c9QvHntWU7oIbaEk4QECLcBhtQxC1Lh5e9T2TLQzcl4TB5D62rajvQeA&_nc_zt=23&_nc_ht=scontent.fnva2-1.fna&edm=AKIiGfEEAAAA&_nc_gid=TjqvpXOtha05KzHoYNxAWQ&_nc_tpa=Q5bMBQJW8i1JZkVc8Y10i7GEB6Uc0kVwUs5p52DRQJqJEwTs4ZxU33ExZmyanpPqRTpCAXbqhrB8KAzwmg&oh=00_AQPD5WMpkCuyWoCjgPzQtEleANwaTJ3NK4-8Ny8BEPh7Wg&oe=6AD4C00A',
-    impact_if_solved: 'Implementación de veedurías ciudadanas y control en contratación.',
-    impact_if_ignored: 'Creciente desafección institucional y descontento barrial.',
-    assigned_department: 'Secretaría de Gobierno y Convivencia Ciudadana',
-    assigned_to: 'Veedurías Neiva',
-    priority_action: true,
-    comments_count: 3,
-  },
-  {
-    id: 'CIV-2026-0004',
-    institutional_radicado: 'RAD-DES-2026-0004',
-    source: 'Facebook Oficial - Johan Steed',
-    author: 'Ciudadano',
-    priority: 'Baja',
-    title: 'General: Apoyo ciudadano para renovación y liderazgo',
-    content: 'Ojalá que la gente te apoye para alcanzar la alcaldía.para acabar con los mismos de siempre mañosos y torcidos.que tenemos hoy en día...',
-    category: 'General',
-    sentiment: 'Positivo',
-    location: 'Neiva (General)',
-    dateTime: '12 Oct 2026, 04:07 PM',
-    status: 'Pendiente',
-    mediaType: 'video',
-    imageUrl: 'https://scontent.fnva2-1.fna.fbcdn.net/v/t51.71878-10/845961823_4634800416665273_4337931023863517376_n.jpg?_nc_cat=111&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=5fad0e&_nc_eui2=AeFiPxMjeUyv8ySVkSWaA0HXlTZK-kXHJt6VNkr6Rccm3obDFFrk3uXzyjqj3xIzO80&_nc_ohc=jbLt4auIR1cQ7kNvwEswdMs&_nc_oc=AdoqwEGsLAYioWF946GOgE6X_EWMG5ihGcvNPMkOjX-EWpiQMmqgbP5rSoi6wFFy3to&_nc_zt=23&_nc_ht=scontent.fnva2-1.fna&edm=AKIiGfEEAAAA&_nc_gid=TjqvpXOtha05KzHoYNxAWQ&_nc_tpa=Q5bMBQKbpqUXih33w9CxEN7rqgmMPzTiU4REs6pkDn2xIqvwuyy3rRH8EBJ_TLEt0csr5DnPfy611VIauw&oh=00_AQMurHjNGLOvOs2KzPnmLzm6G4oG9XP0Mog224pvsyegmQ&oe=6AD4A307',
-    impact_if_solved: 'Consolidación de respaldo social y participación en mesas de trabajo.',
-    impact_if_ignored: 'Sin riesgo inmediato.',
-    assigned_department: 'Despacho Municipal',
-    assigned_to: 'Equipo de Participación',
-    priority_action: false,
-    comments_count: 1,
-  },
-  {
-    id: 'CIV-2026-0005',
-    institutional_radicado: 'RAD-GOB-2026-0005',
-    source: 'Facebook Oficial - Johan Steed',
-    author: 'Ciudadano',
-    priority: 'Media',
-    title: 'General: Descontento con la gestión administrativa',
-    content: 'Los mismo peleando .. por la plata de neiva',
-    category: 'General',
-    sentiment: 'Crítico',
-    location: 'Neiva (General)',
-    dateTime: '12 Oct 2026, 12:21 AM',
-    status: 'Pendiente',
-    mediaType: 'image',
-    imageUrl: 'https://scontent.fnva2-1.fna.fbcdn.net/v/t51.82787-15/841639987_18637397275046485_2085644438902040396_n.jpg?stp=dst-jpg_p720x720_tt6&_nc_cat=102&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=127cfc&_nc_eui2=AeHUyJBLuepOy6N2lQHZiC3UVL3DKvGUtexUvcMq8ZS17G8jkGi-SH-RIyTUQ4zQBD8&_nc_ohc=HHgJ3qpRlSgQ7kNvwGQehpe&_nc_oc=AdrxmUQqR7Rh5VxCOXkvvb_5AV5l0s-tYl8f6V0J5HZgEriM69vnG9NhHlEBuuucSLg&_nc_zt=23&_nc_ht=scontent.fnva2-1.fna&edm=AKIiGfEEAAAA&_nc_gid=TjqvpXOtha05KzHoYNxAWQ&_nc_tpa=Q5bMBQI4Rjrwnq1orRI90znRuMe1BcPBIj2FWuIc9NktHgWz0Uy0rqyDyWTwmuUn7zbd4H8yiz5gemuFxw&oh=00_AQOmShgdHBlFv1imWVXjhHLoVwJ11AAJJgE9yoXjGa-Plg&oe=6AD4A79E',
-    impact_if_solved: 'Fortalecimiento de la transparencia en la inversión comunal.',
-    impact_if_ignored: 'Sensación de desamparo presupuestal en las comunas.',
-    assigned_department: 'Secretaría de Gobierno y Convivencia Ciudadana',
-    assigned_to: 'Despacho de Gobierno',
-    priority_action: false,
-    comments_count: 4,
-  },
-  {
-    id: 'CIV-2026-0008',
-    institutional_radicado: 'RAD-SEG-2026-0008',
-    source: 'Facebook Oficial - Johan Steed',
-    author: 'Ciudadano',
-    priority: 'Alta',
-    title: 'General: Percepción de inseguridad y deterioro social en Neiva',
-    content: 'Se fue para europa o que... OJO CON LOS ASESORES DE IMAGEN ESTAN MAL ENFOCADOS NO EXPONGA SU FAMILIA EXPONGA LA REALIDAD DE NEIVA: HURTOS, ASESINATOS, ATAQUES, NEIVA MUY DESBARATADA',
-    category: 'Seguridad',
-    sentiment: 'Indignación',
-    location: 'Neiva (General)',
-    dateTime: '12 Oct 2026, 11:33 AM',
-    status: 'Pendiente',
-    mediaType: 'image',
-    imageUrl: 'https://scontent.fnva2-1.fna.fbcdn.net/v/t51.82787-15/841639987_18637397275046485_2085644438902040396_n.jpg?stp=dst-jpg_p720x720_tt6&_nc_cat=102&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=127cfc&_nc_eui2=AeHUyJBLuepOy6N2lQHZiC3UVL3DKvGUtexUvcMq8ZS17G8jkGi-SH-RIyTUQ4zQBD8&_nc_ohc=HHgJ3qpRlSgQ7kNvwGQehpe&_nc_oc=AdrxmUQqR7Rh5VxCOXkvvb_5AV5l0s-tYl8f6V0J5HZgEriM69vnG9NhHlEBuuucSLg&_nc_zt=23&_nc_ht=scontent.fnva2-1.fna&edm=AKIiGfEEAAAA&_nc_gid=TjqvpXOtha05KzHoYNxAWQ&_nc_tpa=Q5bMBQI4Rjrwnq1orRI90znRuMe1BcPBIj2FWuIc9NktHgWz0Uy0rqyDyWTwmuUn7zbd4H8yiz5gemuFxw&oh=00_AQOmShgdHBlFv1imWVXjhHLoVwJ11AAJJgE9yoXjGa-Plg&oe=6AD4A79E',
-    impact_if_solved: 'Diseño de plan de choque contra el hurto y articulación con cuadrantes de Policía.',
-    impact_if_ignored: 'Escalamiento de denuncias ciudadanas y miedo en zonas residenciales.',
-    assigned_department: 'Secretaría de Gobierno y Convivencia Ciudadana',
-    assigned_to: 'Observatorio de Seguridad y Convivencia',
-    priority_action: true,
-    comments_count: 4,
-  }
-];
+const MOCK_CASES: any[] = [];
 
 function formatCompactNumber(num: number | undefined | null): string {
   if (num === null || num === undefined || isNaN(num)) return '0';
@@ -387,11 +153,9 @@ export default function CasesPage() {
   const [postSearch, setPostSearch] = useState<string>('');
   const [postNetworkFilter, setPostNetworkFilter] = useState<'all' | 'Facebook' | 'Instagram'>('all');
   const [postFilterCasesOnly, setPostFilterCasesOnly] = useState<boolean>(false);
-  const [rawComments, setRawComments] = useState(MOCK_RAW_COMMENTS);
-  const [selectedCommentIds, setSelectedCommentIds] = useState<string[]>(['COMM-101', 'COMM-102', 'COMM-103']);
+  const [rawComments, setRawComments] = useState<RawCommentItem[]>([]);
+  const [selectedCommentIds, setSelectedCommentIds] = useState<string[]>([]);
   const [groupSuccessMsg, setGroupSuccessMsg] = useState<string | null>(null);
-
-  // Sugerencia de Agrupación Proactiva de IA
   const [aiCluster, setAiCluster] = useState<{
     title: string;
     description: string;
@@ -401,16 +165,7 @@ export default function CasesPage() {
     similarityScore: number;
     location: string;
     problem: string;
-  } | null>({
-    title: 'Deterioro vial crítico en El Limonar (Calle 39)',
-    description: 'La IA agrupó 3 comentarios de Facebook e Instagram con alta convergencia territorial y reclamo común.',
-    commentIds: ['COMM-101', 'COMM-102', 'COMM-103'],
-    suggestedCaseId: 'CIV-2026-0184',
-    suggestedCaseTitle: 'Deterioro vial crítico y hundimiento de calzada – El Limonar (Comuna 6)',
-    similarityScore: 91,
-    location: 'El Limonar (Comuna 6)',
-    problem: 'Deterioro vial crítico / hueco severo',
-  });
+  } | null>(null);
 
   // Modal de Validación Anti-Duplicados (Human-in-the-loop)
   const [duplicateModalData, setDuplicateModalData] = useState<{
@@ -477,10 +232,19 @@ export default function CasesPage() {
     setIsSyncing(true);
     try {
       const syncRes = await API.meta.syncLive();
-      const [postsRes, casesRes] = await Promise.allSettled([
+      const [postsRes, casesRes, triageRes] = await Promise.allSettled([
         API.meta.getPosts(300),
-        API.cases.getAll()
+        API.cases.getAll(),
+        fetch('http://localhost:8000/api/v1/meta/triage-comments').then(r => r.json())
       ]);
+
+      if (triageRes.status === 'fulfilled' && Array.isArray(triageRes.value)) {
+        setRawComments(triageRes.value);
+        if (triageRes.value.length >= 2) {
+          const first = triageRes.value[0];
+          setSelectedCommentIds([first.id]);
+        }
+      }
 
       if (postsRes.status === 'fulfilled' && Array.isArray(postsRes.value)) {
         setPostsList(postsRes.value);

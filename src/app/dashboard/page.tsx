@@ -30,73 +30,7 @@ interface DashboardCase {
   assigned_to?: string;
 }
 
-const FALLBACK_DASHBOARD_CASES: DashboardCase[] = [
-  {
-    id: 'CASO-001',
-    source: 'Facebook',
-    title: 'No más abusos con el recibo del agua y cortes de Las Ceibas!',
-    priority: 'Alta',
-    status: 'Pendiente',
-    location: 'Las Granjas - Comuna 2',
-    dateTime: 'Hace 20 min',
-    category: 'Servicios Públicos',
-    priority_action: true,
-    assigned_department: 'Las Ceibas - Empresas Públicas de Neiva E.S.P.',
-    assigned_to: 'Cuadrilla 4 - Acueducto',
-  },
-  {
-    id: 'CASO-004',
-    source: 'Facebook',
-    title: 'Rebosamiento de aguas residuales e inundación en canaleta barrial',
-    priority: 'Alta',
-    status: 'Pendiente',
-    location: 'Canaima - Comuna 6',
-    dateTime: 'Hace 45 min',
-    category: 'Servicios Públicos',
-    priority_action: true,
-    assigned_department: 'Las Ceibas - Empresas Públicas de Neiva E.S.P.',
-    assigned_to: 'Equipo Técnico Alcantarillado',
-  },
-  {
-    id: 'CASO-005',
-    source: 'Facebook',
-    title: 'Colapso en urgencias del Hospital Universitario de Neiva',
-    priority: 'Alta',
-    status: 'En Gestión',
-    location: 'Quirinal - Comuna 3',
-    dateTime: 'Hace 1 hora',
-    category: 'Salud',
-    priority_action: false,
-    assigned_department: 'Secretaría de Salud Municipal',
-    assigned_to: 'Dra. Patricia Charry',
-  },
-  {
-    id: 'CASO-007',
-    source: 'Facebook',
-    title: 'Semáforos apagados en Avenida Circunvalar con Carrera 5ta',
-    priority: 'Alta',
-    status: 'Pendiente',
-    location: 'Centro - Av. Circunvalar',
-    dateTime: 'Hace 2 horas',
-    category: 'Movilidad',
-    priority_action: false,
-    assigned_department: 'Secretaría de Movilidad y Tránsito',
-    assigned_to: 'Técnico de Señalización',
-  },
-  {
-    id: 'CASO-008',
-    source: 'Instagram',
-    title: 'Luminarias LED fundidas en vía principal de Ipanema',
-    priority: 'Baja',
-    status: 'Resuelto',
-    location: 'Ipanema - Comuna 7',
-    dateTime: 'Hace 3 horas',
-    category: 'Alumbrado Público',
-    priority_action: false,
-    assigned_department: 'Alumbrado Público Neiva',
-    assigned_to: 'Cuadrilla Móvil LED',
-  },
-];
+const FALLBACK_DASHBOARD_CASES: DashboardCase[] = [];
 
 export default function DashboardPage() {
   const { user } = useAuth();
