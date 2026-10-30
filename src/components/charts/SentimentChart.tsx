@@ -13,6 +13,69 @@ const data = [
   { name: 'Dom', positivo: 65, neutro: 22, alerta: 13, evento: 'Ciclovía y balance dominical' },
 ];
 
+const RUEDA_SENTIMIENTOS_METRICS = [
+  {
+    category: 'Paz o tranquilidad',
+    emoji: '🕊️',
+    color: '#06b6d4',
+    bg: 'rgba(6, 182, 212, 0.12)',
+    border: 'rgba(6, 182, 212, 0.3)',
+    percent: 42.5,
+    cases: 773,
+    subEmotions: 'Serenidad, Gratitud, Amor, Confianza, Relajación, Bienestar'
+  },
+  {
+    category: 'Enojo o ira',
+    emoji: '😡',
+    color: '#ef4444',
+    bg: 'rgba(239, 68, 68, 0.12)',
+    border: 'rgba(239, 68, 68, 0.3)',
+    percent: 26.8,
+    cases: 487,
+    subEmotions: 'Rabia, Frustración, Celos, Irritación, Furia, Resentimiento'
+  },
+  {
+    category: 'Alegría',
+    emoji: '😊',
+    color: '#10b981',
+    bg: 'rgba(16, 185, 129, 0.12)',
+    border: 'rgba(16, 185, 129, 0.3)',
+    percent: 21.1,
+    cases: 384,
+    subEmotions: 'Entusiasmo, Diversión, Emoción, Creatividad, Orgullo, Energía'
+  },
+  {
+    category: 'Miedo',
+    emoji: '😨',
+    color: '#f59e0b',
+    bg: 'rgba(245, 158, 11, 0.12)',
+    border: 'rgba(245, 158, 11, 0.3)',
+    percent: 6.0,
+    cases: 109,
+    subEmotions: 'Ansiedad, Inseguridad, Confusión, Rechazo, Debilidad, Impotencia'
+  },
+  {
+    category: 'Poder o fortaleza',
+    emoji: '💪',
+    color: '#a855f7',
+    bg: 'rgba(168, 85, 247, 0.12)',
+    border: 'rgba(168, 85, 247, 0.3)',
+    percent: 2.1,
+    cases: 39,
+    subEmotions: 'Confianza, Seguridad en sí mismo, Satisfacción, Valoración personal, Reconocimiento'
+  },
+  {
+    category: 'Tristeza',
+    emoji: '😢',
+    color: '#818cf8',
+    bg: 'rgba(99, 102, 241, 0.12)',
+    border: 'rgba(99, 102, 241, 0.3)',
+    percent: 1.5,
+    cases: 28,
+    subEmotions: 'Soledad, Culpa, Vergüenza, Aburrimiento, Desánimo, Apatía'
+  }
+];
+
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const cur = payload[0].payload;
@@ -31,15 +94,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           Día {label} • {cur.evento}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px', color: '#10b981' }}>
-          <span>🟢 Aprobación / Positivo:</span>
+          <span>🟢 Alegría / Paz:</span>
           <strong>{cur.positivo}%</strong>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px', color: '#f59e0b' }}>
-          <span>🟡 Inquietud / Neutro:</span>
+          <span>🟡 Miedo / Observación:</span>
           <strong>{cur.neutro}%</strong>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444' }}>
-          <span>🔴 Indignación / Crítico:</span>
+          <span>🔴 Enojo / Indignación:</span>
           <strong>{cur.alerta}%</strong>
         </div>
       </div>
@@ -58,26 +121,43 @@ export function SentimentChart() {
 
   return (
     <div style={{ width: '100%' }}>
-      {/* Indicadores Clave de Resumen */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: '130px', padding: '8px 12px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '6px' }}>
-          <span style={{ fontSize: '0.7rem', color: '#10b981', display: 'block', fontWeight: 600 }}>🟢 APROBACIÓN PROMEDIO</span>
-          <strong style={{ fontSize: '1.15rem', color: '#10b981' }}>58.2%</strong>
-          <span style={{ fontSize: '0.67rem', color: 'var(--text-muted)', display: 'block' }}>748 menciones favorables</span>
+      {/* Rueda de Sentimientos - Distribución de los 1,820 Casos Reales */}
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            ☸️ Rueda de Sentimientos CIVIA (1,820 Casos)
+          </span>
+          <span style={{ fontSize: '0.72rem', color: '#38bdf8' }}>6 Ejes Emocionales Oficiales</span>
         </div>
-        <div style={{ flex: 1, minWidth: '130px', padding: '8px 12px', background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '6px' }}>
-          <span style={{ fontSize: '0.7rem', color: '#f59e0b', display: 'block', fontWeight: 600 }}>🟡 EN OBSERVACIÓN</span>
-          <strong style={{ fontSize: '1.15rem', color: '#f59e0b' }}>24.1%</strong>
-          <span style={{ fontSize: '0.67rem', color: 'var(--text-muted)', display: 'block' }}>310 consultas y trámites</span>
-        </div>
-        <div style={{ flex: 1, minWidth: '130px', padding: '8px 12px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '6px' }}>
-          <span style={{ fontSize: '0.7rem', color: '#ef4444', display: 'block', fontWeight: 600 }}>🔴 INDIGNACIÓN / RIESGO</span>
-          <strong style={{ fontSize: '1.15rem', color: '#ef4444' }}>17.7%</strong>
-          <span style={{ fontSize: '0.67rem', color: 'var(--text-muted)', display: 'block' }}>226 reclamos de alto impacto</span>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
+          {RUEDA_SENTIMIENTOS_METRICS.map((emo) => (
+            <div 
+              key={emo.category} 
+              style={{ 
+                padding: '8px 10px', 
+                background: emo.bg, 
+                border: `1px solid ${emo.border}`, 
+                borderRadius: '8px',
+                transition: 'transform 0.15s ease'
+              }}
+              title={`Sub-emociones: ${emo.subEmotions}`}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+                <span style={{ fontSize: '0.7rem', color: emo.color, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>{emo.emoji}</span> {emo.category}
+                </span>
+                <strong style={{ fontSize: '0.95rem', color: emo.color }}>{emo.percent}%</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: 'var(--text-muted)' }}>
+                <span>{emo.cases} casos</span>
+                <span style={{ fontStyle: 'italic' }}>{emo.subEmotions.split(',')[0]}...</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div style={{ width: '100%', height: 260, minHeight: 260 }}>
+      <div style={{ width: '100%', height: 220, minHeight: 220 }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
@@ -98,25 +178,33 @@ export function SentimentChart() {
             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} dy={8} />
             <YAxis unit="%" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
             <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="positivo" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorPositivo)" name="Aprobación" />
-            <Area type="monotone" dataKey="neutro" stroke="#f59e0b" strokeWidth={2} fillOpacity={1} fill="url(#colorNeutro)" name="Inquietud / Neutro" />
-            <Area type="monotone" dataKey="alerta" stroke="#ef4444" strokeWidth={2.5} fillOpacity={1} fill="url(#colorAlerta)" name="Indignación" />
+            <Area type="monotone" dataKey="positivo" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorPositivo)" name="Paz y Alegría" />
+            <Area type="monotone" dataKey="neutro" stroke="#f59e0b" strokeWidth={2} fillOpacity={1} fill="url(#colorNeutro)" name="Miedo / Observación" />
+            <Area type="monotone" dataKey="alerta" stroke="#ef4444" strokeWidth={2.5} fillOpacity={1} fill="url(#colorAlerta)" name="Enojo / Indignación" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '10px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981' }} />
-          Aprobación Ciudadana
-        </span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b' }} />
-          Inquietud / Neutro
+          Paz / Alegría (63.6%)
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} />
-          Indignación / Crítica
+          Enojo / Ira (26.8%)
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b' }} />
+          Miedo (6.0%)
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#a855f7' }} />
+          Poder / Fortaleza (2.1%)
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#818cf8' }} />
+          Tristeza (1.5%)
         </span>
       </div>
     </div>

@@ -33,6 +33,91 @@ export interface RawCommentItem {
   dateTime: string;
 }
 
+
+export function getEmotionConfig(sentiment?: string) {
+  if (!sentiment) {
+    return {
+      primary: 'Paz o tranquilidad',
+      sub: 'Serenidad',
+      emoji: '🕊️',
+      color: '#06b6d4',
+      bg: 'rgba(6, 182, 212, 0.15)',
+      border: 'rgba(6, 182, 212, 0.35)',
+      full: 'Paz o tranquilidad: Serenidad'
+    };
+  }
+
+  const parts = sentiment.split(':');
+  const primaryRaw = (parts[0] || '').trim();
+  const subRaw = (parts[1] || '').trim();
+  const low = primaryRaw.toLowerCase();
+
+  if (low.includes('enojo') || low.includes('ira') || low.includes('indignación') || low.includes('crítico') || low.includes('critico') || low.includes('ataque')) {
+    return {
+      primary: 'Enojo o ira',
+      sub: subRaw || 'Frustración',
+      emoji: '😡',
+      color: '#ef4444',
+      bg: 'rgba(239, 68, 68, 0.15)',
+      border: 'rgba(239, 68, 68, 0.35)',
+      full: sentiment.includes(':') ? sentiment : `Enojo o ira: ${subRaw || 'Frustración'}`
+    };
+  }
+  if (low.includes('miedo') || low.includes('preocupado') || low.includes('insegur')) {
+    return {
+      primary: 'Miedo',
+      sub: subRaw || 'Inseguridad',
+      emoji: '😨',
+      color: '#f59e0b',
+      bg: 'rgba(245, 158, 11, 0.15)',
+      border: 'rgba(245, 158, 11, 0.35)',
+      full: sentiment.includes(':') ? sentiment : `Miedo: ${subRaw || 'Inseguridad'}`
+    };
+  }
+  if (low.includes('tristeza') || low.includes('desánimo') || low.includes('desanimo') || low.includes('pesar')) {
+    return {
+      primary: 'Tristeza',
+      sub: subRaw || 'Desánimo',
+      emoji: '😢',
+      color: '#818cf8',
+      bg: 'rgba(99, 102, 241, 0.15)',
+      border: 'rgba(99, 102, 241, 0.35)',
+      full: sentiment.includes(':') ? sentiment : `Tristeza: ${subRaw || 'Desánimo'}`
+    };
+  }
+  if (low.includes('alegría') || low.includes('alegria') || low.includes('positivo') || low.includes('aprobación')) {
+    return {
+      primary: 'Alegría',
+      sub: subRaw || 'Entusiasmo',
+      emoji: '😊',
+      color: '#10b981',
+      bg: 'rgba(16, 185, 129, 0.15)',
+      border: 'rgba(16, 185, 129, 0.35)',
+      full: sentiment.includes(':') ? sentiment : `Alegría: ${subRaw || 'Entusiasmo'}`
+    };
+  }
+  if (low.includes('poder') || low.includes('fortaleza')) {
+    return {
+      primary: 'Poder o fortaleza',
+      sub: subRaw || 'Confianza',
+      emoji: '💪',
+      color: '#a855f7',
+      bg: 'rgba(168, 85, 247, 0.15)',
+      border: 'rgba(168, 85, 247, 0.35)',
+      full: sentiment.includes(':') ? sentiment : `Poder o fortaleza: ${subRaw || 'Confianza'}`
+    };
+  }
+  return {
+    primary: 'Paz o tranquilidad',
+    sub: subRaw || 'Serenidad',
+    emoji: '🕊️',
+    color: '#06b6d4',
+    bg: 'rgba(6, 182, 212, 0.15)',
+    border: 'rgba(6, 182, 212, 0.35)',
+    full: sentiment.includes(':') ? sentiment : `Paz o tranquilidad: ${subRaw || 'Serenidad'}`
+  };
+}
+
 const MOCK_RAW_COMMENTS: RawCommentItem[] = [
   {
     id: 'COMM-101',
@@ -1423,7 +1508,29 @@ export default function CasesPage() {
                       )}
                       <span className="badge-tag">{c.location}</span>
                       <span className="badge-tag">{c.category}</span>
-                      <span className="badge-blue">Sentimiento: {c.sentiment}</span>
+                      {(() => {
+                        const emo = getEmotionConfig(c.sentiment);
+                        return (
+                          <span 
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.73rem',
+                              fontWeight: 600,
+                              background: emo.bg,
+                              border: `1px solid ${emo.border}`,
+                              color: emo.color
+                            }}
+                            title={`Rueda de Sentimientos: ${emo.primary} - ${emo.sub}`}
+                          >
+                            <span>{emo.emoji}</span>
+                            <span>{emo.primary}: <strong>{emo.sub}</strong></span>
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     <div className={styles['impact-box']}>

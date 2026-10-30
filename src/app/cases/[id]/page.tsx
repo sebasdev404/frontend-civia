@@ -11,6 +11,7 @@ import {
 import { API } from '@/lib/api/client';
 import { useAuth, UserRole } from '@/context/AuthContext';
 import styles from './case-detail.module.scss';
+import { getEmotionConfig } from '@/lib/emotions';
 
 // Departamentos e Instituciones de Neiva, Huila
 const NEIVA_DEPARTMENTS = [
@@ -895,9 +896,14 @@ export default function CaseDetailPage() {
                 <div className={styles['chip-label']}>Categoría</div>
                 <div className={styles['chip-value']}>{caseData.category}</div>
               </div>
-              <div className={styles['chip-item']}>
-                <div className={styles['chip-label']}>Sentimiento</div>
-                <div className={styles['chip-value']}>{caseData.sentiment}</div>
+                            <div className={styles['chip-item']}>
+                <div className={styles['chip-label']}>Sentimiento (Rueda)</div>
+                <div className={styles['chip-value']} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>{getEmotionConfig(caseData.sentiment).emoji}</span>
+                  <span style={{ color: getEmotionConfig(caseData.sentiment).color, fontWeight: 700 }}>
+                    {caseData.sentiment || getEmotionConfig(caseData.sentiment).full}
+                  </span>
+                </div>
               </div>
               <div className={styles['chip-item']}>
                 <div className={styles['chip-label']}>Sector Geográfico</div>

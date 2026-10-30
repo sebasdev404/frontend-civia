@@ -7,6 +7,7 @@ import {
   Upload, FileSpreadsheet, Bot, Sparkles, Copy, ExternalLink, RefreshCw, 
   Filter, Users, UserX, Phone, ChevronRight, Check
 } from 'lucide-react';
+import { getEmotionConfig } from '@/lib/emotions';
 
 export function getCitizenSocialLink(name?: string, handle?: string, channel?: string) {
   const cleanName = (name || '').trim();
@@ -1433,16 +1434,26 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                               })()}
                             </div>
                             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                              <span style={{
-                                fontSize: '0.68rem',
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                fontWeight: 700,
-                                background: item.sentiment === 'Positivo' ? 'rgba(16, 185, 129, 0.15)' : item.sentiment === 'Indignación' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                                color: item.sentiment === 'Positivo' ? '#10b981' : item.sentiment === 'Indignación' ? '#ef4444' : '#f59e0b'
-                              }}>
-                                {item.sentiment}
-                              </span>
+                              {(() => {
+                                const emo = getEmotionConfig(item.sentiment);
+                                return (
+                                  <span style={{
+                                    fontSize: '0.68rem',
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    fontWeight: 700,
+                                    background: emo.bg,
+                                    border: `1px solid ${emo.border}`,
+                                    color: emo.color,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}>
+                                    <span>{emo.emoji}</span>
+                                    <span>{item.sentiment || `${emo.primary}: ${emo.sub}`}</span>
+                                  </span>
+                                );
+                              })()}
                               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                                 {item.date_time}
                               </span>
@@ -1452,7 +1463,7 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                           <div style={{
                             padding: '12px 14px',
                             background: 'rgba(15, 23, 42, 0.5)',
-                            borderLeft: `4px solid ${item.sentiment === 'Positivo' ? '#10b981' : item.sentiment === 'Indignación' ? '#ef4444' : '#3b82f6'}`,
+                            borderLeft: `4px solid ${getEmotionConfig(item.sentiment).color}`,
                             borderRadius: '0 8px 8px 0',
                             fontSize: '0.875rem',
                             color: 'var(--text-primary)',
