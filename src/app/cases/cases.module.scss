@@ -784,7 +784,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: all 200ms ease;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 450px;
   border-radius: var(--radius-xl);
 
   &:hover {

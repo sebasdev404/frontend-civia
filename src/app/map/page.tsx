@@ -154,31 +154,6 @@ export default function MapPage() {
     };
   }, [incidents]);
 
-  // Simulación en tiempo real: Inyectar un reporte ciudadano detectado por IA desde Meta
-  const handleSimulateAlert = () => {
-    const newId = `CASO-00${incidents.length + 1}`;
-    const newAlert: MapIncident = {
-      id: newId,
-      lat: 2.9050 + (Math.random() - 0.5) * 0.015,
-      lng: -75.2850 + (Math.random() - 0.5) * 0.015,
-      title: '🚨 Daño crítico en malla vial y huecos profundos',
-      description: 'Reporte ciudadano detectado por IA en comentarios de la publicación de Instagram (@johansteed_): Cráter en la vía principal de El Limonar (Comuna 6).',
-      category: 'Infraestructura',
-      priority: 'Alta',
-      sentiment: 'Indignación',
-      source: 'Instagram',
-      neighborhood: 'El Limonar (Comuna 6)',
-      zone: 'comuna-6',
-      status: 'Pendiente',
-      reportsCount: 28,
-      dateTime: 'Justo ahora (En Vivo)',
-      isNew: true,
-    };
-
-    setIncidents((prev) => [newAlert, ...prev]);
-    setSelectedIncident(newAlert);
-  };
-
   const handleResetFilters = () => {
     setSearch('');
     setSelectedPriority('all');
@@ -458,7 +433,40 @@ export default function MapPage() {
               </div>
 
               <h3 className={styles['incident-card-title']}>{selectedIncident.title}</h3>
-              <p className={styles['incident-card-desc']}>{selectedIncident.description}</p>
+              {(() => {
+                const parts = (selectedIncident.description || '').split('[Argumento Geográfico]:');
+                const commentBody = parts[0]?.trim();
+                const geoArgument = parts[1]?.trim();
+                return (
+                  <>
+                    <p className={styles['incident-card-desc']}>
+                      {commentBody ? String.fromCharCode(34) + commentBody + String.fromCharCode(34) : selectedIncident.description}
+                    </p>
+                    {geoArgument && (
+                      <div style={{
+                        background: 'rgba(37, 99, 235, 0.12)',
+                        border: '1px solid rgba(59, 130, 246, 0.35)',
+                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        fontSize: '0.8rem',
+                        color: '#93c5fd',
+                        margin: '10px 0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span style={{ fontSize: '1.1rem' }}>📍</span>
+                        <div>
+                          <span style={{ fontWeight: 700, color: '#60a5fa', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Justificación Geográfica Verificada
+                          </span>
+                          <span>{geoArgument}</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
                 <span className="badge-tag">📍 {selectedIncident.neighborhood}</span>

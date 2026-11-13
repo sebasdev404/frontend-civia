@@ -16,6 +16,12 @@
   overflow-y: auto;
   transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), background-color 200ms ease;
 
+  @media (min-width: 1025px) {
+    &.desktop-collapsed {
+      transform: translateX(-100%);
+    }
+  }
+
   @media (max-width: 1024px) {
     width: 280px;
     max-width: 85vw;

@@ -44,8 +44,11 @@
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
 }
 
-.mobile-menu-btn {
-  display: none;
+.menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   background: var(--bg-muted);
   border: 1px solid var(--border);
   color: var(--text-primary);
@@ -60,10 +63,9 @@
     border-color: var(--border-hover);
   }
 
-  @media (max-width: 1024px) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  &:focus-visible {
+    outline: 2px solid var(--blue-600);
+    outline-offset: 3px;
   }
 }
 

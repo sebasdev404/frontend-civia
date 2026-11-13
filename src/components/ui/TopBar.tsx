@@ -10,6 +10,7 @@ import { API } from '@/lib/api/client';
 
 interface TopBarProps {
   onToggleMenu?: () => void;
+  isMenuOpen?: boolean;
 }
 
 interface AlertItem {
@@ -72,7 +73,7 @@ const DEFAULT_NOTIFICATIONS: AlertItem[] = [
   },
 ];
 
-export function TopBar({ onToggleMenu }: TopBarProps) {
+export function TopBar({ onToggleMenu, isMenuOpen = true }: TopBarProps) {
   const { user, logout, switchDemoUser } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -137,9 +138,12 @@ export function TopBar({ onToggleMenu }: TopBarProps) {
         {onToggleMenu && (
           <button 
             type="button"
-            className={styles['mobile-menu-btn']} 
+            className={styles['menu-btn']} 
             onClick={onToggleMenu}
-            aria-label="Abrir navegación"
+            aria-label={isMenuOpen ? 'Cerrar navegación' : 'Abrir navegación'}
+            title={isMenuOpen ? 'Cerrar navegación' : 'Abrir navegación'}
+            aria-expanded={isMenuOpen}
+            aria-controls="civia-sidebar"
           >
             <Menu size={20} />
           </button>

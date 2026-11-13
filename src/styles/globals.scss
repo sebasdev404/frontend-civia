@@ -104,8 +104,9 @@
 .badge-blue    { @include badge(var(--blue-50),    var(--blue-600)); border: 1px solid var(--blue-100); }
 
 // Botones globales
-.btn-primary { @include btn-primary; }
-.btn-ghost   { @include btn-ghost; }
+.btn-primary   { @include btn-primary; }
+.btn-secondary { @include btn-secondary; }
+.btn-ghost     { @include btn-ghost; }
 
 // Leaflet OpenStreetMap Dark Theme (100% Libre, Sin API Key, Sin Marcas de Agua)
 .civia-dark-tiles .leaflet-tile {

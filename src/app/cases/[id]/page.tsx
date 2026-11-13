@@ -64,6 +64,7 @@ interface CaseDetailData {
     total_comments?: number;
     likes_count?: number;
   } | null;
+  comment_url?: string | null;
   contact_person?: {
     name: string;
     handle: string;
@@ -359,16 +360,16 @@ export default function CaseDetailPage() {
 
   // Datos del post oficial
   const postData = caseData.post_data || {
-    id: 'post_oficial_neiva',
+    id: '',
     title: caseData.title,
-    message: 'Publicación institucional oficial del Alcalde Johan Steed abordando problemáticas ciudadanas y avances de gestión en Neiva.',
-    cover_image: caseData.imageUrl || 'http://localhost:8000/static/covers/275486829735525_1634488622025887.jpg',
+    message: 'No hay una publicación de origen vinculada disponible.',
+    cover_image: caseData.imageUrl || null,
     media_type: caseData.mediaType || 'image',
-    permalink_url: caseData.source.toLowerCase().includes('instagram') ? 'https://instagram.com/johansteed_' : 'https://facebook.com/1627414346066648',
+    permalink_url: '',
     published_at: caseData.dateTime,
     source: caseData.source,
-    total_comments: 18,
-    likes_count: 319
+    total_comments: 0,
+    likes_count: 0
   };
 
   return (
@@ -576,32 +577,54 @@ export default function CaseDetailPage() {
                     {caseData.author.replace('@', '').slice(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <strong style={{ fontSize: '0.95rem', color: '#fff' }}>{caseData.author}</strong>
-                      {socialLink.url && (
-                        <a 
-                          href={socialLink.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '0.72rem',
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            background: socialLink.bg,
-                            border: `1px solid ${socialLink.border}`,
-                            color: socialLink.color,
-                            textDecoration: 'none',
-                            fontWeight: 600
-                          }}
-                        >
-                          <span>{socialLink.label}</span>
-                          <ExternalLink size={11} />
-                        </a>
-                      )}
-                    </div>
+                    {(() => {
+                      const isGeneric = !caseData.author || caseData.author.includes('Usuario de Facebook') || caseData.author.includes('Ciudadano');
+                      const directUrl = caseData.comment_url || socialLink.url;
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <strong style={{ fontSize: '0.95rem', color: '#fff' }}>{caseData.author}</strong>
+                          {isGeneric && (
+                            <span 
+                              style={{
+                                fontSize: '0.68rem',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: 'rgba(100, 116, 139, 0.2)',
+                                border: '1px solid rgba(148, 163, 184, 0.3)',
+                                color: '#94a3b8'
+                              }}
+                              title="Meta Graph API oculta el nombre público por política de privacidad hasta verificar la app en developers.facebook.com"
+                            >
+                              🔒 Perfil Protegido por Meta
+                            </span>
+                          )}
+                          {directUrl && (
+                            <a 
+                              href={directUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '0.72rem',
+                                padding: '3px 9px',
+                                borderRadius: '5px',
+                                background: socialLink.bg,
+                                border: `1px solid ${socialLink.border}`,
+                                color: socialLink.color,
+                                textDecoration: 'none',
+                                fontWeight: 700
+                              }}
+                              title="Abrir el comentario directamente en Facebook para ver el perfil real y foto del autor"
+                            >
+                              <span>Ver Comentario Original ↗</span>
+                              <ExternalLink size={11} />
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div className={styles['author-channel']}>
                       Comentó el {caseData.dateTime} • Sector: {caseData.location}
                     </div>

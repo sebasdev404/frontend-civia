@@ -9,10 +9,12 @@ import { useAuth } from '@/context/AuthContext';
 
 interface SidebarProps {
   isMobileOpen?: boolean;
+  desktopCollapsed?: boolean;
+  isHidden?: boolean;
   onClose?: () => void;
 }
 
-export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
+export function Sidebar({ isMobileOpen = false, desktopCollapsed = false, isHidden = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
   const role = user?.role || 'ALCALDE';
@@ -28,7 +30,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: SidebarProps) {
   ];
 
   return (
-    <aside className={[styles.sidebar, isMobileOpen ? styles['mobile-open'] : ''].join(' ').trim()}>
+    <aside id="civia-sidebar" aria-label="Navegación principal" aria-hidden={isHidden} inert={isHidden} className={[styles.sidebar, isMobileOpen ? styles['mobile-open'] : '', desktopCollapsed ? styles['desktop-collapsed'] : ''].join(' ').trim()}>
       <div className={styles['sidebar-header']}>
         <div className={styles['sidebar-logo']}>
           <div className={styles['logo-icon']}>C</div>

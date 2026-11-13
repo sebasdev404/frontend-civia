@@ -1,15 +1,21 @@
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styles from './citizens.module.scss';
 import { 
   Search, PhoneCall, X, Send, CheckCircle2, MessageSquare, 
   Mail, MapPin, AlertCircle, Info, ShieldCheck, UserCheck, AlertTriangle,
   Upload, FileSpreadsheet, Bot, Sparkles, Copy, ExternalLink, RefreshCw, 
-  Filter, Users, UserX, Phone, ChevronRight, Check
+  Filter, Users, UserX, Phone, ChevronRight, Check, Trash2
 } from 'lucide-react';
+import CitizenImportModal from '@/components/citizens/CitizenImportModal';
+import CitizenSourceModal from '@/components/citizens/CitizenSourceModal';
+import CitizenDeleteModal, { type CitizenDeleteTarget } from '@/components/citizens/CitizenDeleteModal';
+import { useAuth } from '@/context/AuthContext';
+import { API } from '@/lib/api/client';
 import { getEmotionConfig } from '@/lib/emotions';
 
 export function getCitizenSocialLink(name?: string, handle?: string, channel?: string) {
+  if (!['Facebook', 'Instagram'].includes(channel || '')) return null;
   const cleanName = (name || '').trim();
   const rawHandle = (handle || '').replace(/[@\s]/g, '').trim();
   const isInstagram = (channel || '').toLowerCase().includes('instagram') || rawHandle.startsWith('ig_') || rawHandle.includes('insta');
@@ -35,19 +41,14 @@ export function getCitizenSocialLink(name?: string, handle?: string, channel?: s
   }
 
   // Para Facebook:
-  // Redirigir directamente al perfil del usuario como en Instagram
-  const normalizedHandle = rawHandle.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._]/g, '');
-  const slug = (normalizedHandle.length > 2)
-    ? normalizedHandle
-    : cleanName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '.');
-  const directUrl = `https://www.facebook.com/${slug}`;
+  const searchUrl = "https://www.facebook.com/search/top?q=" + encodeURIComponent(cleanName || rawHandle);
 
   return {
     channel: 'Facebook',
-    url: directUrl,
-    label: 'Ver Perfil FB',
-    shortLabel: 'Perfil FB',
-    tooltip: `Abrir directamente el perfil oficial de ${cleanName || 'ciudadano'} en Facebook`,
+    url: searchUrl,
+    label: 'Buscar en FB',
+    shortLabel: 'Buscar FB',
+    tooltip: "Buscar publicaciones y perfil de " + (cleanName || 'ciudadano') + " en Facebook",
     color: '#1877F2',
     bg: 'rgba(24, 119, 242, 0.12)',
     border: 'rgba(24, 119, 242, 0.28)'
@@ -58,13 +59,15 @@ interface CitizenItem {
   id: string;
   name: string;
   handle: string;
-  neighborhood: string;
+  neighborhood: string | null;
+  zone?: string | null;
+  has_source_data?: boolean;
   total_reports: number;
   phone?: string | null;
   followers_count: number;
   following_count: number;
-  account_created_at: string;
-  user_type: 'Positivo' | 'Negativo' | 'Bot';
+  account_created_at: string | null;
+  user_type: 'Positivo' | 'Negativo' | 'Bot' | 'Sin clasificar';
   bot_probability: number;
   bot_origin?: string;
   channel: string;
@@ -72,169 +75,41 @@ interface CitizenItem {
   notes?: string;
   origen_dato?: string;
   whatsapp_link?: string | null;
+  whatsapp_username?: string | null;
 }
 
-const FALLBACK_CITIZENS: CitizenItem[] = [
-  { 
-    id: 'CIUD-LEG-001', 
-    name: 'Rodolfo Escobar', 
-    handle: '@rodolfo.escobar', 
-    neighborhood: 'Neiva (General)', 
-    total_reports: 1, 
-    phone: null, 
-    followers_count: 240,
-    following_count: 310,
-    account_created_at: 'Hace 3 años',
-    user_type: 'Negativo',
-    bot_probability: 0.03,
-    bot_origin: 'Humano Verificado',
-    sentiment_tendency: 'Indignación', 
-    channel: 'Facebook',
-    notes: 'Ciudadano real de Facebook. Comentó en Reel oficial sobre desincronización de semáforos y presencia de autoridades.'
-  },
-  { 
-    id: 'CIUD-LEG-002', 
-    name: 'Albeiro Rojas Puentes', 
-    handle: '@albeiro.rojas.puentes', 
-    neighborhood: 'Neiva (General)', 
-    total_reports: 7, 
-    phone: null, 
-    followers_count: 14,
-    following_count: 980,
-    account_created_at: 'Hace 23 días',
-    user_type: 'Bot',
-    bot_probability: 0.88,
-    bot_origin: 'Troll Político / Ataques Recurrentes en Comentarios',
-    sentiment_tendency: 'Ataque', 
-    channel: 'Facebook',
-    notes: 'Detectado por CIVIA NLP tras registrar 7 comentarios agresivos y descalificaciones directas en publicaciones institucionales.'
-  },
-  { 
-    id: 'CIUD-LEG-003', 
-    name: 'Juan Carlos Pérez', 
-    handle: '@juan.carlos.perez', 
-    neighborhood: 'Las Granjas (Comuna 2)', 
-    total_reports: 8, 
-    phone: '+57 312 456 7890', 
-    followers_count: 840,
-    following_count: 210,
-    account_created_at: 'Hace 4 años',
-    user_type: 'Negativo',
-    bot_probability: 0.04,
-    bot_origin: 'Humano Verificado',
-    sentiment_tendency: 'Crítico', 
-    channel: 'Facebook',
-    notes: 'Presidente JAC Las Granjas. Reclama por corte de agua y retrasos en obras de la Cra 2da.',
-    whatsapp_link: 'https://wa.me/573124567890'
-  },
-  { 
-    id: 'CIUD-LEG-004', 
-    name: 'María Camila Gómez', 
-    handle: '@maria.camila.gomez', 
-    neighborhood: 'Centro - Av. La Toma', 
-    total_reports: 8, 
-    phone: '+57 315 987 6543', 
-    followers_count: 1250,
-    following_count: 480,
-    account_created_at: 'Hace 3 años',
-    user_type: 'Positivo',
-    bot_probability: 0.02,
-    bot_origin: 'Humano Verificado',
-    sentiment_tendency: 'Aprobación', 
-    channel: 'Instagram',
-    notes: 'Comerciante de La Toma. Resalta los avances del bacheo nocturno y la recuperación del alumbrado.',
-    whatsapp_link: 'https://wa.me/573159876543'
-  },
-  { 
-    id: 'CIUD-LEG-005', 
-    name: 'Carlos Alberto Díaz', 
-    handle: '@carlos.alberto.diaz', 
-    neighborhood: 'Canaima (Comuna 6)', 
-    total_reports: 7, 
-    phone: '+57 320 123 4567', 
-    followers_count: 430,
-    following_count: 310,
-    account_created_at: 'Hace 2 años',
-    user_type: 'Bot',
-    bot_probability: 0.85,
-    bot_origin: 'Troll Político / Ataques Recurrentes en Comentarios',
-    sentiment_tendency: 'Ataque', 
-    channel: 'Facebook',
-    notes: 'Registra comentarios reiterados de ataque en eventos en vivo y transmisiones oficiales.'
-  },
-  { 
-    id: 'CIUD-LEG-006', 
-    name: 'Beatriz Poveda Losada', 
-    handle: '@beatriz.poveda.losada', 
-    neighborhood: 'Santa Inés (Comuna 1)', 
-    total_reports: 8, 
-    phone: '+57 310 555 9812', 
-    followers_count: 1100,
-    following_count: 320,
-    account_created_at: 'Hace 4 años',
-    user_type: 'Positivo',
-    bot_probability: 0.02,
-    bot_origin: 'Humano Verificado',
-    sentiment_tendency: 'Aprobación', 
-    channel: 'Facebook',
-    notes: 'Resalta avances en parques e infraestructura comunitaria.',
-    whatsapp_link: 'https://wa.me/573105559812'
-  },
-  { 
-    id: 'CIUD-LEG-007', 
-    name: 'Yolanda Polanía Chávarro', 
-    handle: '@yolanda.polania.chavarro', 
-    neighborhood: 'Centro - Av. La Toma (Comuna 3)', 
-    total_reports: 6, 
-    phone: '+57 314 789 1234', 
-    followers_count: 670,
-    following_count: 190,
-    account_created_at: 'Hace 3 años',
-    user_type: 'Negativo',
-    bot_probability: 0.04,
-    bot_origin: 'Humano Verificado',
-    sentiment_tendency: 'Crítico', 
-    channel: 'Facebook',
-    notes: 'Solicita sincronización de semáforos en la Toma con Cra 5ta.',
-    whatsapp_link: 'https://wa.me/573147891234'
-  },
-  { 
-    id: 'CIUD-LEG-008', 
-    name: 'Leidy Tatiana Murcia', 
-    handle: '@leidy.tatiana.murcia', 
-    neighborhood: 'Neiva (General)', 
-    total_reports: 9, 
-    phone: null, 
-    followers_count: 12,
-    following_count: 890,
-    account_created_at: 'Hace 18 días',
-    user_type: 'Bot',
-    bot_probability: 0.92,
-    bot_origin: 'Troll Político / Ataques Recurrentes en Comentarios',
-    sentiment_tendency: 'Ataque', 
-    channel: 'Facebook',
-    notes: 'Detectada por CIVIA NLP tras registrar 9 ataques de desprestigio en comentarios sobre presupuesto municipal.'
-  }];
-
 export default function CitizensPage() {
-  const [citizens, setCitizens] = useState<CitizenItem[]>(FALLBACK_CITIZENS);
+  const { user } = useAuth();
+  const canDelete = user?.role === 'ADMIN' || user?.role === 'ALCALDE';
+  const [citizens, setCitizens] = useState<CitizenItem[]>([]);
+  const [selectedCitizens, setSelectedCitizens] = useState<Map<string, CitizenDeleteTarget>>(new Map());
+  const [deleteTargets, setDeleteTargets] = useState<CitizenDeleteTarget[] | null>(null);
+  const [deleteNotice, setDeleteNotice] = useState('');
+  const listRequest = useRef(0);
+  const listAbort = useRef<AbortController | null>(null);
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
-    total_registered: 128,
-    total_with_phone: 118,
-    total_bots_detected: 10,
-    total_positives: 41,
-    total_negatives: 77,
-    bot_percentage: 7.8
+    total_registered: 0,
+    total_unclassified: 0,
+    total_with_phone: 0,
+    total_bots_detected: 0,
+    total_positives: 0,
+    total_negatives: 0,
+    bot_percentage: 0
   });
 
   // Filtros
   const [search, setSearch] = useState('');
-  const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'Positivo' | 'Negativo' | 'Bot'>('all');
+  const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'Positivo' | 'Negativo' | 'Bot' | 'Sin clasificar'>('all');
   const [followersFilter, setFollowersFilter] = useState<'all' | 'under_50' | '50_500' | 'over_500'>('all');
   const [accountAgeFilter, setAccountAgeFilter] = useState<'all' | 'recent' | 'older'>('all');
 
   // Modales
+  const [sourceCitizenId, setSourceCitizenId] = useState<string | null>(null);
+  const [listError, setListError] = useState('');
+  const [totalMatched, setTotalMatched] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const pageSize = 50;
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [smartReplyModalOpen, setSmartReplyModalOpen] = useState(false);
   const [activeCitizenForReply, setActiveCitizenForReply] = useState<CitizenItem | null>(null);
@@ -254,16 +129,13 @@ export default function CitizensPage() {
     setSelectedCitizenHistory(null);
     setSavedReplySuccess(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/citizens/${citizen.id}/comments`);
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedCitizenHistory(data);
-        const drafts: Record<string, string> = {};
-        data.comments?.forEach((c: any) => {
-          drafts[c.case_id] = c.public_response || c.ai_suggestion?.suggested_reply || '';
-        });
-        setReplyDrafts(drafts);
-      }
+      const data = await API.citizens.getComments(citizen.id);
+      setSelectedCitizenHistory(data);
+      const drafts: Record<string, string> = {};
+      data.comments?.forEach((c: { case_id: string; public_response?: string; ai_suggestion?: { suggested_reply?: string } }) => {
+        drafts[c.case_id] = c.public_response || c.ai_suggestion?.suggested_reply || '';
+      });
+      setReplyDrafts(drafts);
     } catch (e) {
       console.warn('Error loading citizen history:', e);
     } finally {
@@ -276,19 +148,11 @@ export default function CitizensPage() {
     setSavingReplyId(caseId);
     setSavedReplySuccess(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/citizens/${selectedCitizenHistory.citizen.id}/reply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          case_id: caseId,
-          reply_text: replyDrafts[caseId] || '',
-          status: 'En Gestión'
-        })
+      await API.citizens.saveReply(selectedCitizenHistory.citizen.id, {
+        case_id: caseId, reply_text: replyDrafts[caseId] || '', status: 'En Gesti\u00f3n',
       });
-      if (res.ok) {
-        setSavedReplySuccess(caseId);
-        setTimeout(() => setSavedReplySuccess(null), 3000);
-      }
+      setSavedReplySuccess(caseId);
+      setTimeout(() => setSavedReplySuccess(null), 3000);
     } catch (e) {
       console.error('Error saving reply:', e);
     } finally {
@@ -302,11 +166,6 @@ export default function CitizensPage() {
     setTimeout(() => setCopiedCommentId(null), 2000);
   };
 
-  // Estado del Uploader
-  const [rawUploadText, setRawUploadText] = useState('');
-  const [uploadSuccessMsg, setUploadSuccessMsg] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-
   // Estado del Smart Responder
   const [replyPrompt, setReplyPrompt] = useState('Por mi crítica salvé el PAE');
   const [generatedReply, setGeneratedReply] = useState<string | null>(null);
@@ -315,60 +174,82 @@ export default function CitizensPage() {
   const [copiedSuccess, setCopiedSuccess] = useState(false);
 
   // Cargar datos del Backend
-  const fetchCitizens = async () => {
+  const fetchCitizens = useCallback(async (signal?: AbortSignal) => {
+    const request = ++listRequest.current;
+    listAbort.current?.abort();
+    const controller = new AbortController();
+    listAbort.current = controller;
+    const abort = () => controller.abort();
+    signal?.addEventListener('abort', abort, { once: true });
+    if (signal?.aborted) controller.abort();
+    setLoading(true);
+    setListError('');
     try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (userTypeFilter !== 'all') params.append('user_type', userTypeFilter);
-      if (followersFilter !== 'all') params.append('followers_filter', followersFilter);
-      if (accountAgeFilter !== 'all') params.append('account_age_filter', accountAgeFilter);
-      if (search.trim()) params.append('search', search.trim());
-
-      const res = await fetch(`http://localhost:8000/api/v1/citizens?limit=200&${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setCitizens(data.items || FALLBACK_CITIZENS);
-        if (data.metrics) setMetrics(data.metrics);
-      } else {
-        setCitizens(FALLBACK_CITIZENS);
-      }
-    } catch {
-      setCitizens(FALLBACK_CITIZENS);
+      const params = new URLSearchParams({ limit: String(pageSize), offset: String(offset), user_type: userTypeFilter, followers_filter: followersFilter, account_age_filter: accountAgeFilter, search: search.trim() });
+      const data = await API.citizens.getAll(params, controller.signal);
+      if (controller.signal.aborted || request !== listRequest.current) return;
+      setCitizens(data.items || []);
+      setTotalMatched(data.total);
+      if (data.metrics) setMetrics(data.metrics);
+    } catch (e) {
+      if (controller.signal.aborted || request !== listRequest.current) return;
+      setCitizens([]);
+      setTotalMatched(0);
+      setListError(e instanceof Error ? e.message : 'No se pudo cargar Ciudadanos');
     } finally {
-      setLoading(false);
+      signal?.removeEventListener('abort', abort);
+      if (!controller.signal.aborted && request === listRequest.current) setLoading(false);
     }
+  }, [offset, userTypeFilter, followersFilter, accountAgeFilter, search]);
+
+  useEffect(() => { setOffset(0); setSelectedCitizens(new Map()); }, [userTypeFilter, followersFilter, accountAgeFilter, search]);
+  useEffect(() => { if (!canDelete) { setSelectedCitizens(new Map()); setDeleteTargets(null); } }, [canDelete]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => fetchCitizens(controller.signal), 250);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [fetchCitizens]);
+
+  const filteredCitizens = citizens;
+  const pageSelected = citizens.length > 0 && citizens.every(citizen => selectedCitizens.has(citizen.id));
+  const pagePartiallySelected = !pageSelected && citizens.some(citizen => selectedCitizens.has(citizen.id));
+  const toggleCitizen = (citizen: CitizenItem) => {
+    setDeleteNotice('');
+    setSelectedCitizens(current => {
+      const next = new Map(current);
+      if (next.has(citizen.id)) next.delete(citizen.id);
+      else if (next.size < 500) next.set(citizen.id, { id: citizen.id, name: citizen.name });
+      return next;
+    });
+  };
+  const togglePage = () => {
+    setDeleteNotice('');
+    setSelectedCitizens(current => {
+      const next = new Map(current);
+      citizens.forEach(citizen => {
+        if (pageSelected) next.delete(citizen.id);
+        else if (next.size < 500) next.set(citizen.id, { id: citizen.id, name: citizen.name });
+      });
+      return next;
+    });
+  };
+  const closeDelete = useCallback(() => setDeleteTargets(null), []);
+  const handleDeletedCitizens = (ids: string[]) => {
+    ++listRequest.current;
+    listAbort.current?.abort();
+    const removed = new Set(ids);
+    setCitizens(current => current.filter(citizen => !removed.has(citizen.id)));
+    setSelectedCitizens(current => new Map([...current].filter(([id]) => !removed.has(id))));
+    setDeleteTargets(null);
+    if (sourceCitizenId && removed.has(sourceCitizenId)) setSourceCitizenId(null);
+    const remaining = Math.max(0, totalMatched - ids.length);
+    setTotalMatched(remaining);
+    setDeleteNotice(ids.length === 1 ? 'Ciudadano eliminado correctamente.' : `${ids.length} ciudadanos eliminados correctamente.`);
+    const nextOffset = Math.min(offset, Math.max(0, Math.ceil(remaining / pageSize) - 1) * pageSize);
+    if (nextOffset !== offset) { setLoading(true); setOffset(nextOffset); }
+    else fetchCitizens();
   };
 
-  useEffect(() => {
-    fetchCitizens();
-  }, [userTypeFilter, followersFilter, accountAgeFilter]);
-
-  // Filtrado local en vivo si se escribe en el buscador
-  const filteredCitizens = useMemo(() => {
-    return citizens.filter(c => {
-      const matchSearch = !search.trim() || 
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.handle.toLowerCase().includes(search.toLowerCase()) ||
-        c.neighborhood.toLowerCase().includes(search.toLowerCase()) ||
-        (c.phone && c.phone.includes(search)) ||
-        (c.notes && c.notes.toLowerCase().includes(search.toLowerCase()));
-
-      const matchType = userTypeFilter === 'all' || c.user_type === userTypeFilter;
-
-      let matchFollowers = true;
-      if (followersFilter === 'under_50') matchFollowers = c.followers_count < 50;
-      else if (followersFilter === '50_500') matchFollowers = c.followers_count >= 50 && c.followers_count <= 500;
-      else if (followersFilter === 'over_500') matchFollowers = c.followers_count > 500;
-
-      let matchAge = true;
-      if (accountAgeFilter === 'recent') matchAge = c.account_created_at.includes('días') || c.account_created_at.includes('mes');
-      else if (accountAgeFilter === 'older') matchAge = c.account_created_at.includes('año');
-
-      return matchSearch && matchType && matchFollowers && matchAge;
-    });
-  }, [citizens, search, userTypeFilter, followersFilter, accountAgeFilter]);
-
-  // Acción: Generar Respuesta Inteligente
   const handleGenerateReply = async (promptText: string, citizen?: CitizenItem | null) => {
     setIsGeneratingReply(true);
     setCopiedSuccess(false);
@@ -434,93 +315,55 @@ export default function CitizensPage() {
     }
   };
 
-  // Cargar Plantilla de Ejemplo en el Uploader
-  const handleLoadSampleCSV = () => {
-    const sample = `Nombre,Telefono,Barrio,Perfil,Notas
-Gustavo Adolfo Rojas,3114567890,Las Palmas,gustavorojas_neiva,Líder comunal preocupado por alumbrado en canchas
-Valeria Dussán Perdomo,3187654321,El Caguán,valeriadussan,Solicita mantenimiento de placa huella rural
-Cuenta_Troll_7718,,Neiva (General),troll7718,Ataques continuos de desprestigio en Facebook
-Felipe Charry Medina,3208889911,Santa Inés,felipe_charry,Apoya la intervención en la Carrera 5ta
-Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el PAE`;
-    setRawUploadText(sample);
-  };
-
-  // Procesar Carga de Base de Datos
-  const handleProcessUpload = async () => {
-    if (!rawUploadText.trim()) return;
-    setIsUploading(true);
-    setUploadSuccessMsg(null);
-
-    const lines = rawUploadText.trim().split('\n');
-    const citizensToUpload: any[] = [];
-
-    // Parsear líneas CSV simples (Nombre, Telefono, Barrio, Perfil, Notas)
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line || (i === 0 && line.toLowerCase().includes('nombre'))) continue;
-      const parts = line.split(',');
-      if (parts.length >= 1 && parts[0].trim()) {
-        citizensToUpload.push({
-          name: parts[0]?.trim(),
-          phone: parts[1]?.trim() || null,
-          neighborhood: parts[2]?.trim() || 'Neiva (General)',
-          handle: parts[3]?.trim() ? `@${parts[3].trim().replace('@', '')}` : null,
-          notes: parts[4]?.trim() || 'Cargado mediante archivo de base de datos'
-        });
-      }
-    }
-
-    try {
-      const res = await fetch('http://localhost:8000/api/v1/citizens/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          citizens: citizensToUpload,
-          source_tag: 'Base_Externa_CSV'
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setUploadSuccessMsg(data.message || `Se procesaron exitosamente ${citizensToUpload.length} registros.`);
-        fetchCitizens();
-        setTimeout(() => {
-          setUploadModalOpen(false);
-          setUploadSuccessMsg(null);
-          setRawUploadText('');
-        }, 2200);
-      } else {
-        setUploadSuccessMsg(`Se agregaron ${citizensToUpload.length} ciudadanos a la vista local.`);
-      }
-    } catch {
-      setUploadSuccessMsg(`Cargados localmente ${citizensToUpload.length} registros.`);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   return (
     <div className="page">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1>Inteligencia de Contacto Ciudadano & Detección de Bots</h1>
-          <p>Base unificada de números telefónicos (+57), clasificación de aliados vs quejas reales y neutralización de granjas de trolls</p>
+          <h1>Ciudadanos y contactos</h1>
+          <p>Consulta los contactos registrados, importa tu base de datos y revisa la información de origen.</p>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button 
             type="button" 
-            className="btn-secondary" 
             onClick={() => {
               setActiveCitizenForReply(null);
               setSmartReplyModalOpen(true);
               setReplyPrompt('Por mi crítica salvé el PAE');
               handleGenerateReply('Por mi crítica salvé el PAE', null);
             }}
-            style={{ padding: '8px 14px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+            style={{
+              padding: '8px 16px',
+              fontSize: '0.8125rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.22) 100%)',
+              border: '1px solid rgba(139, 92, 246, 0.45)',
+              borderRadius: '8px',
+              color: '#c4b5fd',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 10px rgba(124, 58, 237, 0.15)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.28) 0%, rgba(139, 92, 246, 0.38) 100%)';
+              e.currentTarget.style.borderColor = 'rgba(167, 139, 250, 0.8)';
+              e.currentTarget.style.color = '#ffffff';
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(124, 58, 237, 0.35)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.22) 100%)';
+              e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.45)';
+              e.currentTarget.style.color = '#c4b5fd';
+              e.currentTarget.style.boxShadow = '0 2px 10px rgba(124, 58, 237, 0.15)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
           >
-            <Sparkles size={15} style={{ color: 'var(--blue-600)' }} />
-            <span>⚡ Probar Respuestas IA (PAE / Hate)</span>
+            <Sparkles size={16} style={{ color: '#a78bfa' }} />
+            <span>Asistente de Respuestas IA</span>
           </button>
 
           <button 
@@ -549,12 +392,12 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
         <div className={styles['stat-card']}>
           <div className={styles['stat-title']}>
             <Phone size={16} style={{ color: 'var(--emerald-600)' }} />
-            <span>Líneas Móviles (+57 Verificadas)</span>
+            <span>Contactos con teléfono</span>
           </div>
           <div className={styles['stat-value']} style={{ color: 'var(--emerald-600)' }}>
             {metrics.total_with_phone}
           </div>
-          <div className={styles['stat-sub']}>Disponibles para contacto institucional directo</div>
+          <div className={styles['stat-sub']}>Números aportados en la base de datos</div>
         </div>
 
         <div className={styles['stat-card']}>
@@ -591,6 +434,8 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
             >
               <span>Todos ({metrics.total_registered})</span>
             </button>
+            <button type="button" className={[styles['type-tab-btn'], userTypeFilter === 'Sin clasificar' ? styles.active : ''].join(' ')} onClick={() => setUserTypeFilter('Sin clasificar')}><span>Sin clasificar ({metrics.total_unclassified})</span></button>
+
             <button
               type="button"
               className={[styles['type-tab-btn'], userTypeFilter === 'Positivo' ? styles['active-pos'] : ''].join(' ')}
@@ -618,7 +463,7 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
           <button
             type="button"
             className="btn-ghost"
-            onClick={fetchCitizens}
+            onClick={() => fetchCitizens()}
             style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px' }}
             title="Recargar datos"
           >
@@ -667,10 +512,19 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
       </div>
 
       {/* TABLA PRINCIPAL DE CONTACTOS Y PERFILES */}
+      {deleteNotice && <p role="status" style={{ color: '#34d399' }}>{deleteNotice}</p>}
+      {canDelete && <div className={styles['selection-toolbar']}>
+        <span>{selectedCitizens.size ? `${selectedCitizens.size} ciudadanos seleccionados, incluidas otras páginas${selectedCitizens.size >= 500 ? ' (máximo por lote)' : ''}` : 'Marca las casillas para eliminar uno o varios ciudadanos.'}</span>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {selectedCitizens.size > 0 && <button type="button" className="btn-ghost" onClick={() => setSelectedCitizens(new Map())}>Limpiar selección</button>}
+          <button type="button" className={styles['delete-btn']} disabled={loading || selectedCitizens.size === 0} onClick={() => setDeleteTargets([...selectedCitizens.values()])}><Trash2 size={15} />Eliminar seleccionados ({selectedCitizens.size})</button>
+        </div>
+      </div>}
       <div className={styles['citizens-table-card']}>
         <table className={styles.table}>
           <thead className={styles['table-head']}>
             <tr>
+              {canDelete && <th style={{ width: 44, paddingInline: 12 }}><input type="checkbox" className={styles['selection-checkbox']} aria-label={`Seleccionar los ${citizens.length} ciudadanos de esta página`} aria-checked={pagePartiallySelected ? 'mixed' : pageSelected} ref={element => { if (element) element.indeterminate = pagePartiallySelected; }} checked={pageSelected} disabled={loading || citizens.length === 0} onChange={togglePage} /></th>}
               <th>Ciudadano / Perfil</th>
               <th>Clasificación IA & Origen</th>
               <th>Métricas Perfil</th>
@@ -682,16 +536,22 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
           <tbody className={styles['table-body']}>
             {filteredCitizens.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-                  <AlertCircle size={36} style={{ color: 'var(--text-muted)', margin: '0 auto 8px' }} />
-                  <p style={{ margin: 0, fontWeight: 600 }}>No se encontraron perfiles con los filtros actuales.</p>
+                <td colSpan={canDelete ? 7 : 6} style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: 'rgba(15, 23, 42, 0.4)' }}>
+                  <ShieldCheck size={42} style={{ color: '#38bdf8', margin: '0 auto 12px' }} />
+                  <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: '1rem', color: '#f8fafc' }}>
+                    {loading ? 'Cargando ciudadanos…' : listError ? 'No se pudo cargar la base' : 'No hay ciudadanos con estos filtros'}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.8125rem', color: '#94a3b8', maxWidth: '580px', marginInline: 'auto', lineHeight: 1.5 }}>
+                    {listError || (loading ? 'Consultando los registros guardados.' : 'Ajusta la búsqueda o sube un archivo con el botón «Subir Base de Datos».')}
+                  </p>
                 </td>
               </tr>
             ) : (
               filteredCitizens.map((citizen) => {
                 const isBot = citizen.user_type === 'Bot' || citizen.bot_probability >= 0.55;
                 return (
-                  <tr key={citizen.id} className={isBot ? styles['bot-row'] : ''}>
+                  <tr key={citizen.id} aria-selected={selectedCitizens.has(citizen.id)} className={[isBot ? styles['bot-row'] : '', selectedCitizens.has(citizen.id) ? styles['selected-row'] : ''].join(' ')}>
+                    {canDelete && <td style={{ paddingInline: 12 }}><input type="checkbox" className={styles['selection-checkbox']} aria-label={`Seleccionar a ${citizen.name}`} checked={selectedCitizens.has(citizen.id)} disabled={loading || (!selectedCitizens.has(citizen.id) && selectedCitizens.size >= 500)} onChange={() => toggleCitizen(citizen)} /></td>}
                     {/* Nombre, Red Social y De Dónde Pertenece */}
                     <td>
                       <div className={styles['citizen-info']}>
@@ -711,10 +571,11 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                             )}
                           </div>
                           <div style={{ fontSize: '0.74rem', color: '#38bdf8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <span style={{ fontWeight: 600 }}>{citizen.handle}</span>
+                            <span style={{ fontWeight: 600 }}>{citizen.whatsapp_username || (citizen.handle.startsWith("contact:") ? "Contacto importado" : citizen.handle)}</span>
                             <span style={{ color: 'var(--text-muted)' }}>({citizen.channel})</span>
 {(() => {
                               const sLink = getCitizenSocialLink(citizen.name, citizen.handle, citizen.channel);
+                              if (!sLink) return null;
                               return (
                                 <a
                                   href={sLink.url}
@@ -743,7 +604,7 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                           </div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <MapPin size={11} style={{ color: '#ef4444', flexShrink: 0 }} />
-                            <span>{citizen.neighborhood || 'Neiva'}</span>
+                            <span>{citizen.neighborhood || citizen.zone || 'No especificada'}</span>
                           </div>
                         </div>
                       </div>
@@ -770,6 +631,8 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                               ✓ Apoyo y propuestas constructivas
                             </span>
                           </>
+                        ) : citizen.user_type === 'Sin clasificar' ? (
+                          <span className="badge-media">Sin clasificar</span>
                         ) : (
                           <>
                             <span className="badge-alta" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
@@ -793,7 +656,7 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                           👤 <strong suppressHydrationWarning>{Number(citizen.following_count || 0).toLocaleString('es-CO')}</strong> seguidos
                         </span>
                         <span className={styles['meta-pill']} title="Fecha estimada de creación de la cuenta">
-                          📅 {citizen.account_created_at}
+                          📅 {citizen.account_created_at || 'No disponible'}
                         </span>
                       </div>
                     </td>
@@ -802,7 +665,7 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8125rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                         <MapPin size={13} style={{ color: 'var(--blue-600)', flexShrink: 0 }} />
-                        <span>{citizen.neighborhood}</span>
+                        <span>{citizen.neighborhood || citizen.zone || 'No especificada'}</span>
                       </div>
                       {citizen.notes && (
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={citizen.notes}>
@@ -819,9 +682,7 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                             📞 {citizen.phone}
                           </span>
                           <a
-                            href={`https://wa.me/${citizen.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                              `Hola ${citizen.name}, le escribimos desde la Alcaldía de Neiva en seguimiento a su solicitud ciudadana en ${citizen.neighborhood}.`
-                            )}`}
+                            href={citizen.whatsapp_link || `https://wa.me/${citizen.phone.replace(/[^0-9]/g, '')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={styles['whatsapp-btn']}
@@ -841,8 +702,12 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                     {/* Acciones de Historial y Respuesta */}
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {canDelete && <button type="button" className={styles['delete-btn']} disabled={loading} aria-label={`Eliminar a ${citizen.name}`} onClick={() => setDeleteTargets([{ id: citizen.id, name: citizen.name }])}><Trash2 size={14} />Eliminar</button>}
+                        {citizen.has_source_data && <button type="button" className="btn-ghost" onClick={() => setSourceCitizenId(citizen.id)} style={{ padding: '6px 10px', fontSize: '.75rem' }}>Datos importados</button>}
+
 {(() => {
                           const sLink = getCitizenSocialLink(citizen.name, citizen.handle, citizen.channel);
+                          if (!sLink) return null;
                           return (
                             <a
                               href={sLink.url}
@@ -867,6 +732,7 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                         <button
                           type="button"
                           className="btn-primary"
+                          disabled={citizen.total_reports === 0}
                           onClick={() => handleOpenCitizenHistory(citizen)}
                           style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                           title="Ver en qué publicaciones comentó, qué respondió y qué podemos responder"
@@ -876,12 +742,37 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                         </button>
                         <button
                           type="button"
-                          className="btn-secondary"
+                          disabled={citizen.total_reports === 0}
                           onClick={() => handleOpenSmartReplyForCitizen(citizen)}
-                          style={{ padding: '6px 9px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          title="Respuesta rápida por IA"
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(147, 51, 234, 0.18) 100%)',
+                            border: '1px solid rgba(147, 51, 234, 0.38)',
+                            borderRadius: '6px',
+                            color: '#d8b4fe',
+                            cursor: 'pointer',
+                            transition: 'all 0.18s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(147, 51, 234, 0.32) 100%)';
+                            e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.7)';
+                            e.currentTarget.style.color = '#ffffff';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(147, 51, 234, 0.18) 100%)';
+                            e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.38)';
+                            e.currentTarget.style.color = '#d8b4fe';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                          }}
+                          title="Generar propuesta de respuesta institucional con IA"
                         >
-                          <Sparkles size={13} style={{ color: 'var(--blue-600)' }} />
+                          <Sparkles size={13} style={{ color: '#c084fc' }} />
                           <span>IA</span>
                         </button>
                       </div>
@@ -894,91 +785,18 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
         </table>
       </div>
 
+      {listError && <p role="alert" style={{ color: '#f87171' }}>{listError}</p>}
+      <nav aria-label="Paginación de ciudadanos" style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end', marginBlock: 16 }}>
+        <span>{totalMatched ? offset + 1 : 0} a {Math.min(offset + citizens.length, totalMatched)} de {totalMatched}</span>
+        <button type="button" className="btn-ghost" disabled={loading || offset === 0} onClick={() => setOffset(value => Math.max(0, value - pageSize))}>Anterior</button>
+        <button type="button" className="btn-ghost" disabled={loading || offset + pageSize >= totalMatched} onClick={() => setOffset(value => value + pageSize)}>Siguiente</button>
+      </nav>
+
       {/* ─── MODAL 1: SUBIDA DE BASE DE DATOS (CSV / EXCEL) ─── */}
-      {uploadModalOpen && (
-        <div className={styles['modal-overlay']} onClick={() => setUploadModalOpen(false)}>
-          <div className={styles['modal-card']} onClick={(e) => e.stopPropagation()}>
-            <div className={styles['modal-header']}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FileSpreadsheet size={20} style={{ color: 'var(--blue-600)' }} />
-                <h3>Subir Base de Datos Telefónica & Ciudadana</h3>
-              </div>
-              <button className={styles['modal-close-btn']} onClick={() => setUploadModalOpen(false)}>
-                <X size={18} />
-              </button>
-            </div>
+      {uploadModalOpen && <CitizenImportModal onClose={() => setUploadModalOpen(false)} onImported={() => { setOffset(0); fetchCitizens(); }} />}
+      {sourceCitizenId && <CitizenSourceModal id={sourceCitizenId} onClose={() => setSourceCitizenId(null)} />}
+      {deleteTargets && <CitizenDeleteModal citizens={deleteTargets} onClose={closeDelete} onDeleted={handleDeletedCitizens} />}
 
-            <div className={styles['modal-body']}>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Sube o pega tu base de datos de ciudadanos de Neiva con números telefónicos. 
-                CIVIA audita automáticamente cada registro: <strong>valida sintaxis móvil de Colombia (+57 3xx)</strong>, 
-                detecta <strong>probabilidad de bot</strong> y clasifica la postura ciudadana.
-              </div>
-
-              {/* Botón de Cargar Ejemplo */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Formato: Nombre, Teléfono, Barrio, Usuario Red, Notas
-                </span>
-                <button
-                  type="button"
-                  onClick={handleLoadSampleCSV}
-                  style={{
-                    background: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    color: 'var(--blue-600)',
-                    padding: '4px 10px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  ⚡ Cargar Plantilla de Ejemplo con Números
-                </button>
-              </div>
-
-              {/* Área de texto / Drag zone */}
-              <textarea
-                className={styles['modal-textarea']}
-                style={{ minHeight: '140px', fontFamily: 'monospace', fontSize: '0.78rem' }}
-                placeholder={`Pega aquí el contenido en formato CSV o texto:\n\nJuan Perez,3124567890,Las Granjas,@juanperez,Reclamo sobre agua\nMaria Gomez,3159876543,Centro,@mariagomez,Apoyo pavimentacion`}
-                value={rawUploadText}
-                onChange={(e) => setRawUploadText(e.target.value)}
-              />
-
-              {uploadSuccessMsg && (
-                <div className={styles['success-alert']}>
-                  <CheckCircle2 size={16} />
-                  <span>{uploadSuccessMsg}</span>
-                </div>
-              )}
-            </div>
-
-            <div className={styles['modal-footer']}>
-              <button 
-                type="button" 
-                className="btn-ghost" 
-                onClick={() => setUploadModalOpen(false)}
-              >
-                Cancelar
-              </button>
-              <button 
-                type="button" 
-                className="btn-primary" 
-                disabled={!rawUploadText.trim() || isUploading}
-                onClick={handleProcessUpload}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                {isUploading ? <RefreshCw size={14} className="spin" /> : <Upload size={14} />}
-                <span>{isUploading ? 'Auditando con IA...' : 'Procesar y Auditar Base'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── MODAL 2: GENERADOR DE RESPUESTAS INTELIGENTES A HATE / CRÍTICAS ─── */}
       {smartReplyModalOpen && (
         <div className={styles['modal-overlay']} onClick={() => setSmartReplyModalOpen(false)}>
           <div className={styles['modal-card']} onClick={(e) => e.stopPropagation()}>
@@ -1280,6 +1098,7 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
 {(() => {
                         const cit = selectedCitizenHistory?.citizen;
                         const sLink = getCitizenSocialLink(cit?.name, cit?.handle, cit?.channel);
+                        if (!sLink) return null;
                         return (
                           <a 
                             href={sLink.url}
@@ -1407,6 +1226,7 @@ Bot_Granja_Opositora,,Neiva (General),granja_neiva_01,Spam coordinado contra el 
                                 const cit = selectedCitizenHistory?.citizen;
                                 const authorHandle = (authorName === cit?.name) ? cit?.handle : `@${authorName.toLowerCase().replace(/[^a-z0-9]/g, '.')}`;
                                 const sLink = getCitizenSocialLink(authorName, authorHandle, item.post.source || cit?.channel);
+                                if (!sLink) return null;
                                 return (
                                   <a
                                     href={sLink.url}

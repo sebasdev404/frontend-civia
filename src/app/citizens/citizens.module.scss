@@ -220,6 +220,51 @@
   gap: 12px;
 }
 
+.selection-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: .8125rem;
+}
+
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid rgba(239, 68, 68, .4);
+  border-radius: var(--radius-md);
+  background: rgba(239, 68, 68, .1);
+  color: #f87171;
+  font-size: .8125rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { background: rgba(239, 68, 68, .2); }
+  &:focus-visible { outline: 2px solid #f87171; outline-offset: 3px; }
+  &:disabled { opacity: .45; cursor: not-allowed; }
+}
+
+.selection-checkbox {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--blue-600);
+  cursor: pointer;
+
+  &:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 3px; }
+}
+
+.table-body tr.selected-row { background: rgba(59, 130, 246, .1); }
+
 .citizen-avatar {
   width: 40px;
   height: 40px;

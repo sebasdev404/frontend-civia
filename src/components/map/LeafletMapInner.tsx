@@ -182,9 +182,23 @@ export default function LeafletMapInner({
                   <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '0 0 6px 0', lineHeight: 1.35, color: '#0f172a' }}>
                     {inc.title}
                   </h4>
-                  <p style={{ fontSize: '11px', color: '#475569', margin: '0 0 10px 0', lineHeight: 1.45 }}>
+                  <p style={{ fontSize: '11px', color: '#475569', margin: '0 0 6px 0', lineHeight: 1.45 }}>
                     📍 {inc.neighborhood} • <strong>{inc.category}</strong>
                   </p>
+                  {inc.description && inc.description.includes('[Argumento Geográfico]:') && (
+                    <div style={{
+                      fontSize: '10px',
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      color: '#1d4ed8',
+                      borderRadius: '4px',
+                      padding: '4px 6px',
+                      margin: '0 0 8px 0',
+                      lineHeight: 1.3
+                    }}>
+                      <strong style={{ color: '#1e40af' }}>📍 Evidencia:</strong> {inc.description.split('[Argumento Geográfico]:')[1]?.trim()}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid #e2e8f0' }}>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#1e293b' }}>
                       🔥 {inc.reportsCount} reportes

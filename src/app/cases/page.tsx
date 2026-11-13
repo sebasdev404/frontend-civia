@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { 
   Search, Filter, LayoutGrid, List as ListIcon, Menu, Table as TableIcon,
@@ -8,7 +8,10 @@ import {
   Layers, CheckSquare, Sparkles, PlusCircle, Check, X, AlertTriangle, Link as LinkIcon,
   Calendar, Heart, Eye, Share2, RefreshCw, Bot, Zap, Users, ExternalLink
 } from 'lucide-react';
-import { API } from '@/lib/api/client';
+import { API, type InstagramConnectionStatus, type MonitoredPostSummary, type ConsolidatedCaseSummary } from '@/lib/api/client';
+import { CommentAuthor } from '@/components/ui/CommentAuthor';
+import { CaseCover } from '@/components/cases/CaseCover';
+import { MonitoredPostCard } from '@/components/cases/MonitoredPostCard';
 import { formatNumber } from '@/lib/utils';
 import styles from './cases.module.scss';
 
@@ -118,7 +121,7 @@ export function getEmotionConfig(sentiment?: string) {
   };
 }
 
-const MOCK_RAW_COMMENTS: RawCommentItem[] = [];
+const INITIAL_RAW_COMMENTS: RawCommentItem[] = [];
 
 const NEIVA_ENTITIES = [
   'Las Ceibas - Empresas Públicas de Neiva E.S.P.',
@@ -129,30 +132,114 @@ const NEIVA_ENTITIES = [
   'Secretaría de Gobierno y Convivencia Ciudadana',
 ];
 
-const MOCK_CASES: any[] = [];
-
-function formatCompactNumber(num: number | undefined | null): string {
-  if (num === null || num === undefined || isNaN(num)) return '0';
-  if (num >= 1_000_000) {
-    return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
-  }
-  if (num >= 1_000) {
-    return (num / 1_000).toFixed(1).replace(/\.0$/, '') + 'k';
-  }
-  return num.toLocaleString();
+const INITIAL_CASES: any[] = [];
+const POST_PAGE_SIZE = 24;
+const CASE_PAGE_SIZE = 24;
+function formatCaseSummary(item: ConsolidatedCaseSummary) {
+  return { ...item, dateTime: item.date_time, mediaType: item.media_type || 'none', imageUrl: item.image_url, thumbnailUrl: item.thumbnail_url };
 }
 
 export default function CasesPage() {
   const [activeTab, setActiveTab] = useState<'POSTS' | 'CASES' | 'COMMENTS'>('POSTS');
-  const [postsList, setPostsList] = useState<any[]>([]);
-  const [selectedPost, setSelectedPost] = useState<any | null>(null);
+  const [postsList, setPostsList] = useState<MonitoredPostSummary[]>([]);
+  const [selectedPostSnapshot, setSelectedPost] = useState<any | null>(null);
+  const selectedPost = selectedPostSnapshot;
+  const [loadingPostDetails, setLoadingPostDetails] = useState(false);
+  const [postDetailsError, setPostDetailsError] = useState<string | null>(null);
+  const [visibleCommentCount, setVisibleCommentCount] = useState(50);
+  const [visibleCaseCount, setVisibleCaseCount] = useState(20);
+  const postDetailsAbort = useRef<AbortController | null>(null);
   const [postDrawerTab, setPostDrawerTab] = useState<'CASES' | 'RAW_COMMENTS'>('CASES');
+  const [drawerCommentFilter, setDrawerCommentFilter] = useState<'all' | 'cases_only' | 'general_only' | 'positive_only' | 'critics_only' | 'bots_only'>('all');
   const [loadingPosts, setLoadingPosts] = useState<boolean>(true);
   const [monthsList, setMonthsList] = useState<{ key: string; label: string; count: number }[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [postSearch, setPostSearch] = useState<string>('');
   const [postNetworkFilter, setPostNetworkFilter] = useState<'all' | 'Facebook' | 'Instagram'>('all');
   const [postFilterCasesOnly, setPostFilterCasesOnly] = useState<boolean>(false);
+  const [postsTotal, setPostsTotal] = useState(0);
+  const [casesTotal, setCasesTotal] = useState(0);
+  const [postsHasMore, setPostsHasMore] = useState(false);
+  const [postsError, setPostsError] = useState<string | null>(null);
+  const [instagramConnection, setInstagramConnection] = useState<InstagramConnectionStatus | null>(null);
+  const postsRequest = useRef(0);
+  const loadedPostsCount = useRef(POST_PAGE_SIZE);
+  const postsAbort = useRef<AbortController | null>(null);
+  const loadedPostFilters = useRef('');
+  const invalidatePostsRequests = React.useCallback(() => {
+    ++postsRequest.current;
+    postsAbort.current?.abort();
+  }, []);
+
+  const loadPosts = React.useCallback(async (offset = 0, limit = POST_PAGE_SIZE, silent = false) => {
+    const request = ++postsRequest.current;
+    postsAbort.current?.abort();
+    const controller = new AbortController();
+    postsAbort.current = controller;
+    if (!silent) setLoadingPosts(true);
+    setPostsError(null);
+    try {
+      let page = await API.meta.getPostsPage(Math.min(2000, limit), offset, selectedMonth, postSearch, postNetworkFilter, { signal: controller.signal }, postFilterCasesOnly);
+      const items = [...page.items];
+      while (request === postsRequest.current && offset === 0 && items.length < limit && page.has_more && page.items.length > 0) {
+        page = await API.meta.getPostsPage(Math.min(2000, limit - items.length), items.length, selectedMonth, postSearch, postNetworkFilter, { signal: controller.signal }, postFilterCasesOnly);
+        items.push(...page.items);
+      }
+      if (request !== postsRequest.current) return;
+      setPostsList(current => {
+        const previous = new Map(current.map(post => [post.id, post]));
+        const unchanged = (post: MonitoredPostSummary) => {
+          const old = previous.get(post.id);
+          return old && (Object.keys(post) as (keyof MonitoredPostSummary)[]).every(key => old[key] === post[key]) ? old : post;
+        };
+        return offset === 0 ? items.map(unchanged) : [...current, ...items.filter(post => !previous.has(post.id))];
+      });
+      loadedPostsCount.current = offset + items.length;
+      setPostsTotal(page.total);
+      setCasesTotal(page.cases_total);
+      setPostsHasMore(page.has_more);
+    } catch (error) {
+      if (request === postsRequest.current && !controller.signal.aborted) {
+        setPostsError(error instanceof Error ? error.message : 'No se pudieron cargar las publicaciones');
+      }
+    } finally {
+      if (request === postsRequest.current) setLoadingPosts(false);
+    }
+  }, [selectedMonth, postSearch, postNetworkFilter, postFilterCasesOnly]);
+
+  const openPost = React.useCallback(async (post: MonitoredPostSummary) => {
+    postDetailsAbort.current?.abort();
+    const controller = new AbortController();
+    postDetailsAbort.current = controller;
+    setSelectedPost(post);
+    setPostDrawerTab(post.cases_count > 0 ? 'CASES' : 'RAW_COMMENTS');
+    setVisibleCommentCount(50);
+    setVisibleCaseCount(20);
+    setDrawerCommentFilter('all');
+    setPostDetailsError(null);
+    setLoadingPostDetails(true);
+    try {
+      const detail = await API.meta.getPost(post.id, { signal: controller.signal });
+      if (!controller.signal.aborted) setSelectedPost(detail);
+    } catch (error) {
+      if (!controller.signal.aborted) setPostDetailsError(error instanceof Error ? error.message : 'No se pudo cargar la publicación');
+    } finally {
+      if (postDetailsAbort.current === controller) setLoadingPostDetails(false);
+    }
+  }, []);
+
+  const abortPostDetails = React.useCallback(() => { postDetailsAbort.current?.abort(); }, []);
+  useEffect(() => abortPostDetails, [abortPostDetails]);
+
+  const closePost = React.useCallback(() => {
+    postDetailsAbort.current?.abort();
+    postDetailsAbort.current = null;
+    setSelectedPost(null);
+    setLoadingPostDetails(false);
+  }, []);
+
+  const latestPostsLoader = useRef(loadPosts);
+  useEffect(() => { latestPostsLoader.current = loadPosts; }, [loadPosts]);
   const [rawComments, setRawComments] = useState<RawCommentItem[]>([]);
   const [selectedCommentIds, setSelectedCommentIds] = useState<string[]>([]);
   const [groupSuccessMsg, setGroupSuccessMsg] = useState<string | null>(null);
@@ -185,12 +272,17 @@ export default function CasesPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
   const [filterPriorityOnly, setFilterPriorityOnly] = useState<boolean>(false);
-  const [casesList, setCasesList] = useState<any[]>(MOCK_CASES);
+  const [casesList, setCasesList] = useState<any[]>(INITIAL_CASES);
+  const [caseOffset, setCaseOffset] = useState(0);
+  const [matchedCasesTotal, setMatchedCasesTotal] = useState(0);
+  const [casesLoading, setCasesLoading] = useState(false);
+  const [casesError, setCasesError] = useState<string | null>(null);
+  const casesRequest = useRef(0);
+  const casesAbort = useRef<AbortController | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
   const [lastAutoSync, setLastAutoSync] = useState<string>('En tiempo real');
   const [autoPilotActive, setAutoPilotActive] = useState<boolean>(true);
-  const [drawerCommentFilter, setDrawerCommentFilter] = useState<'all' | 'cases_only' | 'general_only' | 'positive_only' | 'critics_only' | 'bots_only'>('all');
   const [activeSmartReplyCommentId, setActiveSmartReplyCommentId] = useState<string | null>(null);
   const [smartReplyResult, setSmartReplyResult] = useState<{ text: string; topic: string } | null>(null);
   const [smartReplyLoading, setSmartReplyLoading] = useState<boolean>(false);
@@ -232,10 +324,10 @@ export default function CasesPage() {
     setIsSyncing(true);
     try {
       const syncRes = await API.meta.syncLive();
-      const [postsRes, casesRes, triageRes] = await Promise.allSettled([
-        API.meta.getPosts(300),
-        API.cases.getAll(),
-        fetch('http://localhost:8000/api/v1/meta/triage-comments').then(r => r.json())
+      const [, , triageRes] = await Promise.allSettled([
+        latestPostsLoader.current(),
+        activeTab === 'CASES' ? refreshCases() : Promise.resolve(null),
+        activeTab === 'COMMENTS' ? API.meta.getTriageComments() : Promise.resolve(null),
       ]);
 
       if (triageRes.status === 'fulfilled' && Array.isArray(triageRes.value)) {
@@ -246,44 +338,10 @@ export default function CasesPage() {
         }
       }
 
-      if (postsRes.status === 'fulfilled' && Array.isArray(postsRes.value)) {
-        setPostsList(postsRes.value);
-        if (selectedPost) {
-          const updated = postsRes.value.find((p: any) => p.id === selectedPost.id);
-          if (updated) setSelectedPost(updated);
-        }
-      }
-
-      if (casesRes.status === 'fulfilled' && Array.isArray(casesRes.value)) {
-        const formatted = casesRes.value.map((item: any) => ({
-          id: item.id,
-          institutional_radicado: item.institutional_radicado || `RAD-INF-2026-${item.id.replace(/\D/g, '').slice(-4) || '0042'}`,
-          source: item.source,
-          author: item.author,
-          priority: item.priority,
-          title: item.title,
-          content: item.content,
-          category: item.category,
-          sentiment: item.sentiment,
-          location: item.location,
-          dateTime: item.date_time || item.dateTime,
-          mediaType: item.media_type || item.mediaType || 'none',
-          imageUrl: item.image_url || item.imageUrl,
-          internal_notes: item.internal_notes,
-          impact_if_solved: item.impact_if_solved,
-          impact_if_ignored: item.impact_if_ignored,
-          status: item.status || 'Pendiente',
-          assigned_department: item.assigned_department,
-          assigned_to: item.assigned_to,
-          priority_action: item.priority_action || false,
-          comments_count: item.comments_count ? parseInt(item.comments_count, 10) : 1,
-        }));
-        setCasesList(formatted);
-      }
-
       setSyncFeedback(
-        `✅ Sincronización Meta en Tiempo Real completada (${syncRes.timestamp || 'Ahora'}): ` +
-        `231 publicaciones actualizadas con métricas de likes, alcance y ${syncRes.new_comments_captured || 'nuevos'} comentarios comunitarios analizados por IA.`
+        `${syncRes.status === 'partial' ? '⚠️ Sincronización parcial' : '✅ Sincronización completada'} (${syncRes.timestamp || 'Ahora'}): ` +
+        `${syncRes.posts_updated ?? 0} publicaciones actualizadas y ${syncRes.new_comments_captured ?? 0} comentarios nuevos capturados.` +
+        (syncRes.instagram_status && syncRes.instagram_status !== 'success' ? ` Instagram: ${syncRes.instagram_detail || 'Revisa el estado de la conexión.'}` : '')
       );
       setTimeout(() => {
         setSyncFeedback(null);
@@ -407,7 +465,7 @@ export default function CasesPage() {
       location: firstComment?.detectedLocation || 'Neiva',
       dateTime: 'Justo ahora',
       mediaType: 'image',
-      imageUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?q=80&w=600&auto=format&fit=crop',
+      imageUrl: null,
       impact_if_solved: 'Recupera transitabilidad de vía comunal y previene manifestaciones barriales.',
       impact_if_ignored: 'Riesgo de bloqueo vecinal o escalamiento del malestar ciudadano en redes sociales.',
       status: 'Nuevo',
@@ -432,154 +490,175 @@ export default function CasesPage() {
     }, 2800);
   };
 
-  const refreshCasesAndPosts = React.useCallback(async (silent = false) => {
+  const refreshCases = React.useCallback(async (silent = false) => {
+    const request = ++casesRequest.current;
+    casesAbort.current?.abort();
+    const controller = new AbortController();
+    casesAbort.current = controller;
+    if (!silent) setCasesLoading(true);
+    setCasesError(null);
     try {
-      const [casesRes, postsRes, monthsRes] = await Promise.allSettled([
-        API.cases.getAll(),
-        API.meta.getPosts(300),
-        API.meta.getMonths()
-      ]);
-
-      if (casesRes.status === 'fulfilled' && Array.isArray(casesRes.value) && casesRes.value.length > 0) {
-        const formatted = casesRes.value.map((item: any) => ({
-          id: item.id,
-          institutional_radicado: item.institutional_radicado || `RAD-INF-2026-${item.id.replace(/\D/g, '').slice(-4) || '0042'}`,
-          source: item.source,
-          author: item.author,
-          priority: item.priority,
-          title: item.title,
-          content: item.content,
-          category: item.category,
-          sentiment: item.sentiment,
-          location: item.location,
-          dateTime: item.date_time || item.dateTime,
-          mediaType: item.media_type || item.mediaType || 'none',
-          imageUrl: item.image_url || item.imageUrl,
-          internal_notes: item.internal_notes,
-          impact_if_solved: item.impact_if_solved,
-          impact_if_ignored: item.impact_if_ignored,
-          status: item.status || 'Pendiente',
-          assigned_department: item.assigned_department,
-          assigned_to: item.assigned_to,
-          priority_action: item.priority_action || false,
-          comments_count: item.comments_count ? parseInt(item.comments_count, 10) : 1,
-        }));
-        setCasesList(formatted);
-      }
-
-      if (postsRes.status === 'fulfilled' && Array.isArray(postsRes.value)) {
-        setPostsList(postsRes.value);
-      }
-
-      if (monthsRes.status === 'fulfilled' && Array.isArray(monthsRes.value)) {
-        setMonthsList(monthsRes.value);
-      }
-
-      const now = new Date();
-      setLastAutoSync(now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    } catch (err) {
-      console.warn('Backend offline o usando datos locales:', err);
+      const params = new URLSearchParams({limit: String(CASE_PAGE_SIZE), skip: String(caseOffset), search,
+        priority: filterPriority, category: filterCategory, source: filterSource, status: filterStatus,
+        department: filterDepartment, priority_only: String(filterPriorityOnly)});
+      const page = await API.cases.getPage(params, { signal: controller.signal });
+      if (request !== casesRequest.current || controller.signal.aborted) return;
+      setCasesList(current => {
+        const old = new Map(current.map(item => [item.id, item]));
+        return page.items.map(item => {
+          const formatted = formatCaseSummary(item);
+          const previous = old.get(item.id);
+          return previous && Object.keys(formatted).every(key => previous[key] === formatted[key as keyof typeof formatted]) ? previous : formatted;
+        });
+      });
+      setMatchedCasesTotal(page.total);
+      if (!search.trim() && [filterPriority, filterCategory, filterSource, filterStatus, filterDepartment].every(value => value === 'all') && !filterPriorityOnly) setCasesTotal(page.total);
+    } catch (error) {
+      if (request === casesRequest.current && !controller.signal.aborted) setCasesError(error instanceof Error ? error.message : 'No se pudieron cargar los casos');
     } finally {
-      setLoadingPosts(false);
+      if (request === casesRequest.current && !controller.signal.aborted) setCasesLoading(false);
+    }
+  }, [caseOffset, search, filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterPriorityOnly]);
+
+  useEffect(() => { setCaseOffset(0); }, [search, filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterPriorityOnly]);
+  useEffect(() => {
+    if (activeTab !== 'CASES') return;
+    const timer = setTimeout(() => refreshCases(), search ? 250 : 0);
+    const poll = setInterval(() => { if (document.visibilityState === 'visible') refreshCases(true); }, 45000);
+    const visible = () => { if (document.visibilityState === 'visible') refreshCases(true); };
+    document.addEventListener('visibilitychange', visible);
+    return () => { clearTimeout(timer); clearInterval(poll); document.removeEventListener('visibilitychange', visible); ++casesRequest.current; casesAbort.current?.abort(); };
+  }, [activeTab, refreshCases, search]);
+
+  const refreshMetadata = React.useCallback(async () => {
+    const [months, instagram] = await Promise.allSettled([API.meta.getMonths(), API.meta.getInstagramStatus()]);
+    if (months.status === 'fulfilled' && Array.isArray(months.value)) setMonthsList(months.value);
+    if (instagram.status === 'fulfilled') setInstagramConnection(instagram.value);
+    else setInstagramConnection({
+      status: 'error', username: null, account_id: null, detail: 'No fue posible verificar Instagram.',
+      required_permissions: [], missing_permissions: [], permissions_checked: false, comments_available: false,
+    });
+  }, []);
+
+  const refreshTriage = React.useCallback(async () => {
+    try {
+      const comments = await API.meta.getTriageComments();
+      if (Array.isArray(comments)) setRawComments(comments);
+    } catch (error) {
+      console.warn('No se pudieron actualizar los comentarios:', error);
     }
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
-    refreshCasesAndPosts(false);
+    // Consultar el estado externo cuando el navegador haya atendido la carga principal.
+    if ('requestIdleCallback' in window) {
+      const idle = window.requestIdleCallback(() => refreshMetadata(), { timeout: 1000 });
+      return () => window.cancelIdleCallback(idle);
+    }
+    const timer = setTimeout(() => refreshMetadata(), 0);
+    return () => clearTimeout(timer);
+  }, [refreshMetadata]);
 
-    // Auto-actualización periódica en vivo cada 45 segundos
-    const pollInterval = setInterval(() => {
-      if (isMounted) {
-        refreshCasesAndPosts(true);
+  useEffect(() => {
+    if (activeTab !== 'POSTS') return;
+    const filterKey = JSON.stringify([selectedMonth, postSearch, postNetworkFilter, postFilterCasesOnly]);
+    invalidatePostsRequests();
+    const initialLoad = setTimeout(() => {
+      if (loadedPostFilters.current !== filterKey) {
+        loadedPostFilters.current = filterKey;
+        loadedPostsCount.current = POST_PAGE_SIZE;
+        setPostsList([]);
+        setPostsTotal(0);
+        setPostsHasMore(false);
       }
-    }, 45000);
-
-    // Actualizar inmediatamente al volver a enfocar la pestaña del navegador
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && isMounted) {
-        refreshCasesAndPosts(true);
-      }
+      loadPosts(0, Math.max(POST_PAGE_SIZE, loadedPostsCount.current));
+    }, postSearch ? 250 : 0);
+    const refreshVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      loadPosts(0, Math.max(POST_PAGE_SIZE, loadedPostsCount.current), true);
+      refreshMetadata();
+      setLastAutoSync(new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     };
-    document.addEventListener('visibilitychange', handleVisibility);
-
+    const poll = setInterval(refreshVisible, 45000);
+    document.addEventListener('visibilitychange', refreshVisible);
     return () => {
-      isMounted = false;
-      clearInterval(pollInterval);
-      document.removeEventListener('visibilitychange', handleVisibility);
+      clearTimeout(initialLoad);
+      clearInterval(poll);
+      invalidatePostsRequests();
+      document.removeEventListener('visibilitychange', refreshVisible);
     };
-  }, [refreshCasesAndPosts]);
+  }, [activeTab, loadPosts, selectedMonth, postSearch, postNetworkFilter, postFilterCasesOnly, refreshMetadata, invalidatePostsRequests]);
+
+  useEffect(() => {
+    if (activeTab !== 'COMMENTS') return;
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      refreshTriage();
+    };
+    refresh();
+    const poll = setInterval(refresh, 45000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      clearInterval(poll);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [activeTab, refreshTriage]);
 
   const filteredPosts = useMemo(() => {
-    return postsList.filter((p: any) => {
-      const matchesMonth = selectedMonth === 'all' || p.month_key === selectedMonth;
-      const matchesSearch = !postSearch || 
-        (p.title && p.title.toLowerCase().includes(postSearch.toLowerCase())) || 
-        (p.message && p.message.toLowerCase().includes(postSearch.toLowerCase()));
-      const matchesCasesOnly = !postFilterCasesOnly || (p.cases_count && p.cases_count > 0);
-      const postSrc = (p.source || (p.id && String(p.id).startsWith('IG_') ? 'Instagram' : 'Facebook')).toLowerCase();
-      const matchesNetwork = postNetworkFilter === 'all' || postSrc === postNetworkFilter.toLowerCase();
-      return matchesMonth && matchesSearch && matchesCasesOnly && matchesNetwork;
-    });
-  }, [postsList, selectedMonth, postSearch, postFilterCasesOnly, postNetworkFilter]);
+    return postsList.filter(post => !postFilterCasesOnly || post.cases_count > 0);
+  }, [postsList, postFilterCasesOnly]);
 
-  const filteredCases = useMemo(() => {
-    return casesList.filter(c => {
-      const matchesSearch = 
-        !search || 
-        c.title.toLowerCase().includes(search.toLowerCase()) || 
-        c.content.toLowerCase().includes(search.toLowerCase()) ||
-        c.location.toLowerCase().includes(search.toLowerCase()) ||
-        c.id.toLowerCase().includes(search.toLowerCase()) ||
-        (c.author && c.author.toLowerCase().includes(search.toLowerCase())) ||
-        (c.assigned_department && c.assigned_department.toLowerCase().includes(search.toLowerCase()));
-
-      const matchesPriority = filterPriority === 'all' || c.priority === filterPriority;
-      const matchesCategory = filterCategory === 'all' || c.category === filterCategory;
-      const matchesSource = filterSource === 'all' || c.source === filterSource;
-      const matchesStatus = filterStatus === 'all' || (c.status && c.status === filterStatus);
-      const matchesDept = filterDepartment === 'all' || (c.assigned_department && c.assigned_department.includes(filterDepartment));
-      const matchesPriorityOnly = !filterPriorityOnly || Boolean(c.priority_action);
-
-      return matchesSearch && matchesPriority && matchesCategory && matchesSource && matchesStatus && matchesDept && matchesPriorityOnly;
-    });
-  }, [casesList, search, filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterPriorityOnly]);
+  const filteredCases = casesList;
 
   const drawerRawComments = useMemo(() => {
     if (!selectedPost) return [];
-    const base: any[] = Array.isArray(selectedPost.raw_comments) ? [...selectedPost.raw_comments] : [];
+    const base: any[] = Array.isArray(selectedPost.raw_comments) ? selectedPost.raw_comments.map((comment: Record<string, unknown>) => ({
+      ...comment,
+      message: comment.message || comment.content || '',
+      time: comment.time || comment.published_at,
+    })) : [];
 
+    const byId = new Map(base.map(comment => [comment.id, comment]));
+    const byText = new Map(base.map(comment => [comment.message, comment]));
+    const fromCases: typeof base = [];
     if (Array.isArray(selectedPost.cases)) {
       selectedPost.cases.forEach((c: any) => {
-        const alreadyInBase = base.some((rc: any) => 
-          rc.message === c.content ||
-          (rc.message && c.content && (rc.message.includes(c.content.slice(0, 30)) || c.content.includes(rc.message.slice(0, 30))))
-        );
-        if (!alreadyInBase && c.content) {
-          base.unshift({
-            id: `case-comm-${c.id}`,
-            author: c.author || 'Ciudadano',
+        const match = c.comment_id ? byId.get(c.comment_id) : byText.get(c.content);
+        if (match) {
+          if (!match.case_id) match.case_id = c.id;
+          return;
+        }
+        if (c.content) {
+          const comment = {
+            id: c.comment_id || `case-comm-${c.id}`,
+            author: c.author,
+            author_picture_url: c.author_picture_url,
+            author_is_protected: c.author_is_protected,
+            permalink_url: c.comment_permalink_url,
             message: c.content,
-            time: c.date_time || 'Publicación',
+            time: c.date_time,
             case_id: c.id,
             priority: c.priority,
-            category: c.category
-          });
+            category: c.category,
+          };
+          fromCases.push(comment);
+          byId.set(comment.id, comment);
+          byText.set(comment.message, comment);
         }
       });
     }
 
-    return base;
+    return [...fromCases.reverse(), ...base];
   }, [selectedPost]);
+
+  const drawerCasesById = useMemo(() => new Map<string, { id: string }>(
+    (selectedPost?.cases || []).map((item: { id: string }) => [item.id, item] as const)
+  ), [selectedPost]);
 
   const filteredDrawerComments = useMemo(() => {
     if (!selectedPost) return [];
     return drawerRawComments.filter((rc: any) => {
-      const isCase = Boolean(rc.case_id) || Boolean(
-        selectedPost.cases?.some(
-          (c: any) => c.content === rc.message || (c.content && rc.message && c.content.includes(rc.message.slice(0, 25)))
-        )
-      );
+      const isCase = Boolean(rc.case_id);
 
       const isBot = rc.is_bot || /la misma mierda|politiqueros|corruptos|circo|inútiles|se roban/i.test(rc.message);
       const isPositive = /gracias|excelente|adelante|buena gestión|apoyo|felicitaciones/i.test(rc.message);
@@ -634,7 +713,9 @@ export default function CasesPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.74rem', flexWrap: 'wrap' }}>
             <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Canales de Escucha:</span>
             <span style={{ background: '#1877f2', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>📘 Facebook</span>
-            <span style={{ background: 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>📷 Instagram @johansteed_</span>
+            <span title={instagramConnection?.detail} style={{ background: instagramConnection?.status === 'ready' ? 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)' : 'var(--bg-muted)', color: instagramConnection?.status === 'ready' ? '#fff' : 'var(--text-secondary)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
+              📷 Instagram {instagramConnection?.username ? `@${instagramConnection.username}` : !instagramConnection ? '· Verificando' : instagramConnection.status === 'not_connected' ? '· Sin vincular' : instagramConnection.status === 'missing_permissions' ? '· Faltan permisos' : instagramConnection.status === 'not_configured' ? '· Sin configurar' : instagramConnection.status === 'ready' ? '· Conectado' : '· No disponible'}
+            </span>
             <span className="badge-tag" style={{ background: 'rgba(16, 185, 129, 0.12)', color: 'var(--emerald-600)', border: '1px solid rgba(16, 185, 129, 0.25)', fontSize: '0.68rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }} />
               Auto-Sync en Vivo (cada 45s) • {lastAutoSync}
@@ -657,6 +738,15 @@ export default function CasesPage() {
         </div>
       </div>
 
+      {instagramConnection && (instagramConnection.status !== 'ready' || !instagramConnection.comments_available) && (
+        <div role="status" style={{ padding: '12px 16px', marginBottom: '16px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-secondary)', fontSize: '0.8125rem', lineHeight: 1.5 }}>
+          <strong style={{ color: 'var(--text-primary)' }}>Instagram: {instagramConnection.status === 'ready' ? 'comentarios pendientes de autorización' : 'conexión pendiente'}</strong>
+          <p style={{ margin: '4px 0' }}>{instagramConnection.detail}</p>
+          {instagramConnection.missing_permissions.length > 0 && <p style={{ margin: '4px 0' }}>Permisos faltantes: {instagramConnection.missing_permissions.join(', ')}.</p>}
+          <span>Vincula la cuenta profesional a la página de Facebook en Meta Business Suite y autoriza Instagram en la conexión de Meta.</span>
+        </div>
+      )}
+
       {syncFeedback && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
@@ -677,7 +767,7 @@ export default function CasesPage() {
           onClick={() => setActiveTab('POSTS')}
         >
           <Layers size={16} />
-          <span>Publicaciones & Casos por Post ({postsList.length})</span>
+          <span>Publicaciones & Casos por Post ({postsTotal})</span>
         </button>
         <button
           type="button"
@@ -685,7 +775,7 @@ export default function CasesPage() {
           onClick={() => setActiveTab('CASES')}
         >
           <FolderOpen size={16} />
-          <span>Casos Consolidados ({casesList.length})</span>
+          <span>Casos Consolidados ({casesTotal})</span>
         </button>
         <button
           type="button"
@@ -733,19 +823,19 @@ export default function CasesPage() {
                   Página Oficial: Johan Steed
                 </span>
                 <span className="badge-tag" style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--emerald-600)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-                  📅 Cobertura: Enero – Octubre 2026
+                  📅 {monthsList.find(month => month.key === 'all')?.label || 'Histórico sincronizado'}
                 </span>
               </div>
               <p style={{ margin: '6px 0 0', fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Toda la conversación ciudadana desde el <strong>1 de Enero de 2026 hasta la fecha</strong>. Cada publicación agrupa sus comentarios y los casos territoriales clasificados por IA. Haz clic en <strong>"Ver Casos"</strong> para desplegar la bandeja de incidencias.
+                Explora las publicaciones sincronizadas y busca en todo el histórico almacenado. Cada publicación agrupa sus comentarios y los casos territoriales clasificados por IA. Haz clic en <strong>Ver Casos</strong> para desplegar la bandeja de incidencias.
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span className="badge-blue" style={{ fontSize: '0.8125rem', padding: '6px 12px', fontWeight: 700 }}>
-                {postsList.length} Publicaciones
+                {postsTotal} Publicaciones
               </span>
               <span className="badge-alta" style={{ fontSize: '0.8125rem', padding: '6px 12px', fontWeight: 700 }}>
-                {casesList.length} Casos Clasificados
+                {casesTotal} Casos Clasificados
               </span>
             </div>
           </div>
@@ -777,7 +867,7 @@ export default function CasesPage() {
                   }}
                   onClick={() => setPostNetworkFilter('all')}
                 >
-                  Todas ({postsList.length})
+                  Todas
                 </button>
                 <button
                   type="button"
@@ -788,7 +878,7 @@ export default function CasesPage() {
                   }}
                   onClick={() => setPostNetworkFilter('Facebook')}
                 >
-                  Facebook ({postsList.filter((p: any) => !p.source || p.source.toLowerCase() === 'facebook' || !String(p.id).startsWith('IG_')).length})
+                  Facebook
                 </button>
                 <button
                   type="button"
@@ -799,20 +889,20 @@ export default function CasesPage() {
                   }}
                   onClick={() => setPostNetworkFilter('Instagram')}
                 >
-                  Instagram ({postsList.filter((p: any) => (p.source && p.source.toLowerCase() === 'instagram') || String(p.id).startsWith('IG_')).length})
+                  Instagram
                 </button>
               </div>
 
-              {/* Selector de Mes (Enero - Octubre 2026) */}
+              {/* Selector de meses del histórico sincronizado */}
               <div className={[styles['filter-dropdown-wrap'], selectedMonth !== 'all' ? styles.active : ''].join(' ')}>
                 <Calendar size={14} className={styles['dropdown-icon']} />
                 <select 
                   value={selectedMonth} 
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  title="Filtrar publicaciones por mes de 2026"
+                  title="Filtrar publicaciones por mes"
                   style={{ minWidth: '220px' }}
                 >
-                  <option value="all">📅 Todos los meses (Enero – Octubre 2026) ({postsList.length})</option>
+                  <option value="all">📅 {monthsList.find(month => month.key === 'all')?.label || 'Todos los meses'} ({monthsList.find(month => month.key === 'all')?.count ?? 0})</option>
                   {monthsList.filter(m => m.key !== 'all').map(m => (
                     <option key={m.key} value={m.key}>
                       {m.label} ({m.count} publicaciones)
@@ -851,14 +941,20 @@ export default function CasesPage() {
             </div>
 
             <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-              Mostrando {filteredPosts.length} de {postsList.length} publicaciones
+              Mostrando {filteredPosts.length} de {postsTotal} publicaciones coincidentes
             </div>
           </div>
 
-          {loadingPosts && postsList.length === 0 ? (
+          {postsError && (
+            <div role="alert" style={{ margin: '12px 0', color: 'var(--text-secondary)' }}>
+              {postsError}{' '}
+              <button type="button" className="btn-ghost" onClick={() => loadPosts()}>Reintentar</button>
+            </div>
+          )}
+          {postsError && postsList.length === 0 ? null : loadingPosts && postsList.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--text-muted)' }}>
               <Sparkles size={32} style={{ color: 'var(--blue-500)', margin: '0 auto 12px' }} />
-              <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Cargando publicaciones y portadas desde Enero de 2026...</p>
+              <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Cargando publicaciones y portadas del histórico...</p>
             </div>
           ) : filteredPosts.length === 0 ? (
             <div className={styles['empty-state']}>
@@ -875,152 +971,26 @@ export default function CasesPage() {
                   setPostFilterCasesOnly(false);
                 }}
               >
-                Ver todas las publicaciones (Enero – Octubre 2026)
+                Ver todas las publicaciones
               </button>
             </div>
           ) : (
             <div className={styles['posts-grid']}>
               {filteredPosts.map(post => (
-                <div 
-                  key={post.id} 
-                  className={[styles['post-card'], selectedPost?.id === post.id ? styles.expanded : ''].join(' ')}
-                >
-                  <div className={styles['post-card-cover']} style={{ position: 'relative', overflow: 'hidden', backgroundColor: '#1e293b' }}>
-                    {post.cover_image ? (
-                      <img 
-                        src={post.cover_image} 
-                        alt={post.title} 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'http://localhost:8000/static/covers/default_cover.jpg';
-                        }}
-                      />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: '#94a3b8', padding: '16px', textAlign: 'center' }}>
-                        <Sparkles size={28} style={{ color: '#38bdf8', marginBottom: '8px' }} />
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#f8fafc' }}>CIVIA Inteligencia</span>
-                        <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Johan Steed Oficial</span>
-                      </div>
-                    )}
-
-                    {/* Badges superiores sobre la portada: Red Social a la izquierda y Formato a la derecha */}
-                    <div style={{
-                      position: 'absolute', top: '10px', left: '10px', right: '10px',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      zIndex: 2, pointerEvents: 'none'
-                    }}>
-                      {/* Badge de Red Social */}
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                        padding: '3px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, color: '#fff',
-                        background: (post.source === 'Instagram' || String(post.id).startsWith('IG_'))
-                          ? 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)'
-                          : '#1877f2',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.35)'
-                      }}>
-                        <span>{(post.source === 'Instagram' || String(post.id).startsWith('IG_')) ? '📷 Instagram' : '📘 Facebook'}</span>
-                      </div>
-
-                      {/* Badge Formato (Reel / Video / Publicación) */}
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                        padding: '3px 8px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700, color: '#fff',
-                        background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(4px)',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.35)'
-                      }}>
-                        {post.media_type === 'video' ? <Video size={12} /> : <Tag size={12} />}
-                        <span>{post.media_type === 'video' ? 'REEL' : 'PUBLICACIÓN'}</span>
-                      </div>
-                    </div>
-
-                    <div className={styles['post-card-date']}>
-                      <span>🕒 {post.published_at}</span>
-                    </div>
-                  </div>
-
-                  <div className={styles['post-card-content']}>
-                    <div className={styles['post-card-title']} title={post.title}>
-                      {post.title}
-                    </div>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 12px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5 }}>
-                      {post.message}
-                    </p>
-
-                    <div className={styles['post-card-stats']}>
-                      <div className={styles['metrics-pill-grid']}>
-                        <div className={styles['metric-pill']} title={`Me gusta: ${post.likes_count || 145}`}>
-                          <Heart size={12} style={{ color: '#ef4444' }} />
-                          <span><strong suppressHydrationWarning>{formatCompactNumber(post.likes_count || 145)}</strong> Likes</span>
-                        </div>
-                        <div className={styles['metric-pill']} title={`Vistas estimadas: ${post.views_count || 2100}`}>
-                          <Eye size={12} style={{ color: '#3b82f6' }} />
-                          <span><strong suppressHydrationWarning>{formatCompactNumber(post.views_count || 2100)}</strong> Vistas</span>
-                        </div>
-                        <div className={styles['metric-pill']} title={`Compartidos: ${post.shares_count || 18}`}>
-                          <Share2 size={12} style={{ color: '#8b5cf6' }} />
-                          <span><strong suppressHydrationWarning>{formatCompactNumber(post.shares_count || 18)}</strong> Shares</span>
-                        </div>
-                        <div className={styles['metric-pill']} title={`Comentarios totales: ${post.total_comments || 0}`}>
-                          <MessageSquare size={12} style={{ color: '#f59e0b' }} />
-                          <span><strong>{formatCompactNumber(post.total_comments || 0)}</strong> Comms</span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: '6px', gap: '6px', flexWrap: 'wrap' }}>
-                        <span className={post.cases_count > 0 ? "badge-blue" : "badge-baja"} style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', whiteSpace: 'nowrap' }}>
-                          📁 {post.cases_count} {post.cases_count === 1 ? 'caso IA' : 'casos IA'}
-                        </span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: post.cases_count > 0 ? '#10b981' : '#94a3b8', display: 'inline-block' }} />
-                          {post.cases_count > 0 ? 'Radicado Oficial' : 'Conversación General'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px', alignItems: 'stretch' }}>
-                      <button
-                        type="button"
-                        className={styles['post-open-btn']}
-                        onClick={() => {
-                          setSelectedPost(post);
-                          setPostDrawerTab('CASES');
-                        }}
-                        style={{
-                          flex: 1,
-                          minWidth: 0,
-                          marginTop: 0,
-                          background: post.cases_count > 0 ? 'var(--blue-600)' : 'var(--bg-muted)',
-                          color: post.cases_count > 0 ? '#fff' : 'var(--text-primary)',
-                          borderColor: post.cases_count > 0 ? 'var(--blue-600)' : 'var(--border)'
-                        }}
-                      >
-                        <FolderOpen size={14} style={{ flexShrink: 0 }} />
-                        <span>{post.cases_count > 0 ? `Ver Casos (${post.cases_count})` : 'Ver Comentarios'}</span>
-                      </button>
-                      {post.permalink_url && (
-                        <a
-                          href={post.permalink_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn-ghost"
-                          title="Abrir publicación original en Facebook"
-                          style={{
-                            padding: '8px 10px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            border: '1px solid var(--border)',
-                            borderRadius: 'var(--radius-md)',
-                            flexShrink: 0
-                          }}
-                        >
-                          <ArrowUpRight size={16} />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <MonitoredPostCard key={post.id} post={post} selected={selectedPost?.id === post.id} onOpen={openPost} />
               ))}
+            </div>
+          )}
+          {postsHasMore && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={loadingPosts}
+                onClick={() => loadPosts(loadedPostsCount.current)}
+              >
+                {loadingPosts ? 'Cargando publicaciones...' : 'Cargar más publicaciones antiguas'}
+              </button>
             </div>
           )}
         </div>
@@ -1134,7 +1104,7 @@ export default function CasesPage() {
 
           {/* Contador de casos encontrados */}
           <span className={styles['counter-badge']}>
-            {filteredCases.length} {filteredCases.length === 1 ? 'caso' : 'casos'}
+            {matchedCasesTotal} {matchedCasesTotal === 1 ? 'caso' : 'casos'}
           </span>
         </div>
 
@@ -1171,6 +1141,10 @@ export default function CasesPage() {
         </div>
       </div>
 
+      {casesError && <div role="alert" style={{ padding: 16, color: '#f87171' }}>{casesError} <button type="button" className="btn-ghost" onClick={() => refreshCases()}>Reintentar</button></div>}
+      {casesLoading && <p role="status">Cargando casos...</p>}
+      {!casesLoading && !casesError && matchedCasesTotal === 0 && <p>No se encontraron casos con estos filtros.</p>}
+      <div aria-busy={casesLoading} style={{ opacity: casesLoading ? 0.55 : 1 }}>
       {/* Renderizado de Vistas */}
       {viewMode === 'card' && (
         <div>
@@ -1197,7 +1171,7 @@ export default function CasesPage() {
                   </div>
 
                   {/* Contexto de la Noticia / Post de Origen */}
-                  {c.internal_notes && c.internal_notes.includes('[Publicación de Origen]:') && (
+                  {c.post_title && (
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1211,14 +1185,14 @@ export default function CasesPage() {
                       border: '1px solid rgba(59, 130, 246, 0.2)',
                       width: '100%',
                     }}>
-                      <span>📰 <strong>Post:</strong> {c.internal_notes.split('\n')[0].replace('[Publicación de Origen]:', '').trim().slice(0, 75)}...</span>
+                      <span>📰 <strong>Post:</strong> {c.post_title.slice(0, 75)}...</span>
                     </div>
                   )}
 
                   {/* Previsualización Multimedia del Post (Foto o Video) */}
-                  {c.imageUrl && (
+                  {(
                     <div className={styles['media-thumb']}>
-                      <img src={c.imageUrl} alt={c.title} />
+                      <CaseCover src={c.thumbnailUrl || c.imageUrl} title={c.post_title || c.title} />
                       {c.mediaType === 'video' && (
                         <div className={styles['media-play']}>
                           <span><Video size={20} /></span>
@@ -1318,7 +1292,7 @@ export default function CasesPage() {
 
                   <div className={styles['case-actions']}>
                     <button className="btn-ghost">Descartar</button>
-                    <Link href={'/cases/' + c.id} className="btn-primary">
+                    <Link prefetch={false} href={'/cases/' + c.id} className="btn-primary">
                       Abrir Caso <ArrowUpRight size={16} />
                     </Link>
                   </div>
@@ -1333,9 +1307,9 @@ export default function CasesPage() {
         <div className={styles['compact-grid']}>
           {filteredCases.map((c) => (
             <div key={c.id} className={styles['compact-card']}>
-              {c.imageUrl && (
+              {(
                 <div className={styles['compact-thumb']}>
-                  <img src={c.imageUrl} alt={c.title} />
+                  <CaseCover src={c.thumbnailUrl || c.imageUrl} title={c.post_title || c.title} />
                 </div>
               )}
               <div style={{ width: '100%' }}>
@@ -1361,7 +1335,7 @@ export default function CasesPage() {
                 </div>
               </div>
               <div className={styles['compact-actions']}>
-                <Link href={'/cases/' + c.id} className="btn-primary" style={{ width: '100%', textAlign: 'center' }}>
+                <Link prefetch={false} href={'/cases/' + c.id} className="btn-primary" style={{ width: '100%', textAlign: 'center' }}>
                   Abrir Caso <ArrowUpRight size={14} />
                 </Link>
               </div>
@@ -1375,7 +1349,7 @@ export default function CasesPage() {
           {filteredCases.map((c) => (
             <div key={c.id} className={styles['list-row']}>
               <div className={styles['list-thumb']}>
-                {c.imageUrl ? <img src={c.imageUrl} alt="" /> : c.source.charAt(0)}
+                {c.imageUrl ? <img src={c.thumbnailUrl || c.imageUrl} alt="" width={40} height={40} loading="lazy" decoding="async" onError={event => { event.currentTarget.style.display = 'none'; }} /> : c.source.charAt(0)}
               </div>
               <div className={styles['list-info']}>
                 <div className={styles['list-tags']}>
@@ -1399,7 +1373,7 @@ export default function CasesPage() {
                 <div className={styles['list-title']}>{c.title}</div>
                 <div className={styles['list-sub']}>{c.id} • {c.author} • 🕒 {c.dateTime}</div>
               </div>
-              <Link href={'/cases/' + c.id} className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.8125rem' }}>
+              <Link prefetch={false} href={'/cases/' + c.id} className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.8125rem' }}>
                 Abrir <ArrowUpRight size={14} />
               </Link>
             </div>
@@ -1443,7 +1417,7 @@ export default function CasesPage() {
                   <td><span className={getStatusBadge(c.status)}>{c.status}</span></td>
                   <td><span className={getPriorityBadge(c.priority)}>{c.priority}</span></td>
                   <td>
-                    <Link href={'/cases/' + c.id} className="btn-primary" style={{ padding: '5px 12px', fontSize: '0.75rem' }}>
+                    <Link prefetch={false} href={'/cases/' + c.id} className="btn-primary" style={{ padding: '5px 12px', fontSize: '0.75rem' }}>
                       Revisar
                     </Link>
                   </td>
@@ -1453,6 +1427,12 @@ export default function CasesPage() {
           </table>
         </div>
       )}
+      </div>
+      <nav aria-label="Paginacion de casos" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center', gap: 16, marginBlock: 20 }}>
+        <button type="button" className="btn-ghost" disabled={casesLoading || caseOffset === 0} onClick={() => setCaseOffset(value => Math.max(0, value - CASE_PAGE_SIZE))}>Anterior</button>
+        <span>{matchedCasesTotal ? caseOffset + 1 : 0} a {Math.min(caseOffset + casesList.length, matchedCasesTotal)} de {matchedCasesTotal}</span>
+        <button type="button" className="btn-primary" disabled={casesLoading || caseOffset + CASE_PAGE_SIZE >= matchedCasesTotal} onClick={() => setCaseOffset(value => value + CASE_PAGE_SIZE)}>Siguiente</button>
+      </nav>
         </>
       )}
 
@@ -1746,13 +1726,13 @@ export default function CasesPage() {
 
       {/* DRAWER / BANDEJA LATERAL DEDICADA PARA EL POST SELECCIONADO */}
       {selectedPost && (
-        <div className={styles['post-drawer-backdrop']} onClick={() => setSelectedPost(null)}>
+        <div className={styles['post-drawer-backdrop']} onClick={closePost}>
           <div className={styles['post-drawer']} onClick={(e) => e.stopPropagation()}>
             <div className={styles['post-drawer-header']}>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
                 {selectedPost.cover_image && (
                   <img 
-                    src={selectedPost.cover_image} 
+                    src={selectedPost.thumbnail_url || selectedPost.cover_image}
                     alt="" 
                     style={{ width: '64px', height: '64px', borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border)' }}
                   />
@@ -1772,15 +1752,15 @@ export default function CasesPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
                     <span className={styles['metric-pill']} style={{ background: 'rgba(239, 68, 68, 0.08)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.25)' }}>
                       <Heart size={12} />
-                      <strong suppressHydrationWarning>{formatNumber(selectedPost.likes_count || 145)}</strong> Likes
+                      <strong suppressHydrationWarning>{formatNumber(selectedPost.likes_count ?? 0)}</strong> Likes
                     </span>
                     <span className={styles['metric-pill']} style={{ background: 'rgba(59, 130, 246, 0.08)', color: '#3b82f6', borderColor: 'rgba(59, 130, 246, 0.25)' }}>
                       <Eye size={12} />
-                      <strong suppressHydrationWarning>{formatNumber(selectedPost.views_count || 2100)}</strong> Vistas / Alcance
+                      <strong suppressHydrationWarning>{formatNumber(selectedPost.views_count ?? 0)}</strong> Vistas / Alcance
                     </span>
                     <span className={styles['metric-pill']} style={{ background: 'rgba(139, 92, 246, 0.08)', color: '#8b5cf6', borderColor: 'rgba(139, 92, 246, 0.25)' }}>
                       <Share2 size={12} />
-                      <strong suppressHydrationWarning>{formatNumber(selectedPost.shares_count || 18)}</strong> Compartidos
+                      <strong suppressHydrationWarning>{formatNumber(selectedPost.shares_count ?? 0)}</strong> Compartidos
                     </span>
                     <span className={styles['metric-pill']} style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.25)' }}>
                       <MessageSquare size={12} />
@@ -1791,7 +1771,7 @@ export default function CasesPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedPost(null)}
+                onClick={closePost}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '6px', borderRadius: 'var(--radius-sm)' }}
                 aria-label="Cerrar panel"
               >
@@ -1800,6 +1780,16 @@ export default function CasesPage() {
             </div>
 
             <div className={styles['post-drawer-body']}>
+              {loadingPostDetails ? (
+                <div role="status" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  Cargando comentarios y casos de la publicación...
+                </div>
+              ) : postDetailsError ? (
+                <div role="alert" style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
+                  <p>{postDetailsError}</p>
+                  <button type="button" className="btn-primary" onClick={() => openPost(selectedPost)}>Reintentar</button>
+                </div>
+              ) : (<>
               {/* Noticia / Contenido del post */}
               <div style={{ padding: '12px 14px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5, border: '1px solid var(--border)' }}>
                 <strong style={{ color: 'var(--text-primary)' }}>Contenido de la Publicación:</strong>
@@ -1812,7 +1802,7 @@ export default function CasesPage() {
                       rel="noopener noreferrer"
                       style={{ fontSize: '0.75rem', color: 'var(--blue-600)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                     >
-                      <span>Ver post original en Facebook</span>
+                      <span>Ver publicación original en {selectedPost.source || 'Facebook'}</span>
                       <ArrowUpRight size={13} />
                     </a>
                   </div>
@@ -1868,7 +1858,7 @@ export default function CasesPage() {
                   }}
                 >
                   <MessageSquare size={15} />
-                  <span>Todos los Comentarios en Facebook ({selectedPost.raw_comments?.length || selectedPost.total_comments})</span>
+                  <span>Todos los comentarios en {selectedPost.source || 'Facebook'} ({selectedPost.raw_comments?.length || selectedPost.total_comments})</span>
                 </button>
               </div>
 
@@ -1894,12 +1884,12 @@ export default function CasesPage() {
                       <CheckCircle2 size={36} style={{ color: 'var(--emerald-600)', margin: '0 auto 10px' }} />
                       <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem' }}>Sin problemáticas críticas detectadas</h4>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
-                        Esta publicación tiene interacciones en Facebook, pero corresponden a saludos o mensajes generales. Puedes verlos todos en la pestaña <strong>"Todos los Comentarios en Facebook"</strong>.
+                        No hay casos vinculados a esta publicación. Puedes revisar las interacciones recibidas en la pestaña <strong>Todos los comentarios en {selectedPost.source || 'Facebook'}</strong>.
                       </p>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {selectedPost.cases.map((c: any) => (
+                      {selectedPost.cases.slice(0, visibleCaseCount).map((c: any) => (
                         <div
                           key={c.id}
                           style={{
@@ -1944,8 +1934,14 @@ export default function CasesPage() {
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', flexWrap: 'wrap', gap: '6px' }}>
-                            <div>
-                              <strong>👤 {c.author}</strong> • 📍 {c.location}
+                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                              <CommentAuthor name={c.author} pictureUrl={c.author_picture_url} protectedProfile={c.author_is_protected} source={selectedPost.source} />
+                              <span>📍 {c.location}</span>
+                              {c.comment_permalink_url && (
+                                <a href={c.comment_permalink_url} target="_blank" rel="noopener noreferrer" title="Ver el comentario original en Facebook" style={{ color: 'var(--blue-600)' }}>
+                                  <ExternalLink size={13} />
+                                </a>
+                              )}
                             </div>
                             <div style={{ color: 'var(--text-muted)', fontWeight: 600 }}>
                               🏛️ {c.assigned_department}
@@ -1964,6 +1960,11 @@ export default function CasesPage() {
                           </div>
                         </div>
                       ))}
+                      {selectedPost.cases.length > visibleCaseCount && (
+                        <button type="button" className="btn-secondary" onClick={() => setVisibleCaseCount(count => count + 20)}>
+                          Cargar más casos ({selectedPost.cases.length - visibleCaseCount} restantes)
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2095,11 +2096,9 @@ export default function CasesPage() {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {filteredDrawerComments.map((rc: any, idx: number) => {
+                      {filteredDrawerComments.slice(0, visibleCommentCount).map((rc: any, idx: number) => {
                         const isBot = rc.is_bot || /la misma mierda|politiqueros|corruptos|circo|inútiles|se roban/i.test(rc.message);
-                        const matchedCase = selectedPost.cases?.find(
-                          (c: any) => c.id === rc.case_id || c.content === rc.message || (c.content && rc.message && c.content.includes(rc.message.slice(0, 25)))
-                        );
+                        const matchedCase = drawerCasesById.get(rc.case_id);
                         return (
                           <div
                             key={rc.id || idx}
@@ -2114,44 +2113,13 @@ export default function CasesPage() {
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{
-                                  width: '28px', height: '28px', borderRadius: '50%',
-                                  background: matchedCase ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-muted)',
-                                  display: 'flex', alignItems: 'center',
-                                  justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem',
-                                  color: matchedCase ? 'var(--blue-600)' : 'var(--text-primary)'
-                                }}>
-                                  {(rc.author || 'C').charAt(0)}
-                                </div>
-{(() => {
-                                  const cleanName = (rc.author || '').trim();
-                                  const isIg = selectedPost?.source === 'Instagram' || cleanName.startsWith('@');
-                                  const slug = cleanName.replace(/[@\s]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._]/g, '');
-                                  const targetUrl = isIg 
-                                    ? `https://www.instagram.com/${slug}/`
-                                    : `https://www.facebook.com/${slug}`;
-                                  return (
-                                    <a
-                                      href={targetUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      style={{
-                                        fontWeight: 700,
-                                        fontSize: '0.8125rem',
-                                        color: isIg ? '#E1306C' : 'var(--text-primary)',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        textDecoration: 'none'
-                                      }}
-                                      title={`Ver perfil oficial de ${cleanName} en ${isIg ? 'Instagram' : 'Facebook'}`}
-                                    >
-                                      <span>{rc.author}</span>
-                                      <ExternalLink size={11} style={{ opacity: 0.7 }} />
-                                    </a>
-                                  );
-                                })()}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                <CommentAuthor name={rc.author} pictureUrl={rc.author_picture_url} protectedProfile={rc.author_is_protected} source={rc.source || selectedPost.source} />
+                                {rc.permalink_url && (
+                                  <a href={rc.permalink_url} target="_blank" rel="noopener noreferrer" title="Ver el comentario original en Facebook" style={{ color: 'var(--blue-600)' }}>
+                                    <ExternalLink size={13} />
+                                  </a>
+                                )}
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
@@ -2187,13 +2155,13 @@ export default function CasesPage() {
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', flexWrap: 'wrap', gap: '6px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                 <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: 'var(--bg-muted)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                                  👥 {rc.followers_count || (isBot ? 8 : 420)} seg
+                                  👥 {rc.followers_count ?? 0} seg
                                 </span>
                                 <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: 'var(--bg-muted)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                                  👤 {rc.following_count || (isBot ? 510 : 190)} seguidos
+                                  👤 {rc.following_count ?? 0} seguidos
                                 </span>
                                 <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: 'var(--bg-muted)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                                  📅 {rc.account_age || (isBot ? 'Hace 14 días' : 'Hace 3 años')}
+                                  📅 {rc.account_age || 'Antigüedad no disponible'}
                                 </span>
                                 {isBot && (
                                   <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.25)', fontWeight: 700 }}>
@@ -2254,10 +2222,16 @@ export default function CasesPage() {
                           </div>
                         );
                       })}
+                      {filteredDrawerComments.length > visibleCommentCount && (
+                        <button type="button" className="btn-secondary" onClick={() => setVisibleCommentCount(count => count + 50)}>
+                          Cargar más comentarios ({filteredDrawerComments.length - visibleCommentCount} restantes)
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
               )}
+              </>)}
             </div>
           </div>
         </div>

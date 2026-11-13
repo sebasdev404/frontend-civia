@@ -282,7 +282,8 @@ export function ExecutiveReportModal({ isOpen, onClose }: ExecutiveReportModalPr
       y = 289;
       doc.setFontSize(6.2);
       doc.setTextColor(148, 163, 184);
-      doc.text(`CIVIA Intelligence Platform • Hash Oficial: SHA256-${Math.random().toString(36).substring(2, 10).toUpperCase()}-NEIVA • Consejo de Gobierno Municipal`, pageWidth / 2, y, { align: 'center' });
+      const reportTimestamp = new Date().toISOString().replace(/[-:.TZ]/g, '').substring(0, 14);
+      doc.text(`CIVIA Intelligence Platform • Reporte ID: CIVIA-${reportTimestamp}-NEIVA • Consejo de Gobierno Municipal`, pageWidth / 2, y, { align: 'center' });
 
       // Guardar PDF oficial
       const dateStr = new Date().toISOString().slice(0, 10);

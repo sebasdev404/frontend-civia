@@ -32,25 +32,42 @@ const CustomTooltip = ({ active, payload }: any) => {
     const item: CategoryItem = payload[0].payload;
     return (
       <div style={{
-        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-        border: `1px solid ${item.color}`,
-        borderRadius: '8px',
-        padding: '10px 14px',
-        color: '#fff',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-        fontSize: '0.8rem',
-        minWidth: '220px'
+        backgroundColor: '#0f172a',
+        border: `1.5px solid ${item.color}`,
+        borderRadius: '10px',
+        padding: '12px 16px',
+        color: '#ffffff',
+        boxShadow: '0 20px 30px rgba(0,0,0,0.95), 0 4px 12px rgba(0,0,0,0.8)',
+        fontSize: '0.82rem',
+        minWidth: '240px',
+        position: 'relative',
+        zIndex: 9999,
+        opacity: 1
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, marginBottom: '4px' }}>
-          <span>{item.icon}</span>
-          <span style={{ color: item.color }}>{item.name}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, marginBottom: '6px' }}>
+          <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
+          <span style={{ color: item.color, fontSize: '0.95rem' }}>{item.name}</span>
         </div>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '6px' }}>
-          Responsable: {item.department}
+        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '8px' }}>
+          Responsable: <strong style={{ color: '#f1f5f9' }}>{item.department}</strong>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '4px' }}>
-          <span>Casos Registrados:</span>
-          <strong>{item.value} ({item.percentage}%)</strong>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderTop: '1px solid rgba(255,255,255,0.15)',
+          paddingTop: '6px'
+        }}>
+          <span style={{ color: '#cbd5e1' }}>Casos Registrados:</span>
+          <span style={{
+            background: 'rgba(255, 255, 255, 0.12)',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            fontWeight: 800,
+            color: '#ffffff'
+          }}>
+            {item.value} ({item.percentage}%)
+          </span>
         </div>
       </div>
     );
@@ -134,7 +151,7 @@ export function CategoryChart() {
                   />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 1000, pointerEvents: "none" }} />
             </PieChart>
           </ResponsiveContainer>
 
@@ -145,7 +162,9 @@ export function CategoryChart() {
             left: '50%',
             transform: 'translate(-50%, -50%)',
             textAlign: 'center',
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            opacity: activeIndex !== null ? 0.08 : 1,
+            transition: 'opacity 0.2s ease'
           }}>
             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
               Total Casos
@@ -168,22 +187,23 @@ export function CategoryChart() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '6px 10px',
-                borderRadius: '6px',
-                background: activeIndex === idx ? 'rgba(255,255,255,0.06)' : 'transparent',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                background: activeIndex === idx ? 'rgba(59, 130, 246, 0.18)' : 'rgba(15, 23, 42, 0.65)',
+                border: activeIndex === idx ? `1px solid ${item.color}` : '1px solid rgba(255, 255, 255, 0.06)',
                 cursor: 'pointer',
-                transition: 'background 0.15s'
+                transition: 'all 0.15s ease'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }} />
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', color: '#f8fafc', fontWeight: 600 }}>
                   {item.icon} {item.name}
                 </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{item.value}</strong>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', minWidth: '35px', textAlign: 'right' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <strong style={{ fontSize: '0.85rem', color: '#ffffff', fontWeight: 700 }}>{item.value}</strong>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: '38px', textAlign: 'right', fontWeight: 600 }}>
                   {item.percentage}%
                 </span>
               </div>

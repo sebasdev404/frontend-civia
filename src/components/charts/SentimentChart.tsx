@@ -39,7 +39,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const cur = payload[0].payload;
     return (
       <div style={{
-        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+        backgroundColor: '#0f172a',
         border: '1px solid rgba(59, 130, 246, 0.35)',
         borderRadius: '8px',
         padding: '10px 14px',
