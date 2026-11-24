@@ -1,15 +1,20 @@
 "use client";
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Search, Filter, LayoutGrid, List as ListIcon, Menu, Table as TableIcon,
   Video, CheckCircle2, AlertCircle, ArrowUpRight, RotateCcw, ChevronDown,
   Tag, Radio, ShieldAlert, Building2, Flame, FolderOpen, MessageSquare,
   Layers, CheckSquare, Sparkles, PlusCircle, Check, X, AlertTriangle, Link as LinkIcon,
-  Calendar, Heart, Eye, Share2, RefreshCw, Bot, Zap, Users, ExternalLink
+  Calendar, Heart, Eye, Share2, RefreshCw, Bot, Zap, Users, ExternalLink, Info
 } from 'lucide-react';
 import { API, type InstagramConnectionStatus, type MonitoredPostSummary, type ConsolidatedCaseSummary } from '@/lib/api/client';
 import { CommentAuthor } from '@/components/ui/CommentAuthor';
+import { ConversationBadge } from '@/components/ui/ConversationBadge';
+import CommentReviewQueue from '@/components/cases/CommentReviewQueue';
+import TriageReviewModal, { type ReviewComment } from '@/components/cases/TriageReviewModal';
+import { CaseProvenanceNote } from '@/components/cases/CaseProvenanceNote';
 import { CaseCover } from '@/components/cases/CaseCover';
 import { MonitoredPostCard } from '@/components/cases/MonitoredPostCard';
 import { formatNumber } from '@/lib/utils';
@@ -17,6 +22,12 @@ import styles from './cases.module.scss';
 
 export interface RawCommentItem {
   id: string;
+  post_id: string;
+  comment_id: string;
+  post_url?: string | null;
+  comment_url?: string | null;
+  author_picture_url?: string | null;
+  author_is_protected?: boolean;
   source: 'Facebook' | 'Instagram';
   author: string;
   postTitle: string;
@@ -27,7 +38,7 @@ export interface RawCommentItem {
   detectedCategory: string;
   detectedTopic: string;
   detectedProblem: string;
-  aiConfidence: number;
+  aiConfidence: number | null;
   requiresFollowup: boolean;
   possibleCaseMatch: string | null;
   caseMatchTitle?: string;
@@ -139,8 +150,16 @@ function formatCaseSummary(item: ConsolidatedCaseSummary) {
   return { ...item, dateTime: item.date_time, mediaType: item.media_type || 'none', imageUrl: item.image_url, thumbnailUrl: item.thumbnail_url };
 }
 
-export default function CasesPage() {
-  const [activeTab, setActiveTab] = useState<'POSTS' | 'CASES' | 'COMMENTS'>('POSTS');
+function CasesContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const view = searchParams.get('view');
+  const activeTab = view === 'posts' ? 'POSTS' : view === 'review' ? 'COMMENTS' : 'CASES';
+  const setActiveTab = (tab: 'POSTS' | 'CASES' | 'COMMENTS') => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('view', tab === 'CASES' ? 'cases' : tab === 'COMMENTS' ? 'review' : 'posts');
+    router.replace(`/cases?${params}`, { scroll: false });
+  };
   const [postsList, setPostsList] = useState<MonitoredPostSummary[]>([]);
   const [selectedPostSnapshot, setSelectedPost] = useState<any | null>(null);
   const selectedPost = selectedPostSnapshot;
@@ -242,33 +261,20 @@ export default function CasesPage() {
   useEffect(() => { latestPostsLoader.current = loadPosts; }, [loadPosts]);
   const [rawComments, setRawComments] = useState<RawCommentItem[]>([]);
   const [selectedCommentIds, setSelectedCommentIds] = useState<string[]>([]);
+  const [reviewComments, setReviewComments] = useState<ReviewComment[] | null>(null);
+  const [reviewMode, setReviewMode] = useState<'create' | 'associate'>('create');
+  const [triageLoading, setTriageLoading] = useState(false);
+  const [savedCaseId, setSavedCaseId] = useState<string | null>(null);
+  const triageRequest = useRef(0);
+  const [reviewTarget, setReviewTarget] = useState<string | undefined>();
+  const [triageError, setTriageError] = useState<string | null>(null);
   const [groupSuccessMsg, setGroupSuccessMsg] = useState<string | null>(null);
-  const [aiCluster, setAiCluster] = useState<{
-    title: string;
-    description: string;
-    commentIds: string[];
-    suggestedCaseId: string;
-    suggestedCaseTitle: string;
-    similarityScore: number;
-    location: string;
-    problem: string;
-  } | null>(null);
-
-  // Modal de Validación Anti-Duplicados (Human-in-the-loop)
-  const [duplicateModalData, setDuplicateModalData] = useState<{
-    commentIds: string[];
-    matchedCaseId: string;
-    matchedCaseTitle: string;
-    similarity: number;
-    location: string;
-    problem: string;
-  } | null>(null);
-
   const [viewMode, setViewMode] = useState<'card' | 'compact' | 'list' | 'table'>('card');
   const [search, setSearch] = useState('');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterSource, setFilterSource] = useState<string>('all');
+  const [filterProvenance, setFilterProvenance] = useState<'all' | 'needs_review' | 'recovered_local'>(() => { const value = searchParams.get('provenance'); return value === 'needs_review' || value === 'recovered_local' ? value : 'all'; });
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
   const [filterPriorityOnly, setFilterPriorityOnly] = useState<boolean>(false);
@@ -298,7 +304,7 @@ export default function CasesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           comment_text: comment.message,
-          user_type: /politiqueros|corruptos|la misma mierda|se roban/i.test(comment.message) ? 'Bot' : 'Negativo'
+            user_type: 'Sin clasificar'
         })
       });
       if (res.ok) {
@@ -322,8 +328,9 @@ export default function CasesPage() {
 
   const handleSyncLive = async () => {
     setIsSyncing(true);
+    setSyncFeedback('Iniciando captura en segundo plano. Puedes seguir consultando la información guardada.');
     try {
-      const syncRes = await API.meta.syncLive();
+      const syncRes = await API.meta.syncLive(job => setSyncFeedback(job.progress.detail || 'Actualización en segundo plano…'));
       const [, , triageRes] = await Promise.allSettled([
         latestPostsLoader.current(),
         activeTab === 'CASES' ? refreshCases() : Promise.resolve(null),
@@ -348,7 +355,7 @@ export default function CasesPage() {
       }, 5500);
     } catch (err) {
       console.error('Error sincronizando con Meta:', err);
-      setSyncFeedback('⚠️ Sincronización Meta completada con réplica de caché local.');
+      setSyncFeedback(err instanceof Error ? err.message : 'No se pudo completar la actualización. Los datos anteriores siguen disponibles.');
       setTimeout(() => {
         setSyncFeedback(null);
       }, 4000);
@@ -357,137 +364,10 @@ export default function CasesPage() {
     }
   };
 
-  const toggleSelectComment = (id: string) => {
-    setSelectedCommentIds(prev => 
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
-
-  // ─── ACCIÓN: Asociar Comentarios a un Caso Existente (Anti-Duplicidad) ───
-  const handleAssociateToCase = (targetCaseId: string, commentIds: string[]) => {
-    if (commentIds.length === 0) return;
-    
-    // Incrementar conteo de comentarios en el caso existente
-    setCasesList(prev => prev.map(c => {
-      if (c.id === targetCaseId) {
-        const currentCount = typeof c.comments_count === 'number' ? c.comments_count : parseInt(c.comments_count || '1', 10);
-        return {
-          ...c,
-          comments_count: currentCount + commentIds.length,
-          internal_notes: c.internal_notes 
-            ? `${c.internal_notes}\n[${new Date().toLocaleDateString('es-CO')}] [Operador]: Se asociaron ${commentIds.length} comentarios adicionales de Meta a esta problemática.`
-            : `[${new Date().toLocaleDateString('es-CO')}] [Operador]: Se asociaron ${commentIds.length} comentarios de Meta.`
-        };
-      }
-      return c;
-    }));
-
-    // Remover comentarios asociados de la bandeja entrante
-    setRawComments(prev => prev.filter(c => !commentIds.includes(c.id)));
-    setSelectedCommentIds([]);
-    if (aiCluster && aiCluster.commentIds.every(id => commentIds.includes(id))) {
-      setAiCluster(null);
-    }
-    setDuplicateModalData(null);
-
-    setGroupSuccessMsg(`🔗 ¡${commentIds.length} comentarios asociados exitosamente al caso institucional ${targetCaseId}! Se consolidó la necesidad territorial sin duplicar expedientes.`);
-    setTimeout(() => {
-      setGroupSuccessMsg(null);
-      setActiveTab('CASES');
-    }, 2800);
-  };
-
-  // ─── ACCIÓN: Auto-Despacho Masivo de Excepciones con IA (1 Clic) ───
-  const handleAutoDispatchAll = () => {
-    if (rawComments.length === 0) return;
-    const count = rawComments.length;
-
-    // 1. Asociar Limonar al caso CIV-2026-0184
-    const limonarIds = ['COMM-101', 'COMM-102', 'COMM-103'];
-    handleAssociateToCase('CIV-2026-0184', limonarIds);
-
-    // 2. Asociar Ipanema y Las Granjas a casos existentes
-    handleAssociateToCase('CASO-008', ['COMM-104']);
-    handleAssociateToCase('CASO-001', ['COMM-105']);
-
-    setRawComments([]);
-    setSelectedCommentIds([]);
-    setAiCluster(null);
-
-    setGroupSuccessMsg(`⚡ ¡Auto-Despacho Autónomo IA Exitoso! ${count} interacciones clasificadas y radicadas institucionalmente en 0.8s. 0 pendientes.`);
-    setTimeout(() => {
-      setGroupSuccessMsg(null);
-      setActiveTab('CASES');
-    }, 3200);
-  };
-
-  // ─── VALIDACIÓN: Chequear si existe caso similar antes de crear nuevo ───
-  const handleInitiateGroup = (idsToGroup: string[]) => {
-    if (idsToGroup.length === 0) return;
-
-    // Analizar si los comentarios coinciden con algún caso abierto
-    const commentsToExamine = rawComments.filter(c => idsToGroup.includes(c.id));
-    const matchWithOpenCase = commentsToExamine.find(c => Boolean(c.possibleCaseMatch));
-
-    if (matchWithOpenCase && matchWithOpenCase.possibleCaseMatch) {
-      // Activar modal de validación anti-duplicación
-      setDuplicateModalData({
-        commentIds: idsToGroup,
-        matchedCaseId: matchWithOpenCase.possibleCaseMatch,
-        matchedCaseTitle: matchWithOpenCase.caseMatchTitle || 'Caso Abierto Existente',
-        similarity: matchWithOpenCase.similarityPercent || 88,
-        location: matchWithOpenCase.detectedLocation,
-        problem: matchWithOpenCase.detectedProblem,
-      });
-    } else {
-      // No hay coincidencia previa: crear caso directamente
-      handleConfirmCreateIndependentCase(idsToGroup);
-    }
-  };
-
-  // ─── ACCIÓN: Crear Nuevo Caso CIVIA Consolidado ───
-  const handleConfirmCreateIndependentCase = (idsToGroup: string[]) => {
-    if (idsToGroup.length === 0) return;
-    const newCaseId = `CIV-2026-${String(casesList.length + 1).padStart(4, '0')}`;
-    const newRadicado = `RAD-INF-2026-${String(casesList.length + 420).padStart(4, '0')}`;
-    const firstComment = rawComments.find(c => idsToGroup.includes(c.id));
-    
-    const newCase = {
-      id: newCaseId,
-      institutional_radicado: newRadicado,
-      source: 'Facebook / Instagram',
-      author: `@${idsToGroup.length}_ciudadanos_neiva`,
-      priority: 'Alta',
-      title: firstComment ? `${firstComment.detectedProblem} – ${firstComment.detectedLocation}` : 'Problemática Ciudadana Consolidada',
-      content: `Consolidación de ${idsToGroup.length} interacciones ciudadanas detectadas en Facebook e Instagram sobre: ${firstComment?.detectedProblem || 'Problemática barrial'} en ${firstComment?.detectedLocation || 'Neiva'} (${firstComment?.referenceStreet || ''}).`,
-      category: firstComment?.detectedCategory || 'Infraestructura',
-      sentiment: 'Indignación',
-      location: firstComment?.detectedLocation || 'Neiva',
-      dateTime: 'Justo ahora',
-      mediaType: 'image',
-      imageUrl: null,
-      impact_if_solved: 'Recupera transitabilidad de vía comunal y previene manifestaciones barriales.',
-      impact_if_ignored: 'Riesgo de bloqueo vecinal o escalamiento del malestar ciudadano en redes sociales.',
-      status: 'Nuevo',
-      assigned_department: 'Secretaría de Infraestructura y Vías',
-      assigned_to: 'Pendiente asignación por Secretario',
-      priority_action: false,
-      comments_count: idsToGroup.length,
-    };
-
-    setCasesList([newCase, ...casesList]);
-    setRawComments(prev => prev.filter(c => !idsToGroup.includes(c.id)));
-    setSelectedCommentIds([]);
-    if (aiCluster && aiCluster.commentIds.every(id => idsToGroup.includes(id))) {
-      setAiCluster(null);
-    }
-    setDuplicateModalData(null);
-
-    setGroupSuccessMsg(`✨ ¡Nuevo Caso CIVIA ${newCaseId} creado con Radicado ${newRadicado} agrupando ${newCase.comments_count} interacciones!`);
-    setTimeout(() => {
-      setGroupSuccessMsg(null);
-      setActiveTab('CASES');
-    }, 2800);
+  const reviewSelection = (ids: string[], mode: 'create' | 'associate') => {
+    const selection = rawComments.filter(comment => ids.includes(comment.id));
+    if (!selection.length) return;
+    setReviewMode(mode); setReviewTarget(undefined); setReviewComments(selection);
   };
 
   const refreshCases = React.useCallback(async (silent = false) => {
@@ -500,7 +380,7 @@ export default function CasesPage() {
     try {
       const params = new URLSearchParams({limit: String(CASE_PAGE_SIZE), skip: String(caseOffset), search,
         priority: filterPriority, category: filterCategory, source: filterSource, status: filterStatus,
-        department: filterDepartment, priority_only: String(filterPriorityOnly)});
+        department: filterDepartment, provenance: filterProvenance, priority_only: String(filterPriorityOnly)});
       const page = await API.cases.getPage(params, { signal: controller.signal });
       if (request !== casesRequest.current || controller.signal.aborted) return;
       setCasesList(current => {
@@ -512,15 +392,15 @@ export default function CasesPage() {
         });
       });
       setMatchedCasesTotal(page.total);
-      if (!search.trim() && [filterPriority, filterCategory, filterSource, filterStatus, filterDepartment].every(value => value === 'all') && !filterPriorityOnly) setCasesTotal(page.total);
+      if (!search.trim() && [filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterProvenance].every(value => value === 'all') && !filterPriorityOnly) setCasesTotal(page.total);
     } catch (error) {
       if (request === casesRequest.current && !controller.signal.aborted) setCasesError(error instanceof Error ? error.message : 'No se pudieron cargar los casos');
     } finally {
       if (request === casesRequest.current && !controller.signal.aborted) setCasesLoading(false);
     }
-  }, [caseOffset, search, filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterPriorityOnly]);
+  }, [caseOffset, search, filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterPriorityOnly, filterProvenance]);
 
-  useEffect(() => { setCaseOffset(0); }, [search, filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterPriorityOnly]);
+  useEffect(() => { setCaseOffset(0); }, [search, filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterPriorityOnly, filterProvenance]);
   useEffect(() => {
     if (activeTab !== 'CASES') return;
     const timer = setTimeout(() => refreshCases(), search ? 250 : 0);
@@ -541,11 +421,16 @@ export default function CasesPage() {
   }, []);
 
   const refreshTriage = React.useCallback(async () => {
+    const request = ++triageRequest.current;
+    setTriageLoading(true);
     try {
       const comments = await API.meta.getTriageComments();
-      if (Array.isArray(comments)) setRawComments(comments);
+      if (request !== triageRequest.current) return;
+      if (Array.isArray(comments)) { setRawComments(comments); setTriageError(null); setSelectedCommentIds(ids => ids.filter(id => comments.some((c: RawCommentItem) => c.id === id))); }
     } catch (error) {
-      console.warn('No se pudieron actualizar los comentarios:', error);
+      if (request === triageRequest.current) setTriageError(error instanceof Error ? error.message : 'No se pudieron cargar los comentarios');
+    } finally {
+      if (request === triageRequest.current) setTriageLoading(false);
     }
   }, []);
 
@@ -614,6 +499,7 @@ export default function CasesPage() {
     if (!selectedPost) return [];
     const base: any[] = Array.isArray(selectedPost.raw_comments) ? selectedPost.raw_comments.map((comment: Record<string, unknown>) => ({
       ...comment,
+      conversation_analysis: selectedPost.conversation_analysis?.[String(comment.id)],
       message: comment.message || comment.content || '',
       time: comment.time || comment.published_at,
     })) : [];
@@ -660,19 +546,21 @@ export default function CasesPage() {
     return drawerRawComments.filter((rc: any) => {
       const isCase = Boolean(rc.case_id);
 
-      const isBot = rc.is_bot || /la misma mierda|politiqueros|corruptos|circo|inútiles|se roban/i.test(rc.message);
-      const isPositive = /gracias|excelente|adelante|buena gestión|apoyo|felicitaciones/i.test(rc.message);
+      const isBot = rc.is_bot === true;
+      const analysis = rc.conversation_analysis;
+      const hasStance = analysis?.status === 'analyzed' && !analysis.needs_review;
 
       if (drawerCommentFilter === 'cases_only') return isCase;
       if (drawerCommentFilter === 'general_only') return !isCase;
       if (drawerCommentFilter === 'bots_only') return isBot;
-      if (drawerCommentFilter === 'positive_only') return isPositive && !isBot;
-      if (drawerCommentFilter === 'critics_only') return !isPositive && !isBot;
+      if (drawerCommentFilter === 'positive_only') return hasStance && analysis.stance === 'support';
+      if (drawerCommentFilter === 'critics_only') return hasStance && analysis.stance === 'criticism';
       return true;
     });
   }, [drawerRawComments, selectedPost, drawerCommentFilter]);
 
   const handleResetFilters = () => {
+    setFilterProvenance('all');
     setSearch('');
     setFilterPriority('all');
     setFilterCategory('all');
@@ -689,7 +577,7 @@ export default function CasesPage() {
     filterSource !== 'all' || 
     filterStatus !== 'all' || 
     filterDepartment !== 'all' || 
-    filterPriorityOnly;
+    filterPriorityOnly || filterProvenance !== 'all';
 
   const getPriorityBadge = (priority: string) => {
     if (priority === 'Alta') return 'badge-alta';
@@ -707,8 +595,8 @@ export default function CasesPage() {
     <div className="page">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>Gestión de Interacciones y Casos Ciudadanos</h1>
-          <p style={{ margin: '4px 0 10px', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Transformación y triaje de comentarios de Facebook e Instagram en radicados comunales de Neiva</p>
+          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>Gestión de casos</h1>
+          <p style={{ margin: '6px 0 12px', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Revisa lo que llega de redes, atiende solicitudes y consulta su seguimiento.</p>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.74rem', flexWrap: 'wrap' }}>
             <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Canales de Escucha:</span>
@@ -718,7 +606,7 @@ export default function CasesPage() {
             </span>
             <span className="badge-tag" style={{ background: 'rgba(16, 185, 129, 0.12)', color: 'var(--emerald-600)', border: '1px solid rgba(16, 185, 129, 0.25)', fontSize: '0.68rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }} />
-              Auto-Sync en Vivo (cada 45s) • {lastAutoSync}
+              Vista actualizada cada 45 s • {lastAutoSync}
             </span>
           </div>
         </div>
@@ -760,32 +648,43 @@ export default function CasesPage() {
       )}
 
       {/* Tabs Principales de la Bandeja */}
-      <div className={styles['view-tabs']}>
+      <div className={styles['view-tabs']} role="group" aria-label="Qué quieres revisar">
         <button
           type="button"
           className={[styles['view-tab-btn'], activeTab === 'POSTS' ? styles.active : ''].join(' ')}
           onClick={() => setActiveTab('POSTS')}
+          aria-pressed={activeTab === 'POSTS'}
         >
           <Layers size={16} />
-          <span>Publicaciones & Casos por Post ({postsTotal})</span>
-        </button>
-        <button
-          type="button"
-          className={[styles['view-tab-btn'], activeTab === 'CASES' ? styles.active : ''].join(' ')}
-          onClick={() => setActiveTab('CASES')}
-        >
-          <FolderOpen size={16} />
-          <span>Casos Consolidados ({casesTotal})</span>
+          <span>Publicaciones ({postsTotal})</span>
         </button>
         <button
           type="button"
           className={[styles['view-tab-btn'], activeTab === 'COMMENTS' ? styles.active : ''].join(' ')}
           onClick={() => setActiveTab('COMMENTS')}
+          aria-pressed={activeTab === 'COMMENTS'}
         >
           <Bot size={16} />
-          <span>Supervisión de Triaje IA & Excepciones ({rawComments.length})</span>
+          <span>Revisar comentarios ({rawComments.length} cargados)</span>
+        </button>
+        <button
+          type="button"
+          className={[styles['view-tab-btn'], activeTab === 'CASES' ? styles.active : ''].join(' ')}
+          onClick={() => setActiveTab('CASES')}
+          aria-pressed={activeTab === 'CASES'}
+        >
+          <FolderOpen size={16} />
+          <span>Casos y seguimiento ({casesTotal})</span>
         </button>
       </div>
+
+      {activeTab !== 'COMMENTS' && (
+      <div className="section-help">
+        <div><strong>{activeTab === 'POSTS' ? 'Abre una publicación para ver sus comentarios' : activeTab === 'CASES' ? 'Selecciona un caso para atenderlo' : 'Revisa los comentarios que necesitan una decisión'}</strong>
+          <p>{activeTab === 'POSTS' ? 'Cada tarjeta corresponde a una publicación. Dentro encontrarás todos los comentarios y las solicitudes vinculadas.' : activeTab === 'CASES' ? 'Usa los filtros de estado o prioridad. En el detalle puedes asignar la dependencia y registrar avances.' : 'Comprueba el problema detectado antes de vincular un comentario a un caso o crear una solicitud.'}</p></div>
+        <Link href="/opinion">Ver apoyos y críticas a Johan <ArrowUpRight size={17} /></Link>
+      </div>
+      )}
 
       {groupSuccessMsg && (
         <div style={{
@@ -795,9 +694,15 @@ export default function CasesPage() {
           color: 'var(--emerald-600)', marginBottom: '1.25rem', fontSize: '0.875rem', fontWeight: 600
         }}>
           <CheckCircle2 size={18} />
-          <span>{groupSuccessMsg}</span>
+          <span>{groupSuccessMsg}</span>{savedCaseId && <Link href={`/cases/${savedCaseId}`} style={{ marginLeft: 'auto', color: 'var(--text-link)' }}>Abrir caso y continuar <ArrowUpRight size={14} /></Link>}
         </div>
       )}
+
+      {reviewComments && <TriageReviewModal comments={reviewComments} initialTarget={reviewTarget} initialMode={reviewMode} onClose={() => setReviewComments(null)} onSaved={result => {
+        setReviewComments(null); setSelectedCommentIds([]); setSavedCaseId(result.case_id);
+        setGroupSuccessMsg(`Caso ${result.case_id}: ${result.created ? 'creado' : 'actualizado'}. ${result.linked} comentarios nuevos vinculados.`);
+        refreshTriage(); refreshCases();
+      }} />}
 
       {/* VISTA 1: PUBLICACIONES META Y SUS CASOS ASOCIADOS */}
       {activeTab === 'POSTS' && (
@@ -1013,6 +918,12 @@ export default function CasesPage() {
             />
           </div>
 
+          <div className={[styles['filter-dropdown-wrap'], filterProvenance !== 'all' ? styles.active : ''].join(' ')}>
+            <ShieldAlert size={14} className={styles['dropdown-icon']} />
+            <select aria-label="Filtrar por procedencia" value={filterProvenance} onChange={event => setFilterProvenance(event.target.value as 'all' | 'needs_review' | 'recovered_local')}>
+              <option value="all">Procedencia: Todas</option><option value="needs_review">Origen pendiente de verificar</option><option value="recovered_local">Origen recuperado de captura</option>
+            </select>
+          </div>
           {/* Dropdown de Prioridad */}
           <div className={[styles['filter-dropdown-wrap'], filterPriority !== 'all' ? styles.active : ''].join(' ')}>
             <Filter size={14} className={styles['dropdown-icon']} />
@@ -1141,7 +1052,7 @@ export default function CasesPage() {
         </div>
       </div>
 
-      {casesError && <div role="alert" style={{ padding: 16, color: '#f87171' }}>{casesError} <button type="button" className="btn-ghost" onClick={() => refreshCases()}>Reintentar</button></div>}
+      {casesError && <div role="alert" style={{ padding: 16, color: 'var(--red-600)' }}>{casesError} <button type="button" className="btn-ghost" onClick={() => refreshCases()}>Reintentar</button></div>}
       {casesLoading && <p role="status">Cargando casos...</p>}
       {!casesLoading && !casesError && matchedCasesTotal === 0 && <p>No se encontraron casos con estos filtros.</p>}
       <div aria-busy={casesLoading} style={{ opacity: casesLoading ? 0.55 : 1 }}>
@@ -1165,45 +1076,32 @@ export default function CasesPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
                       <span className={styles['post-id']}>{c.id}</span>
                       <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: 'var(--bg-muted)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                        {c.institutional_radicado ? `Rad: ${c.institutional_radicado}` : 'Radicado: Pendiente'}
+                        {c.institutional_radicado ? `Rad: ${c.institutional_radicado}` : 'Sin radicado externo'}
                       </span>
                     </div>
                   </div>
 
-                  {/* Contexto de la Noticia / Post de Origen */}
-                  {c.post_title && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: 'rgba(59, 130, 246, 0.08)',
-                      padding: '6px 10px',
-                      borderRadius: 'var(--radius-md)',
-                      fontSize: '0.75rem',
-                      color: 'var(--blue-600)',
-                      fontWeight: 600,
-                      border: '1px solid rgba(59, 130, 246, 0.2)',
-                      width: '100%',
-                    }}>
-                      <span>📰 <strong>Post:</strong> {c.post_title.slice(0, 75)}...</span>
+                  <CaseProvenanceNote status={c.provenance_status} reason={c.provenance_reason} />
+                  <div className={styles['source-context']}>
+                    <span className={styles['source-context-label']}>PUBLICACIÓN DONDE SE COMENTÓ</span>
+                    {c.post_title ? <>
+                      <strong>{c.post_title}</strong>
+                      {c.post_message && c.post_message !== c.post_title && <p>{c.post_message}</p>}
+                      {c.post_permalink_url && <a href={c.post_permalink_url} target="_blank" rel="noopener noreferrer">Abrir publicación original <ExternalLink size={13} /></a>}
+                    </> : <p className={styles['source-warning']}>{c.post_id ? 'Solo hay una referencia histórica; falta recuperar la publicación original. Este origen aún no está verificado.' : 'Este registro no tiene una referencia de publicación verificable. Requiere auditar su procedencia.'}</p>}
+                    {!c.comment_id && <p className={styles['source-warning']}>No hay un identificador individual de comentario registrado. El texto no debe considerarse verificado solo por aparecer aquí.</p>}
+                  </div>
+
+                  {c.imageUrl ? (
+                    <div className={styles['media-thumb']}><CaseCover src={c.thumbnailUrl || c.imageUrl} title={c.post_title || c.title} /></div>
+                  ) : (
+                    <div className={styles['source-unavailable']}>
+                      <Info size={17} aria-hidden="true" />
+                      <div><strong>Sin imagen de origen disponible</strong><p>{c.post_id && !c.post_title ? 'La publicación de origen no está guardada en CIVIA. Se conserva el comentario capturado.' : 'No hay una imagen original guardada para este caso. Puedes revisar el comentario y su seguimiento.'}</p></div>
                     </div>
                   )}
 
-                  {/* Previsualización Multimedia del Post (Foto o Video) */}
-                  {(
-                    <div className={styles['media-thumb']}>
-                      <CaseCover src={c.thumbnailUrl || c.imageUrl} title={c.post_title || c.title} />
-                      {c.mediaType === 'video' && (
-                        <div className={styles['media-play']}>
-                          <span><Video size={20} /></span>
-                        </div>
-                      )}
-                      <div className={styles['media-label']}>
-                        {c.mediaType === 'video' ? '🎥 VIDEO DEL POST' : '📷 IMAGEN DEL POST'}
-                      </div>
-                    </div>
-                  )}
-
+                  <span className={styles['source-context-label']}>TÍTULO REGISTRADO DEL CASO</span>
                   <h3 className={styles['post-title']}>{c.title}</h3>
 
                   <div style={{
@@ -1214,11 +1112,12 @@ export default function CasesPage() {
                     width: '100%'
                   }}>
                     <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      💬 Comentario del ciudadano
+                      💬 Texto registrado del comentario
                     </span>
                     <p className={styles['post-content']} style={{ margin: '3px 0 0', fontStyle: 'italic', color: 'var(--text-primary)' }}>
                       "{c.content}"
                     </p>
+                    {c.comment_url && <a href={c.comment_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-link)', fontSize: '.8rem' }}>Ver comentario en Facebook <ExternalLink size={13} /></a>}
                   </div>
                 </div>
 
@@ -1271,27 +1170,19 @@ export default function CasesPage() {
                       })()}
                     </div>
 
-                    <div className={styles['impact-box']}>
-                      <div className={styles['impact-title']}>Proyección de Impacto Político</div>
-                      <div className={[styles['impact-row'], styles['impact-solved']].join(' ')}>
-                        <CheckCircle2 size={16} />
-                        <div>
-                          <span className={styles['impact-label']}>Si se resuelve: </span>
-                          <span className={styles['impact-text']}>{c.impact_if_solved}</span>
-                        </div>
-                      </div>
-                      <div className={[styles['impact-row'], styles['impact-ignore']].join(' ')}>
-                        <AlertCircle size={16} />
-                        <div>
-                          <span className={styles['impact-label']}>Si se ignora: </span>
-                          <span className={styles['impact-text']}>{c.impact_if_ignored}</span>
-                        </div>
-                      </div>
+                    <div className={styles['attention-summary']}>
+                      <h4>Seguimiento del caso</h4>
+                      <dl><div><dt>Responsable</dt><dd>{c.assigned_to || 'Sin asignar'}</dd></div><div><dt>Entidad o equipo registrado</dt><dd>{c.assigned_department || 'Sin asignar'}</dd></div></dl>
+                      <p><strong>Siguiente paso: </strong>{c.status === 'Resuelto' ? 'Consulta la solución y el historial en el detalle.' : c.status === 'No requiere gestión' ? 'Consulta el registro del comentario y la decisión tomada.' : !c.assigned_to ? 'Revisa si el comentario contiene una solicitud real. Si necesita atención, asigna una persona responsable.' : 'Abre el caso para registrar avances y documentar su atención.'}</p>
                     </div>
+                    {(c.impact_if_solved || c.impact_if_ignored) && <div className={styles['impact-box']}>
+                      <div className={styles['impact-title']}>Evaluación registrada, por verificar</div>
+                      {c.impact_if_solved && <p>{c.impact_if_solved}</p>}
+                      {c.impact_if_ignored && <p>{c.impact_if_ignored}</p>}
+                    </div>}
                   </div>
 
                   <div className={styles['case-actions']}>
-                    <button className="btn-ghost">Descartar</button>
                     <Link prefetch={false} href={'/cases/' + c.id} className="btn-primary">
                       Abrir Caso <ArrowUpRight size={16} />
                     </Link>
@@ -1314,7 +1205,7 @@ export default function CasesPage() {
               )}
               <div style={{ width: '100%' }}>
                 <div className={styles['compact-meta']}>{c.id} • 🕒 {c.dateTime} • {c.source}</div>
-                <h3 className={styles['compact-title']}>{c.title}</h3>
+                <h3 className={styles['compact-title']}>{c.title}</h3><CaseProvenanceNote status={c.provenance_status} reason={c.provenance_reason} />
                 <p className={styles['compact-text']}>{c.content}</p>
                 <div className={styles.tags} style={{ marginTop: '8px' }}>
                   <span className={getPriorityBadge(c.priority)}>{c.priority}</span>
@@ -1370,7 +1261,7 @@ export default function CasesPage() {
                     <span className="badge-tag">🏢 {c.assigned_department}</span>
                   )}
                 </div>
-                <div className={styles['list-title']}>{c.title}</div>
+                <div className={styles['list-title']}>{c.title}</div><CaseProvenanceNote status={c.provenance_status} reason={c.provenance_reason} />
                 <div className={styles['list-sub']}>{c.id} • {c.author} • 🕒 {c.dateTime}</div>
               </div>
               <Link prefetch={false} href={'/cases/' + c.id} className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.8125rem' }}>
@@ -1406,7 +1297,7 @@ export default function CasesPage() {
                     )}
                   </td>
                   <td>
-                    <div className={styles['table-title']}>{c.title}</div>
+                    <div className={styles['table-title']}>{c.title}</div>{c.provenance_status && <small>{c.provenance_status === 'needs_review' ? 'Origen pendiente de verificar' : 'Origen recuperado de captura'}</small>}
                     <div className={styles['table-sub']}>{c.author} • {c.location} • 🕒 {c.dateTime}</div>
                   </td>
                   <td>
@@ -1436,293 +1327,8 @@ export default function CasesPage() {
         </>
       )}
 
-      {/* VISTA DE BANDEJA DE COMENTARIOS META (OPERADOR) */}
-      {activeTab === 'COMMENTS' && (
-        <div className={styles['comments-workbench']}>
-          {/* BANNER 1: SUGERENCIA PROACTIVA DE AGRUPACIÓN POR IA */}
-          {aiCluster && (
-            <div className={styles['ai-cluster-banner']}>
-              <div>
-                <div className={styles['cluster-title']}>
-                  <Sparkles size={18} style={{ color: 'var(--blue-600)' }} />
-                  <span>Sugerencia Automática de Agrupación por IA (Motor NLP Neiva)</span>
-                  <span className="badge-tag" style={{ background: 'rgba(59, 130, 246, 0.12)', color: 'var(--blue-600)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-                    {aiCluster.commentIds.length} interacciones detectadas
-                  </span>
-                </div>
-                <p className={styles['cluster-desc']}>
-                  Patrón común detectado: <strong>{aiCluster.title}</strong> en <strong>{aiCluster.location}</strong>.
-                  Coincidencia del <strong>{aiCluster.similarityScore}%</strong> con el caso institucional abierto <strong>{aiCluster.suggestedCaseId}</strong>.
-                </p>
-              </div>
-
-              <div className={styles['cluster-actions']}>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => handleAssociateToCase(aiCluster.suggestedCaseId, aiCluster.commentIds)}
-                  style={{ padding: '8px 14px', fontSize: '0.8125rem' }}
-                >
-                  <LinkIcon size={14} />
-                  <span>Asociar a {aiCluster.suggestedCaseId} ({aiCluster.similarityScore}%)</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => handleInitiateGroup(aiCluster.commentIds)}
-                  style={{ padding: '8px 14px', fontSize: '0.8125rem' }}
-                >
-                  <PlusCircle size={14} />
-                  <span>Crear Nuevo Caso CIVIA</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  onClick={() => setAiCluster(null)}
-                  style={{ padding: '6px 8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}
-                  title="Descartar sugerencia"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* BARRA DE CONTROL DE LA MESA DE SUPERVISIÓN IA */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'var(--bg-muted)', padding: '14px 18px', borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--border)', flexWrap: 'wrap', gap: '12px'
-          }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Bot size={18} style={{ color: 'var(--emerald-600)' }} />
-                <span>Supervisión de Triaje IA & Excepciones (Human-in-the-Loop)</span>
-                <span className="badge-tag" style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--emerald-600)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-                  🟢 98.7% Despachado Automáticamente
-                </span>
-              </div>
-              <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Solo el <strong>1.3% de comentarios</strong> con ambigüedad semántica o dirección imprecisa requieren validación de supervisor. El resto se radica y despacha en tiempo real.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleAutoDispatchAll}
-                disabled={rawComments.length === 0}
-                style={{ 
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
-                  border: 'none', 
-                  padding: '9px 18px', 
-                  fontSize: '0.8125rem', 
-                  fontWeight: 700, 
-                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)' 
-                }}
-                title="Despachar y radicar automáticamente todas las excepciones pendientes con OpenAI GPT-4o"
-              >
-                <Zap size={15} />
-                <span>⚡ Auto-Despachar Todo con IA (1 Clic)</span>
-              </button>
-
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => handleInitiateGroup(selectedCommentIds)}
-                disabled={selectedCommentIds.length === 0}
-                style={{ padding: '8px 14px', fontSize: '0.8125rem' }}
-              >
-                <Layers size={15} />
-                <span>Agrupar Selección ({selectedCommentIds.length})</span>
-              </button>
-            </div>
-          </div>
-
-          {/* LISTADO DE COMENTARIOS CON ANÁLISIS AMPLIADO DE IA */}
-          {rawComments.length === 0 ? (
-            <div className={styles['empty-state']}>
-              <CheckCircle2 size={44} style={{ color: 'var(--emerald-600)', margin: '0 auto 12px' }} />
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>¡Mesa de Control 100% al Día y Automatizada!</h3>
-              <p style={{ maxWidth: '520px', margin: '0 auto', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                No hay excepciones pendientes de triaje. Toda la conversación de Meta en Neiva ha sido procesada, clasificada y radicada automáticamente por la IA en sus respectivas dependencias municipales.
-              </p>
-            </div>
-          ) : (
-            rawComments.map(comm => {
-              const isSelected = selectedCommentIds.includes(comm.id);
-              return (
-                <div 
-                  key={comm.id} 
-                  className={[styles['comment-card'], isSelected ? styles.selected : ''].join(' ')}
-                  onClick={() => toggleSelectComment(comm.id)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className={styles['comment-header']}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={isSelected}
-                        onChange={() => {}}
-                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-                      />
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.875rem' }}>{comm.author}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• {comm.source}</span>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{comm.dateTime}</span>
-                  </div>
-
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                    Origen: {comm.postTitle}
-                  </div>
-
-                  <div className={styles['comment-content']}>
-                    "{comm.content}"
-                  </div>
-
-                  {/* DESGLOSE DETALLADO DE ANÁLISIS DE IA (CIVIA NLP) */}
-                  <div className={styles['ai-meta-grid']}>
-                    <div className={styles['ai-meta-item']}>
-                      <span>Tema / Entidad</span>
-                      <span>{comm.detectedTopic}</span>
-                    </div>
-                    <div className={styles['ai-meta-item']}>
-                      <span>Problema Específico</span>
-                      <span>{comm.detectedProblem}</span>
-                    </div>
-                    <div className={styles['ai-meta-item']}>
-                      <span>Ubicación y Referencia</span>
-                      <span>{comm.detectedLocation} • {comm.referenceStreet}</span>
-                    </div>
-                    <div className={styles['ai-meta-item']}>
-                      <span>Seguimiento</span>
-                      <span style={{ color: comm.requiresFollowup ? 'var(--blue-600)' : 'var(--text-secondary)' }}>
-                        {comm.requiresFollowup ? '✓ Requerido' : 'Opcional'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* PIE DE COMENTARIO: TAGS, COINCIDENCIAS Y POLÍTICA DE CONTACTO */}
-                  <div className={styles['comment-footer']}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span className="badge-tag" style={{ fontSize: '0.72rem' }}>
-                        🎯 {comm.detectedIntent}
-                      </span>
-                      <span className="badge-tag" style={{ fontSize: '0.72rem' }}>
-                        📁 {comm.detectedCategory}
-                      </span>
-                      
-                      {/* Badge y acción rápida de coincidencia con caso existente */}
-                      {comm.possibleCaseMatch && (
-                        <div style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '6px',
-                          background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)',
-                          borderRadius: '999px', padding: '2px 8px', fontSize: '0.7rem'
-                        }}>
-                          <span style={{ color: 'var(--blue-600)', fontWeight: 700 }}>
-                            🔗 Coincide con {comm.possibleCaseMatch} ({comm.similarityPercent}%)
-                          </span>
-                          <button
-                            type="button"
-                            className="btn-primary"
-                            style={{ padding: '1px 6px', fontSize: '0.65rem', borderRadius: '4px' }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAssociateToCase(comm.possibleCaseMatch!, [comm.id]);
-                            }}
-                          >
-                            Asociar
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '0.7rem', color: comm.metaDirectContactAllowed ? 'var(--emerald-600)' : 'var(--text-muted)' }}>
-                        {comm.metaDirectContactAllowed ? '💬 Ventana Meta activa (24h)' : '🔒 Requiere contacto alternativo (políticas Meta)'}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--blue-600)', fontWeight: 600 }}>
-                        <Sparkles size={13} />
-                        <span>{comm.aiConfidence}% IA</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-
-          {/* MODAL DE VALIDACIÓN ANTI-DUPLICADOS (HUMAN-IN-THE-LOOP) */}
-          {duplicateModalData && (
-            <div className={styles['modal-overlay']} onClick={() => setDuplicateModalData(null)}>
-              <div className={styles['modal-card']} onClick={(e) => e.stopPropagation()}>
-                <div className={styles['modal-header']}>
-                  <h3>
-                    <AlertTriangle size={20} style={{ color: 'var(--amber-500)' }} />
-                    <span>Validación Anti-Duplicados de Casos CIVIA</span>
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setDuplicateModalData(null)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                    aria-label="Cerrar modal"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-
-                <div className={styles['modal-body']}>
-                  <p>
-                    La IA analizó los <strong>{duplicateModalData.commentIds.length} comentarios</strong> seleccionados y detectó una coincidencia del <strong>{duplicateModalData.similarity}%</strong> con un caso institucional ya existente y abierto en la misma zona:
-                  </p>
-
-                  <div style={{ padding: '12px 14px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--blue-500)' }}>
-                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
-                      {duplicateModalData.matchedCaseId}: {duplicateModalData.matchedCaseTitle}
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                      📍 Sector: {duplicateModalData.location} • ⚠️ Problema: {duplicateModalData.problem}
-                    </div>
-                  </div>
-
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                    <strong>Regla Central de CIVIA:</strong> Evitar la dispersión de reclamos en tickets duplicados. Al asociar los comentarios, se incrementa el peso de la necesidad y se mantiene una sola trazabilidad institucional.
-                  </p>
-                </div>
-
-                <div className={styles['modal-footer']}>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={() => setDuplicateModalData(null)}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    style={{ border: '1px solid var(--border)', fontSize: '0.8125rem' }}
-                    onClick={() => handleConfirmCreateIndependentCase(duplicateModalData.commentIds)}
-                  >
-                    Crear Nuevo Caso Independiente
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    onClick={() => handleAssociateToCase(duplicateModalData.matchedCaseId, duplicateModalData.commentIds)}
-                  >
-                    <LinkIcon size={14} />
-                    <span>Asociar al Caso {duplicateModalData.matchedCaseId} (Recomendado)</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {activeTab === 'COMMENTS' && <CommentReviewQueue comments={rawComments} selectedIds={selectedCommentIds}
+        loading={triageLoading} error={triageError} onSelect={setSelectedCommentIds} onReview={reviewSelection} onRefresh={refreshTriage} />}
 
       {/* DRAWER / BANDEJA LATERAL DEDICADA PARA EL POST SELECCIONADO */}
       {selectedPost && (
@@ -1750,17 +1356,21 @@ export default function CasesPage() {
                     {selectedPost.title}
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                    {selectedPost.source !== 'Instagram' && <span className={styles['metric-pill']} title="Total de todos los tipos de reacción">
+                      <Heart size={12} />
+                      <strong>{selectedPost.reactions_count == null ? '—' : formatNumber(selectedPost.reactions_count)}</strong> Reacciones
+                    </span>}
                     <span className={styles['metric-pill']} style={{ background: 'rgba(239, 68, 68, 0.08)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.25)' }}>
                       <Heart size={12} />
-                      <strong suppressHydrationWarning>{formatNumber(selectedPost.likes_count ?? 0)}</strong> Likes
+                      <strong suppressHydrationWarning>{selectedPost.likes_count == null ? '—' : formatNumber(selectedPost.likes_count)}</strong> Me gusta
                     </span>
                     <span className={styles['metric-pill']} style={{ background: 'rgba(59, 130, 246, 0.08)', color: '#3b82f6', borderColor: 'rgba(59, 130, 246, 0.25)' }}>
                       <Eye size={12} />
-                      <strong suppressHydrationWarning>{formatNumber(selectedPost.views_count ?? 0)}</strong> Vistas / Alcance
+                      <strong suppressHydrationWarning>{selectedPost.views_count == null ? '—' : formatNumber(selectedPost.views_count)}</strong> Vistas
                     </span>
                     <span className={styles['metric-pill']} style={{ background: 'rgba(139, 92, 246, 0.08)', color: '#8b5cf6', borderColor: 'rgba(139, 92, 246, 0.25)' }}>
                       <Share2 size={12} />
-                      <strong suppressHydrationWarning>{formatNumber(selectedPost.shares_count ?? 0)}</strong> Compartidos
+                      <strong suppressHydrationWarning>{selectedPost.shares_count == null ? '—' : formatNumber(selectedPost.shares_count)}</strong> Compartidos
                     </span>
                     <span className={styles['metric-pill']} style={{ background: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.25)' }}>
                       <MessageSquare size={12} />
@@ -1794,6 +1404,11 @@ export default function CasesPage() {
               <div style={{ padding: '12px 14px', background: 'var(--bg-muted)', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5, border: '1px solid var(--border)' }}>
                 <strong style={{ color: 'var(--text-primary)' }}>Contenido de la Publicación:</strong>
                 <p style={{ margin: '6px 0 0', whiteSpace: 'pre-line' }}>{selectedPost.message}</p>
+                {(selectedPost.source || '').toLowerCase().includes('facebook') && (
+                  <Link href={`/opinion?post=${encodeURIComponent(selectedPost.id)}`} className="btn-secondary" style={{ marginTop: 12 }}>
+                    Ver opinión sobre Johan y contexto
+                  </Link>
+                )}
                 {selectedPost.permalink_url && (
                   <div style={{ marginTop: '8px' }}>
                     <a
@@ -1831,7 +1446,7 @@ export default function CasesPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    background: postDrawerTab === 'CASES' ? 'var(--blue-600)' : 'var(--bg-muted)',
+                    background: postDrawerTab === 'CASES' ? 'var(--action-primary)' : 'var(--bg-muted)',
                     color: postDrawerTab === 'CASES' ? '#fff' : 'var(--text-secondary)',
                     transition: 'all 150ms ease'
                   }}
@@ -1852,7 +1467,7 @@ export default function CasesPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    background: postDrawerTab === 'RAW_COMMENTS' ? 'var(--blue-600)' : 'var(--bg-muted)',
+                    background: postDrawerTab === 'RAW_COMMENTS' ? 'var(--action-primary)' : 'var(--bg-muted)',
                     color: postDrawerTab === 'RAW_COMMENTS' ? '#fff' : 'var(--text-secondary)',
                     transition: 'all 150ms ease'
                   }}
@@ -1933,6 +1548,8 @@ export default function CasesPage() {
                             "{c.content}"
                           </div>
 
+                          {(selectedPost.source || '').toLowerCase().includes('facebook') && <ConversationBadge analysis={selectedPost.conversation_analysis?.[c.comment_id]} />}
+
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', flexWrap: 'wrap', gap: '6px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                               <CommentAuthor name={c.author} pictureUrl={c.author_picture_url} protectedProfile={c.author_is_protected} source={selectedPost.source} />
@@ -1993,7 +1610,7 @@ export default function CasesPage() {
                           fontWeight: 700,
                           cursor: 'pointer',
                           border: '1px solid var(--border)',
-                          background: drawerCommentFilter === 'all' ? 'var(--blue-600)' : 'var(--bg-muted)',
+                          background: drawerCommentFilter === 'all' ? 'var(--action-primary)' : 'var(--bg-muted)',
                           color: drawerCommentFilter === 'all' ? '#fff' : 'var(--text-secondary)'
                         }}
                       >
@@ -2009,7 +1626,7 @@ export default function CasesPage() {
                           fontWeight: 700,
                           cursor: 'pointer',
                           border: '1px solid var(--border)',
-                          background: drawerCommentFilter === 'cases_only' ? 'var(--blue-600)' : 'var(--bg-muted)',
+                          background: drawerCommentFilter === 'cases_only' ? 'var(--action-primary)' : 'var(--bg-muted)',
                           color: drawerCommentFilter === 'cases_only' ? '#fff' : 'var(--text-secondary)'
                         }}
                       >
@@ -2025,7 +1642,7 @@ export default function CasesPage() {
                           fontWeight: 700,
                           cursor: 'pointer',
                           border: '1px solid var(--border)',
-                          background: drawerCommentFilter === 'general_only' ? 'var(--blue-600)' : 'var(--bg-muted)',
+                          background: drawerCommentFilter === 'general_only' ? 'var(--action-primary)' : 'var(--bg-muted)',
                           color: drawerCommentFilter === 'general_only' ? '#fff' : 'var(--text-secondary)'
                         }}
                       >
@@ -2045,7 +1662,7 @@ export default function CasesPage() {
                           color: drawerCommentFilter === 'positive_only' ? '#fff' : 'var(--text-secondary)'
                         }}
                       >
-                        🟢 Positivos
+                        🟢 A favor de Johan
                       </button>
                       <button
                         type="button"
@@ -2061,7 +1678,7 @@ export default function CasesPage() {
                           color: drawerCommentFilter === 'critics_only' ? '#fff' : 'var(--text-secondary)'
                         }}
                       >
-                        🔴 Críticos
+                        🔴 Críticas a Johan
                       </button>
                       <button
                         type="button"
@@ -2097,7 +1714,7 @@ export default function CasesPage() {
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {filteredDrawerComments.slice(0, visibleCommentCount).map((rc: any, idx: number) => {
-                        const isBot = rc.is_bot || /la misma mierda|politiqueros|corruptos|circo|inútiles|se roban/i.test(rc.message);
+                        const isBot = rc.is_bot === true;
                         const matchedCase = drawerCasesById.get(rc.case_id);
                         return (
                           <div
@@ -2150,6 +1767,7 @@ export default function CasesPage() {
                             <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
                               "{rc.message}"
                             </p>
+                            {(selectedPost.source || '').toLowerCase().includes('facebook') && <ConversationBadge analysis={rc.conversation_analysis} />}
 
                             {/* Metadata de Perfil (Seguidores, Seguidos, Creación, Bot) */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', flexWrap: 'wrap', gap: '6px' }}>
@@ -2165,7 +1783,7 @@ export default function CasesPage() {
                                 </span>
                                 {isBot && (
                                   <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.25)', fontWeight: 700 }}>
-                                    🤖 Bot (98%) • Granja / Troll
+                                    🤖 Marcado para revisión de automatización
                                   </span>
                                 )}
                               </div>
@@ -2238,5 +1856,9 @@ export default function CasesPage() {
       )}
     </div>
   );
+}
+
+export default function CasesPage() {
+  return <Suspense fallback={<div className="page" role="status">Cargando publicaciones y casos…</div>}><CasesContent /></Suspense>;
 }
 

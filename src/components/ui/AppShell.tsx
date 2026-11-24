@@ -4,6 +4,8 @@ import React, { useState, useEffect, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import { WorkspaceNavigation } from "./WorkspaceNavigation";
+import { HelpCenter } from "./HelpCenter";
 import { useAuth } from "@/context/AuthContext";
 import styles from "./AppShell.module.scss";
 
@@ -42,11 +44,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isMobile || !mobileMenuOpen) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const sidebar = document.getElementById('civia-sidebar');
+    const focusable = () => Array.from(sidebar?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])') || []).filter(element => element.getClientRects().length > 0);
+    focusable()[0]?.focus();
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMobileMenuOpen(false);
+      if (event.key === 'Tab') {
+        const items = focusable();
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
     };
     document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    return () => { document.removeEventListener('keydown', handleEscape); previousFocus?.focus(); };
   }, [mobileMenuOpen, isMobile]);
 
   // Guardia de Seguridad y Redirección
@@ -95,6 +108,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={styles['app-shell']}>
+      <a href="#main-content" className={styles.skipLink}>Saltar al contenido</a>
       {/* Overlay oscuro para dispositivos móviles / tablets */}
       {isMobile && mobileMenuOpen && (
         <button
@@ -118,10 +132,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (isMobile) setMobileMenuOpen(prev => !prev);
           else setDesktopCollapsed(prev => !prev);
         }} />
-        <main className={styles['app-main']}>
+        <main id="main-content" tabIndex={-1} className={styles['app-main']}>
+          <WorkspaceNavigation />
           {children}
         </main>
       </div>
+      {!(isMobile && mobileMenuOpen) && <HelpCenter />}
     </div>
   );
 }

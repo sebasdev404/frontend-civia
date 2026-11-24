@@ -18,9 +18,15 @@ export interface MonitoredPostSummary {
   permalink_url: string | null;
   total_comments: number;
   cases_count: number;
-  likes_count: number;
-  views_count: number;
-  shares_count: number;
+  likes_count: number | null;
+  reactions_count: number | null;
+  views_count: number | null;
+  views_status?: string;
+  views_detail?: string;
+  shares_count: number | null;
+  metrics_status?: string;
+  metrics_updated_at?: string | null;
+  metrics_detail?: string | null;
 }
 
 export interface MetaPostsPage {
@@ -55,6 +61,13 @@ export interface ConsolidatedCaseSummary {
   comments_count: number;
   post_id: string | null;
   post_title: string | null;
+  post_message: string | null;
+  post_permalink_url: string | null;
+  comment_id: string | null;
+  comment_url: string | null;
+  source_status: 'post_available' | 'post_missing' | 'reference_missing';
+  provenance_status?: 'needs_review' | 'recovered_local' | null;
+  provenance_reason?: string | null;
   impact_if_solved: string | null;
   impact_if_ignored: string | null;
 }
@@ -76,6 +89,65 @@ export interface InstagramConnectionStatus {
   missing_permissions: string[];
   permissions_checked: boolean;
   comments_available: boolean;
+}
+
+export type ConversationStance = 'support' | 'criticism' | 'mixed' | 'neutral' | 'unclear';
+export interface ConversationAnalysis {
+  stance: ConversationStance;
+  emotion: string;
+  target: string;
+  topic: string;
+  narrative: string;
+  explanation: string;
+  confidence: number;
+  needs_review: boolean;
+  status: 'analyzed' | 'pending';
+}
+export interface ConversationComment extends ConversationAnalysis {
+  id: string; post_id: string; post_title: string; post_url: string | null;
+  author: string; content: string; time: string | null; parent: string | null;
+  permalink_url: string | null; context_source: string;
+}
+export interface PublicationContext {
+  summary: string; transcript: string; caption: string; title: string;
+  source: string; ready: boolean; is_video: boolean;
+}
+export interface ConversationOverview {
+  summary: { captured: number; analyzed: number; pending: number; review: number;
+    stances: Partial<Record<ConversationStance, number>>; anger_in_support: number;
+    reported: number; posts_missing_context: number };
+  themes: { topic: string; narrative: string; label: string; count: number }[];
+  posts: { id: string; title: string; month: string | null; captured: number; reported: number;
+    context_ready: boolean; context_source: string; is_video: boolean }[];
+  items: ConversationComment[]; total: number; has_more: boolean; ai_available: boolean;
+}
+
+export interface MetaSyncJob {
+  id: string | null; scope: string | null;
+  status: 'idle' | 'queued' | 'running' | 'success' | 'partial' | 'failed' | 'interrupted';
+  progress: { stage?: string; detail?: string; network?: string; completed?: number; total?: number };
+  result: { status?: string; detail?: string; posts_updated?: number; new_comments_captured?: number; timestamp?: string; instagram_status?: string; instagram_detail?: string; errors?: string[] } | null;
+  error: string | null; created_at?: string; updated_at?: string; already_running?: boolean;
+}
+export interface PublicationSource {
+  id: string; name: string; url: string; status: string; detail: string | null; checked_at: string | null; posts_count: number;
+}
+export interface PublicationSummary {
+  id: string; title: string; message: string | null; source: string; cover_image: string | null; thumbnail_url: string | null;
+  media_type: string | null; published_at: string | null; permalink_url: string | null;
+  total_comments: number | null; likes_count: number | null; reactions_count: number | null; shares_count: number | null;
+  metrics_status: string; metrics_updated_at: string | null;
+}
+export interface PublicationComment {
+  id: string; content: string; author?: string; author_id?: string; author_picture_url?: string; author_is_protected?: boolean;
+  time?: string; likes_count?: number | null; parent_content?: string | null; permalink_url?: string;
+  automation: { status: string; signals: string[]; label: string; explanation: string };
+}
+export interface PublicationDetail extends PublicationSummary {
+  comments: PublicationComment[]; comments_total: number; captured_comments: number; comments_has_more: boolean;
+  identity_note: string; metrics_detail: string;
+  reaction_people: { id: string; name: string | null; type: string | null; identity_verified: boolean }[];
+  reaction_people_total: number; reaction_people_status: string; reaction_people_detail: string; reaction_people_truncated: boolean;
 }
 
 export async function fetcher(endpoint: string, options: RequestInit = {}) {
@@ -102,7 +174,44 @@ function citizenAuthHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+async function waitForSync(job: MetaSyncJob, onProgress?: (job: MetaSyncJob) => void) {
+  let current = job;
+  onProgress?.(current);
+  while (current.id && (current.status === 'queued' || current.status === 'running')) {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    current = await fetcher(`/meta/sync-jobs/${encodeURIComponent(current.id)}`, { headers: citizenAuthHeaders() });
+    onProgress?.(current);
+  }
+  if (current.status === 'failed' || current.status === 'interrupted') throw new Error(current.error || 'La actualización se interrumpió.');
+  return { ...current.result, status: current.status };
+}
+
 export const API = {
+  triage: {
+    consolidate: (payload: { comments: { post_id: string; comment_id: string }[]; target_case_id?: string; title?: string }): Promise<{ case_id: string; created: boolean; linked: number; already_linked: number; comments_count: number }> => fetcher('/triage/consolidate', { method: 'POST', headers: citizenAuthHeaders(), body: JSON.stringify(payload) }),
+  },
+  publications: {
+    sources: (signal?: AbortSignal): Promise<PublicationSource[]> => fetcher('/publications/sources', { headers: citizenAuthHeaders(), signal }),
+    list: (params: URLSearchParams, signal?: AbortSignal): Promise<{ items: PublicationSummary[]; total: number; has_more: boolean }> => fetcher(`/publications?${params}`, { headers: citizenAuthHeaders(), signal }),
+    detail: (sourceId: string, postId: string, params: URLSearchParams, signal?: AbortSignal): Promise<PublicationDetail> => fetcher(`/publications/${encodeURIComponent(sourceId)}/${encodeURIComponent(postId)}?${params}`, { headers: citizenAuthHeaders(), signal }),
+    sync: (sourceId: string): Promise<MetaSyncJob> => fetcher(`/publications/sources/${encodeURIComponent(sourceId)}/sync`, { method: 'POST', headers: citizenAuthHeaders() }),
+    refresh: (sourceId: string, postId: string): Promise<MetaSyncJob> => fetcher(`/publications/${encodeURIComponent(sourceId)}/${encodeURIComponent(postId)}/refresh`, { method: 'POST', headers: citizenAuthHeaders() }),
+    exportComments: async (sourceId: string, postId: string): Promise<Blob> => {
+      const response = await fetch(`${API_BASE_URL}/publications/${encodeURIComponent(sourceId)}/${encodeURIComponent(postId)}/comments.csv`, { headers: citizenAuthHeaders() });
+      if (!response.ok) throw new Error('No se pudieron exportar los comentarios capturados.');
+      return response.blob();
+    },
+  },
+  conversation: {
+    getOverview: (params: URLSearchParams, signal?: AbortSignal): Promise<ConversationOverview> =>
+      fetcher(`/conversation?${params}`, { headers: citizenAuthHeaders(), signal }),
+    getContext: (postId: string, signal?: AbortSignal): Promise<PublicationContext> =>
+      fetcher(`/conversation/posts/${encodeURIComponent(postId)}/context`, { headers: citizenAuthHeaders(), signal }),
+    saveContext: (postId: string, payload: { summary: string; transcript: string }): Promise<PublicationContext> =>
+      fetcher(`/conversation/posts/${encodeURIComponent(postId)}/context`, { method: 'PUT', headers: citizenAuthHeaders(), body: JSON.stringify(payload) }),
+    analyze: (params: URLSearchParams): Promise<{ processed: number; detail: string }> =>
+      fetcher(`/conversation/analyze?${params}`, { method: 'POST', headers: citizenAuthHeaders() }),
+  },
   citizens: {
     getAll: (params: URLSearchParams, signal?: AbortSignal) => fetcher(`/citizens?${params}`, { headers: citizenAuthHeaders(), signal }),
     getById: (id: string) => fetcher(`/citizens/${encodeURIComponent(id)}`, { headers: citizenAuthHeaders() }),
@@ -172,6 +281,7 @@ export const API = {
     },
     getAll: (limit: number = 500) => fetcher(`/cases?limit=${limit}`),
     getById: (id: string) => fetcher(`/cases/${id}`),
+    markNoRequest: (id: string) => fetcher(`/cases/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'No requiere gestión', requires_followup: false }) }),
     dispatch: (id: string, data: { assigned_department: string; assigned_to?: string; note?: string; internal_note?: string }) =>
       fetcher(`/cases/${id}/dispatch`, {
         method: 'POST',
@@ -218,7 +328,7 @@ export const API = {
     getMonths: () => fetcher('/meta/months'),
     getInstagramStatus: (): Promise<InstagramConnectionStatus> => fetcher('/meta/instagram/status'),
     getPost: (postId: string, options: RequestInit = {}) => fetcher(`/meta/posts/${encodeURIComponent(postId)}`, options),
-    getTriageComments: () => fetcher('/meta/triage-comments'),
+    getTriageComments: () => fetcher('/meta/triage-comments', { headers: citizenAuthHeaders() }),
     getPosts: (limit: number = 250, month?: string, search?: string) => {
       const params = new URLSearchParams();
       params.append('limit', limit.toString());
@@ -239,13 +349,16 @@ export const API = {
       }
       return page;
     },
-    syncLive: () => {
+    syncLive: async (onProgress?: (job: MetaSyncJob) => void) => {
       const token = typeof window !== 'undefined' ? localStorage.getItem('civia_token') : null;
-      return fetcher('/meta/sync-live', {
+      const job: MetaSyncJob = await fetcher('/meta/sync-live', {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+      return waitForSync(job, onProgress);
     },
+    getSyncJob: (id: string, signal?: AbortSignal): Promise<MetaSyncJob> => fetcher(`/meta/sync-jobs/${encodeURIComponent(id)}`, { headers: citizenAuthHeaders(), signal }),
+    getSyncStatus: (scope = 'connected', signal?: AbortSignal): Promise<MetaSyncJob> => fetcher(`/meta/sync-status?${new URLSearchParams({ scope })}`, { headers: citizenAuthHeaders(), signal }),
   },
   system: {
     getDiagnostics: () => fetcher('/system/diagnostics'),

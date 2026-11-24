@@ -6,7 +6,7 @@ import type { MonitoredPostSummary } from '@/lib/api/client';
 import styles from '@/app/cases/cases.module.scss';
 
 function formatCompactNumber(num: number | undefined | null): string {
-  if (num === null || num === undefined || isNaN(num)) return '0';
+  if (num === null || num === undefined || isNaN(num)) return '—';
   if (num >= 1_000_000) {
     return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
   }
@@ -94,17 +94,21 @@ export const MonitoredPostCard = memo(function MonitoredPostCard({ post, selecte
 
                     <div className={styles['post-card-stats']}>
                       <div className={styles['metrics-pill-grid']}>
-                        <div className={styles['metric-pill']} title={`Me gusta: ${post.likes_count ?? 0}`}>
+                        {post.source !== 'Instagram' && <div className={styles['metric-pill']} title="Total de todas las reacciones: Me gusta, Me encanta, Me importa y las demás">
+                          <Heart size={12} />
+                          <span><strong>{formatCompactNumber(post.reactions_count)}</strong> Reacciones</span>
+                        </div>}
+                        <div className={styles['metric-pill']} title={`Me gusta: ${post.likes_count ?? 'No disponible'}. Es un tipo de reacción, no el total.`}>
                           <Heart size={12} style={{ color: '#ef4444' }} />
-                          <span><strong suppressHydrationWarning>{formatCompactNumber(post.likes_count ?? 0)}</strong> Likes</span>
+                          <span><strong suppressHydrationWarning>{formatCompactNumber(post.likes_count)}</strong> Me gusta</span>
                         </div>
-                        <div className={styles['metric-pill']} title={`Vistas: ${post.views_count ?? 0}`}>
+                        <div className={styles['metric-pill']} title={post.views_detail || 'Vistas sin captura confirmada'}>
                           <Eye size={12} style={{ color: '#3b82f6' }} />
-                          <span><strong suppressHydrationWarning>{formatCompactNumber(post.views_count ?? 0)}</strong> Vistas</span>
+                          <span><strong suppressHydrationWarning>{formatCompactNumber(post.views_count)}</strong> Vistas{post.views_status === 'historical' ? ' (hist.)' : ''}</span>
                         </div>
-                        <div className={styles['metric-pill']} title={`Compartidos: ${post.shares_count ?? 0}`}>
+                        <div className={styles['metric-pill']} title={`Compartidos: ${post.shares_count ?? 'No disponible'}`}>
                           <Share2 size={12} style={{ color: '#8b5cf6' }} />
-                          <span><strong suppressHydrationWarning>{formatCompactNumber(post.shares_count ?? 0)}</strong> Compartidos</span>
+                          <span><strong suppressHydrationWarning>{formatCompactNumber(post.shares_count)}</strong> Compartidos</span>
                         </div>
                         <div className={styles['metric-pill']} title={`Comentarios totales: ${post.total_comments || 0}`}>
                           <MessageSquare size={12} style={{ color: '#f59e0b' }} />
@@ -112,13 +116,15 @@ export const MonitoredPostCard = memo(function MonitoredPostCard({ post, selecte
                         </div>
                       </div>
 
+                      <small title={post.metrics_detail || undefined} style={{ color: 'var(--text-muted)', fontSize: '.75rem', lineHeight: 1.5 }}>—: dato no disponible{post.metrics_status === 'partial' || post.metrics_status === 'unavailable' ? ' · Algunas métricas no pudieron actualizarse.' : ''}</small>
+
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: '6px', gap: '6px', flexWrap: 'wrap' }}>
                         <span className={post.cases_count > 0 ? "badge-blue" : "badge-baja"} style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', whiteSpace: 'nowrap' }}>
                           📁 {post.cases_count} {post.cases_count === 1 ? 'caso IA' : 'casos IA'}
                         </span>
                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <span style={{ width: 6, height: 6, borderRadius: '50%', background: post.cases_count > 0 ? '#10b981' : '#94a3b8', display: 'inline-block' }} />
-                          {post.cases_count > 0 ? 'Radicado Oficial' : 'Conversación General'}
+                          {post.cases_count > 0 ? 'Casos vinculados' : 'Conversación general'}
                         </span>
                       </div>
                     </div>
@@ -132,7 +138,7 @@ export const MonitoredPostCard = memo(function MonitoredPostCard({ post, selecte
                           flex: 1,
                           minWidth: 0,
                           marginTop: 0,
-                          background: post.cases_count > 0 ? 'var(--blue-600)' : 'var(--bg-muted)',
+                          background: post.cases_count > 0 ? 'var(--action-primary)' : 'var(--bg-muted)',
                           color: post.cases_count > 0 ? '#fff' : 'var(--text-primary)',
                           borderColor: post.cases_count > 0 ? 'var(--blue-600)' : 'var(--border)'
                         }}

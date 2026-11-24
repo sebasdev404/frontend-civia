@@ -146,11 +146,12 @@ export function TopBar({ onToggleMenu, isMenuOpen = true }: TopBarProps) {
             aria-controls="civia-sidebar"
           >
             <Menu size={20} />
+            <span>Menú</span>
           </button>
         )}
         <div className={styles['system-status']}>
           <div className={styles['status-dot']} />
-          <span>CIVIA Intelligence System • Neiva, Huila</span>
+          <span>CIVIA · Neiva</span>
         </div>
       </div>
 

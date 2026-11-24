@@ -55,7 +55,7 @@
   margin-bottom: 2rem;
 
   h1 {
-    font-size: 1.875rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.2;
@@ -64,7 +64,7 @@
   p {
     color: var(--text-secondary);
     margin-top: 0.5rem;
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
   }
 }
 
@@ -104,9 +104,27 @@
 .badge-blue    { @include badge(var(--blue-50),    var(--blue-600)); border: 1px solid var(--blue-100); }
 
 // Botones globales
-.btn-primary   { @include btn-primary; }
-.btn-secondary { @include btn-secondary; }
-.btn-ghost     { @include btn-ghost; }
+.btn-primary   { min-height: 44px; @include btn-primary; }
+.btn-secondary { min-height: 44px; @include btn-secondary; }
+.btn-ghost     { min-height: 44px; @include btn-ghost; }
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--blue-500);
+  outline-offset: 3px;
+}
+
+button:disabled { cursor: not-allowed; }
+.page :where(input:not([type='checkbox']):not([type='radio']), select, textarea) { min-height: 44px; }
+.page :where(th, td) { line-height: 1.6; }
+
+.section-help { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 20px; background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: 10px; margin: 0 0 20px; font-size: .9375rem; color: var(--text-primary);
+  p { margin-top: 4px; color: var(--text-secondary); font-size: .875rem; line-height: 1.6; }
+  a { display: inline-flex; align-items: center; gap: 6px; color: var(--text-link); font-weight: 600; min-height: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
 
 // Leaflet OpenStreetMap Dark Theme (100% Libre, Sin API Key, Sin Marcas de Agua)
 .civia-dark-tiles .leaflet-tile {

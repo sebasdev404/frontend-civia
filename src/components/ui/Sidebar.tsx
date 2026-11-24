@@ -3,9 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Map as MapIcon, FolderOpen, PieChart, Users, Settings, X } from 'lucide-react';
+import { ArrowUpRight, X } from 'lucide-react';
 import styles from './Sidebar.module.scss';
-import { useAuth } from '@/context/AuthContext';
+import { getNavigationItem, navigationItems } from '@/lib/navigation';
 
 interface SidebarProps {
   isMobileOpen?: boolean;
@@ -16,26 +16,16 @@ interface SidebarProps {
 
 export function Sidebar({ isMobileOpen = false, desktopCollapsed = false, isHidden = false, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const role = user?.role || 'ALCALDE';
-
-  // Nombres estandarizados e intuitivos para todos los roles
-  const navItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/cases', label: 'Casos', icon: FolderOpen, badge: role === 'SECRETARIO' ? '5' : '12' },
-    { href: '/map', label: 'Mapa Interactivo', icon: MapIcon },
-    { href: '/analytics', label: 'Análisis', icon: PieChart },
-    { href: '/citizens', label: 'Ciudadanos', icon: Users },
-    { href: '/settings', label: 'Configuración', icon: Settings },
-  ];
+  const activeItem = getNavigationItem(pathname);
+  const groups = [...new Set(navigationItems.map(item => item.group))];
 
   return (
     <aside id="civia-sidebar" aria-label="Navegación principal" aria-hidden={isHidden} inert={isHidden} className={[styles.sidebar, isMobileOpen ? styles['mobile-open'] : '', desktopCollapsed ? styles['desktop-collapsed'] : ''].join(' ').trim()}>
       <div className={styles['sidebar-header']}>
-        <div className={styles['sidebar-logo']}>
+        <Link href="/dashboard" onClick={onClose} className={styles['sidebar-logo']} aria-label="CIVIA, ir al inicio">
           <div className={styles['logo-icon']}>C</div>
-          <span>CIVIA</span>
-        </div>
+          <div><span>CIVIA</span><small>Escucha y gestión ciudadana</small></div>
+        </Link>
         {onClose && (
           <button 
             type="button" 
@@ -48,25 +38,31 @@ export function Sidebar({ isMobileOpen = false, desktopCollapsed = false, isHidd
         )}
       </div>
 
-      <div className={styles['sidebar-nav']}>
-        <div className={styles['sidebar-label']}>PRINCIPAL</div>
-        {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/')) || (item.href === '/dashboard' && pathname === '/');
+      <nav className={styles['sidebar-nav']} aria-label="Secciones de CIVIA">
+        {groups.map(group => <div className={styles.group} key={group}>
+        <div className={styles['sidebar-label']}>{group}</div>
+        {navigationItems.filter(item => item.group === group).map((item) => {
+          const isActive = activeItem?.href === item.href;
           const Icon = item.icon;
           
           return (
             <Link 
               key={item.href} 
               href={item.href}
+              prefetch={false}
               onClick={onClose}
+              aria-current={isActive ? 'page' : undefined}
               className={[styles['nav-link'], isActive ? styles.active : ''].join(' ').trim()}
             >
               <Icon size={20} />
-              <span>{item.label}</span>
-              {item.badge && <span className={styles['nav-badge']}>{item.badge}</span>}
+              <span className={styles.linkText}><strong>{item.label}</strong><small>{item.description}</small></span>
             </Link>
           );
-        })}
+        })}</div>)}
+      </nav>
+      <div className={styles['sidebar-footer']}>
+        <span>¿No sabes por dónde empezar?</span>
+        <Link href="/dashboard#start-here" onClick={onClose}>Ver accesos del inicio <ArrowUpRight size={16} /></Link>
       </div>
     </aside>
   );

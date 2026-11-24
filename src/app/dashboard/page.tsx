@@ -14,6 +14,7 @@ import CategoryChart from '@/components/charts/CategoryChart';
 import { API } from '@/lib/api/client';
 import { useAuth } from '@/context/AuthContext';
 import { ExecutiveReportModal } from '@/components/reports/ExecutiveReportModal';
+import { StartHere } from '@/components/ui/WorkspaceNavigation';
 import { formatNumber } from '@/lib/utils';
 
 interface DashboardCase {
@@ -95,10 +96,10 @@ export default function DashboardPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
             <h1>
-              {role === 'ALCALDE' && 'Dashboard Ejecutivo'}
-              {role === 'SECRETARIO' && 'Dashboard Sectorial'}
-              {role === 'OPERADOR' && 'Bandeja Operativa de Monitoreo'}
-              {role === 'ADMIN' && 'Dashboard Técnico & Gobernanza'}
+              {role === 'ALCALDE' && 'Inicio · Resumen general'}
+              {role === 'SECRETARIO' && 'Inicio · Atención de mi dependencia'}
+              {role === 'OPERADOR' && 'Inicio · Gestión ciudadana'}
+              {role === 'ADMIN' && 'Inicio · Administración'}
             </h1>
             <span className={styles['role-badge-pill']}>
               {role === 'ALCALDE' && '👑 Alcalde: Johan Steed'}
@@ -145,16 +146,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <StartHere />
+
       {/* ─── BARRA DE ACCIONES RÁPIDAS PARA OPERADOR / SECRETARIO / ADMIN ─── */}
       {role === 'OPERADOR' && (
         <div className={styles['quick-action-bar']}>
-          <Link href="/cases" className={styles['quick-btn']}>
+          <Link href="/cases?view=review" className={styles['quick-btn']}>
             <Sparkles size={16} style={{ color: 'var(--emerald-600)' }} />
-            <span>Mesa de Supervisión IA (Piloto Automático)</span>
+            <span>Revisar clasificación de comentarios</span>
           </Link>
-          <Link href="/cases" className={styles['quick-btn']}>
+          <Link href="/cases?view=posts" className={styles['quick-btn']}>
             <Radio size={16} style={{ color: 'var(--blue-600)' }} />
-            <span>Sincronización en Vivo Meta (Graph API)</span>
+            <span>Ver y actualizar publicaciones</span>
           </Link>
           <Link href="/citizens" className={styles['quick-btn']}>
             <PhoneCall size={16} style={{ color: 'var(--emerald-600)' }} />
@@ -169,11 +172,11 @@ export default function DashboardPage() {
 
       {role === 'SECRETARIO' && (
         <div className={styles['quick-action-bar']}>
-          <Link href="/cases" className={styles['quick-btn']}>
+          <Link href="/cases?view=cases" className={styles['quick-btn']}>
             <Building2 size={16} style={{ color: 'var(--blue-600)' }} />
             <span>Ver Casos de mi Dependencia ({secretaryCases.length})</span>
           </Link>
-          <Link href="/cases" className={styles['quick-btn']}>
+          <Link href="/cases?view=cases" className={styles['quick-btn']}>
             <CheckCircle2 size={16} style={{ color: 'var(--emerald-600)' }} />
             <span>Validar Cierre Definitivo de Casos</span>
           </Link>
@@ -186,15 +189,15 @@ export default function DashboardPage() {
 
       {role === 'ADMIN' && (
         <div className={styles['quick-action-bar']}>
-          <Link href="/settings" className={styles['quick-btn']}>
+          <Link href="/settings?view=services" className={styles['quick-btn']}>
             <RefreshCw size={16} style={{ color: 'var(--emerald-600)' }} />
             <span>Diagnóstico en Vivo de Servicios</span>
           </Link>
-          <Link href="/settings" className={styles['quick-btn']}>
+          <Link href="/settings?view=connections" className={styles['quick-btn']}>
             <Cpu size={16} style={{ color: 'var(--amber-600)' }} />
-            <span>Configuración Modelo IA (GPT-4o)</span>
+            <span>Configurar IA y redes sociales</span>
           </Link>
-          <Link href="/cases" className={styles['quick-btn']}>
+          <Link href="/cases?view=cases" className={styles['quick-btn']}>
             <Database size={16} style={{ color: 'var(--blue-600)' }} />
             <span>Auditoría de Casos y Registros</span>
           </Link>
@@ -457,7 +460,7 @@ export default function DashboardPage() {
               {role === 'ADMIN' && 'Eventos registrados por el pipeline de Meta y estado de servicios locales'}
             </p>
           </div>
-          <Link href="/cases" className="btn-ghost" style={{ fontSize: '0.8125rem' }}>
+          <Link href="/cases?view=cases" className="btn-ghost" style={{ fontSize: '0.875rem' }}>
             Ver todos los casos <ArrowUpRight size={14} />
           </Link>
         </div>

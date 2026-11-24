@@ -1,0 +1,25 @@
+.workspace { padding: 10px 24px; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.breadcrumb { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; font-size: .875rem; color: var(--text-secondary);
+  a { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; &:hover { color: var(--text-link); text-decoration: underline; } }
+  [aria-current] { color: var(--text-primary); font-weight: 650; }
+  > svg { flex-shrink: 0; }
+}
+.tools { display: flex; gap: 10px; flex-wrap: wrap; }
+.jump { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: .8125rem;
+  select { width: 205px; max-width: 100%; min-height: 42px; padding: 8px 10px; border: 1px solid var(--border-input); border-radius: 8px; color: var(--text-primary); background: var(--bg-input); font-size: .8125rem; }
+}
+.start { margin: 0 0 28px; scroll-margin-top: 95px; }
+.startTitle { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;
+  h2 { font-size: 1.125rem; margin-top: 4px; } p { font-size: .875rem; color: var(--text-secondary); }
+}
+.eyebrow { font-size: .75rem; color: var(--text-link); font-weight: 700; letter-spacing: .08em; }
+.workflow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.step { display: grid; grid-template-columns: 1fr auto; align-content: start; gap: 10px; padding: 22px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); transition: border-color 150ms, background 150ms;
+  > svg { color: var(--text-link); } h3, p, .open { grid-column: 1 / -1; } h3 { font-size: .9375rem; } p { color: var(--text-secondary); font-size: .875rem; line-height: 1.7; }
+  &:hover { border-color: var(--blue-500); background: var(--blue-50); }
+}
+.stepNumber { display: inline-flex; justify-content: center; align-items: center; width: 30px; height: 30px; border-radius: 8px; color: var(--text-link); background: var(--blue-50); font-size: .875rem; font-weight: 700; }
+.open { display: inline-flex; align-items: center; gap: 8px; color: var(--text-link); font-weight: 650; font-size: .875rem; margin-top: 5px; }
+@media (max-width: 900px) { .workflow { grid-template-columns: 1fr; } .step { grid-template-columns: auto 1fr auto; h3 { grid-column: 2; grid-row: 1; align-self: center; } > svg { grid-column: 3; grid-row: 1; } } }
+@media (max-width: 640px) { .workspace { padding: 14px 16px; } .tools { width: 100%; } .jump { flex: 1; span { display: none; } select { width: 100%; } } }

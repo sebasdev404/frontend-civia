@@ -40,7 +40,7 @@ export default function ThermometerMap(props: ThermometerMapProps) {
   if (!mounted) {
     return (
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-        Iniciando radar satelital...
+        Cargando referencias territoriales…
       </div>
     );
   }

@@ -61,7 +61,7 @@ export default function CitizenDeleteModal({ citizens, onClose, onDeleted }: {
       <div className={styles['modal-body']}>
         <p id="citizen-delete-description">Se eliminarán los siguientes registros de Ciudadanos, incluidos sus datos importados. Esta acción no se puede deshacer. Los casos y comentarios se conservan.</p>
         <ul style={{ maxHeight: 220, overflowY: 'auto', margin: 0, paddingLeft: 22 }}>{citizens.map(citizen => <li key={citizen.id} style={{ paddingBlock: 4 }}>{citizen.name} <small style={{ color: 'var(--text-muted)' }}>({citizen.id})</small></li>)}</ul>
-        {error && <p role="alert" style={{ color: '#f87171' }}>{error}</p>}
+        {error && <p role="alert" style={{ color: 'var(--red-600)' }}>{error}</p>}
       </div>
       <div className={styles['modal-footer']}>
         <button ref={cancel} type="button" className="btn-ghost" disabled={busy} onClick={onClose}>Cancelar</button>

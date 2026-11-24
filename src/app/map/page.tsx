@@ -36,26 +36,20 @@ export default function MapPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedZone, setSelectedZone] = useState<string>('all');
   const [selectedIncident, setSelectedIncident] = useState<MapIncident | null>(null);
-  const [isLive, setIsLive] = useState(true);
-  const [topBarrios, setTopBarrios] = useState<any[]>([]);
+  const [mapError, setMapError] = useState('');
+
   const [selectedBarrio, setSelectedBarrio] = useState<string | null>(null);
   const [customCenterZoom, setCustomCenterZoom] = useState<{ center: [number, number]; zoom: number } | null>(null);
 
-  // Carga del ranking de barrios con mayor problematica
-  useEffect(() => {
-    async function fetchTopBarrios() {
-      try {
-        const res = await fetch('http://localhost:8000/api/v1/analytics/top-barrios');
-        if (res.ok) {
-          const data = await res.json();
-          setTopBarrios(data);
-        }
-      } catch (e) {
-        console.warn('Usando barrios locales:', e);
-      }
+  const topBarrios = useMemo(() => {
+    const groups = new Map<string, { neighborhood: string; zone_key: string; commune: string; lat: number; lng: number; total_issues: number; top_category: string }>();
+    for (const item of incidents) {
+      const row = groups.get(item.neighborhood);
+      if (row) row.total_issues += 1;
+      else groups.set(item.neighborhood, { neighborhood: item.neighborhood, zone_key: item.zone, commune: item.zone, lat: item.lat, lng: item.lng, total_issues: 1, top_category: 'Menciones con origen trazable' });
     }
-    fetchTopBarrios();
-  }, []);
+    return [...groups.values()].sort((a, b) => b.total_issues - a.total_issues);
+  }, [incidents]);
 
   const handleSelectBarrio = (barrio: any) => {
     if (selectedBarrio === barrio.neighborhood) {
@@ -82,7 +76,6 @@ export default function MapPage() {
     setCustomCenterZoom({ center: [barrio.lat, barrio.lng], zoom: 15 });
     
     const match = incidents.find(i => 
-      (targetZone !== 'all' && i.zone === targetZone) ||
       i.neighborhood.toLowerCase().includes(barrio.neighborhood.toLowerCase())
     );
     if (match) setSelectedIncident(match);
@@ -94,7 +87,7 @@ export default function MapPage() {
     async function loadIncidents() {
       try {
         const data = await API.map.getIncidents();
-        if (isMounted && Array.isArray(data) && data.length > 0) {
+        if (isMounted && Array.isArray(data)) {
           const parsed: MapIncident[] = data.map((item: any) => ({
             id: item.id,
             lat: item.lat,
@@ -115,7 +108,7 @@ export default function MapPage() {
           setIncidents(parsed);
         }
       } catch (err) {
-        console.warn('Backend offline o usando datos iniciales para mapa:', err);
+        setMapError('No se pudo actualizar el mapa. Reintenta recargando la página.');
       }
     }
     loadIncidents();
@@ -171,9 +164,12 @@ export default function MapPage() {
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Mapa Termómetro Ciudadano en Tiempo Real</h1>
-        <p>Monitoreo geolocalizado, clusterización de problemáticas y despacho territorial de incidentes</p>
+        <h1>Mapa de reportes</h1>
+        <p>Explora menciones territoriales de comentarios capturados. Selecciona una zona para consultar su evidencia.</p>
       </div>
+
+      <div className="section-help" role="note"><div><strong>Ubicaciones aproximadas, no reportes confirmados</strong><p>Solo aparecen menciones de lugares presentes en el comentario original capturado. Los puntos representan referencias de barrio o comuna, no direcciones exactas ni GPS del ciudadano. Una mención no confirma un problema. Se excluyen registros sin origen trazable o sin lugar explícito.</p></div></div>
+      {mapError && <p role="alert" style={{ color: 'var(--red-600)', padding: 12 }}>{mapError}</p>}
 
       <div className={styles['map-layout']}>
         {/* ─── Sidebar de Filtros Completos ─── */}
@@ -194,10 +190,10 @@ export default function MapPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
                 <TrendingUp size={15} style={{ color: '#ef4444' }} />
-                <span>Barrios con Mayor Problemática</span>
+                <span>Menciones por zona</span>
               </div>
               <span className="badge-alta" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
-                IA Heat
+                Capturas
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 6px' }}>
@@ -220,14 +216,7 @@ export default function MapPage() {
             </div>
 
             <div className={styles['barrios-scroll-list']}>
-              {(topBarrios.length > 0 ? topBarrios : [
-                { rank: 1, neighborhood: 'Las Granjas', commune: 'Comuna 2', total_issues: 74, top_category: 'Servicios Públicos', lat: 2.9415, lng: -75.2862 },
-                { rank: 2, neighborhood: 'Canaima', commune: 'Comuna 6', total_issues: 68, top_category: 'Servicios Públicos', lat: 2.9062, lng: -75.2848 },
-                { rank: 3, neighborhood: 'Centro - Av. La Toma', commune: 'Comuna 3', total_issues: 53, top_category: 'Infraestructura', lat: 2.9335, lng: -75.2840 },
-                { rank: 4, neighborhood: 'El Malecón - La Gaitana', commune: 'Comuna 4', total_issues: 48, top_category: 'Seguridad', lat: 2.9285, lng: -75.2935 },
-                { rank: 5, neighborhood: 'Las Palmas', commune: 'Comuna 10', total_issues: 42, top_category: 'Seguridad', lat: 2.9320, lng: -75.2650 },
-                { rank: 6, neighborhood: 'Chicalá', commune: 'Comuna 1', total_issues: 39, top_category: 'Infraestructura', lat: 2.9490, lng: -75.2910 }
-              ]).slice(0, 5).map((b, idx) => (
+              {topBarrios.slice(0, 5).map((b, idx) => (
                 <button
                   key={b.neighborhood}
                   type="button"
@@ -253,7 +242,7 @@ export default function MapPage() {
                     <span style={{ fontWeight: 800, fontSize: '0.78rem', color: '#ef4444' }}>
                       {b.total_issues}
                     </span>
-                    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>casos</div>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>menciones</div>
                   </div>
                 </button>
               ))}
@@ -402,7 +391,7 @@ export default function MapPage() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Radio size={14} style={{ color: 'var(--emerald-400)' }} />
-              <span style={{ fontSize: '11px', color: '#cbd5e1' }}>Escucha IA en Tiempo Real</span>
+              <span style={{ fontSize: '11px', color: '#cbd5e1' }}>Menciones capturadas · ubicación aproximada</span>
             </div>
           </div>
 
@@ -457,7 +446,7 @@ export default function MapPage() {
                       }}>
                         <span style={{ fontSize: '1.1rem' }}>📍</span>
                         <div>
-                          <span style={{ fontWeight: 700, color: '#60a5fa', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--text-link)', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             Justificación Geográfica Verificada
                           </span>
                           <span>{geoArgument}</span>

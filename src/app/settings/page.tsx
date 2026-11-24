@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Users, UserPlus, Trash2, ShieldCheck, Mail, Lock, 
   Activity, RefreshCw, Database, Server, Globe, Cpu, Key, 
@@ -23,9 +24,15 @@ interface UserRecord {
   created_at: string;
 }
 
-export default function SettingsPage() {
+function SettingsContent() {
   const { user: currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'usuarios' | 'infraestructura' | 'ia-meta'>('usuarios');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const view = searchParams.get('view');
+  const activeTab = view === 'services' ? 'infraestructura' : view === 'connections' ? 'ia-meta' : 'usuarios';
+  const setActiveTab = (tab: 'usuarios' | 'infraestructura' | 'ia-meta') => {
+    router.replace(`/settings?view=${tab === 'infraestructura' ? 'services' : tab === 'ia-meta' ? 'connections' : 'users'}`, { scroll: false });
+  };
 
   // Estados de Gestión de Usuarios
   const [usersList, setUsersList] = useState<UserRecord[]>([]);
@@ -230,38 +237,41 @@ export default function SettingsPage() {
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>Configuración &amp; Gestión del Sistema</h1>
-          <p>Administración de usuarios institucionales, infraestructura, IA y conectores de CIVIA</p>
+          <h1>Configuración</h1>
+          <p>Administra usuarios, comprueba los servicios y revisa las conexiones con redes sociales.</p>
         </div>
       </div>
 
       {/* Pestañas de Navegación Superior */}
-      <div className={styles['tabs-container']}>
+      <div className={styles['tabs-container']} role="group" aria-label="Opciones de configuración">
         <button
           type="button"
           className={[styles['tab-btn'], activeTab === 'usuarios' ? styles.active : ''].join(' ')}
           onClick={() => setActiveTab('usuarios')}
+          aria-pressed={activeTab === 'usuarios'}
         >
           <Users size={16} />
-          <span>Gestión de Usuarios &amp; Accesos</span>
+          <span>Usuarios y accesos</span>
         </button>
 
         <button
           type="button"
           className={[styles['tab-btn'], activeTab === 'infraestructura' ? styles.active : ''].join(' ')}
           onClick={() => setActiveTab('infraestructura')}
+          aria-pressed={activeTab === 'infraestructura'}
         >
           <Activity size={16} />
-          <span>Monitor de Infraestructura</span>
+          <span>Estado de servicios</span>
         </button>
 
         <button
           type="button"
           className={[styles['tab-btn'], activeTab === 'ia-meta' ? styles.active : ''].join(' ')}
           onClick={() => setActiveTab('ia-meta')}
+          aria-pressed={activeTab === 'ia-meta'}
         >
           <Cpu size={16} />
-          <span>Modelos IA &amp; Redes Meta</span>
+          <span>IA y redes sociales</span>
         </button>
       </div>
 
@@ -865,4 +875,8 @@ export default function SettingsPage() {
       )}
     </div>
   );
+}
+
+export default function SettingsPage() {
+  return <Suspense fallback={<div className="page" role="status">Cargando configuración…</div>}><SettingsContent /></Suspense>;
 }

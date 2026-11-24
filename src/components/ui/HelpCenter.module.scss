@@ -1,0 +1,31 @@
+.widget { position: fixed; right: 24px; bottom: max(24px, env(safe-area-inset-bottom)); z-index: 1100; font-size: 14px; }
+.trigger { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; border: 1px solid rgba(255,255,255,.18); background: var(--action-primary); color: white; box-shadow: 0 4px 18px rgba(15,23,42,.25); transition: background 150ms;
+  &:hover { background: var(--blue-700); } &:focus-visible { outline: 3px solid var(--text-link); outline-offset: 4px; }
+}
+.tooltip { position: absolute; right: 64px; padding: 6px 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 12px; opacity: 0; pointer-events: none; white-space: nowrap; }
+.trigger:hover .tooltip, .trigger:focus-visible .tooltip { opacity: 1; }
+.panel { position: absolute; bottom: 66px; right: 0; width: 410px; max-width: calc(100vw - 32px); max-height: min(640px, calc(100dvh - 110px)); display: flex; flex-direction: column; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-input); border-radius: 16px; box-shadow: 0 14px 55px rgba(0,0,0,.24); overflow: hidden;
+  &[hidden] { display: none; }
+}
+.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px 18px 13px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.heading { display: flex; align-items: center; gap: 11px; > svg { color: var(--text-link); } h2 { font-size: 16px; font-weight: 650; line-height: 1.4; } p { color: var(--text-secondary); font-size: 12px; margin-top: 3px; } }
+.close { display: flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: 40px; height: 40px; border: 0; border-radius: 8px; background: transparent; color: var(--text-secondary); &:hover { background: var(--bg-muted); color: var(--text-primary); } }
+.searchArea { padding: 14px 18px; flex-shrink: 0; label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; } }
+.search { display: flex; align-items: center; gap: 8px; background: var(--bg-input); border: 1px solid var(--border-input); border-radius: 8px; padding: 0 10px; > svg { color: var(--text-muted); flex-shrink: 0; }
+  input { min-width: 0; width: 100%; height: 38px; background: transparent; border: 0; color: var(--text-primary); font-size: 13px; outline: none; }
+  &:focus-within { outline: 2px solid var(--blue-500); outline-offset: 1px; }
+}
+.body { overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding: 0 18px 18px; }
+.context { background: var(--blue-50); border: 1px solid var(--blue-100); padding: 12px; border-radius: 8px; margin-bottom: 18px; span { font-size: 10px; font-weight: 700; letter-spacing: .05em; color: var(--text-link); } p { font-size: 13px; line-height: 1.6; margin-top: 5px; } }
+.sectionTitle { font-size: 12px; font-weight: 650; color: var(--text-secondary); margin: 0 0 8px; }
+.article { border-bottom: 1px solid var(--border); }
+.question { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 14px; min-height: 48px; padding: 13px 0; background: transparent; color: var(--text-primary); border: 0; text-align: left; font-size: 13px; line-height: 1.5; font-weight: 550;
+  > svg { flex-shrink: 0; color: var(--text-muted); transition: transform 150ms; } &:hover { color: var(--text-link); }
+}
+.rotated { transform: rotate(180deg); }
+.answer { padding: 0 0 16px; ol { padding-left: 19px; color: var(--text-secondary); font-size: 13px; line-height: 1.7; } li + li { margin-top: 8px; }
+  a { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; margin-top: 9px; color: var(--text-link); font-size: 13px; font-weight: 600; &:hover { text-decoration: underline; } }
+}
+.empty { padding: 20px 0; color: var(--text-secondary); font-size: 13px; line-height: 1.6; button { margin-top: 8px; padding: 8px 0; font-size: 13px; color: var(--text-link); background: transparent; border: 0; font-weight: 600; } }
+.footer { flex-shrink: 0; padding: 11px 18px; border-top: 1px solid var(--border); background: var(--bg-muted); font-size: 11px; color: var(--text-secondary); }
+@media (max-width: 600px) { .widget { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); } .panel { max-height: calc(100dvh - 100px); } }

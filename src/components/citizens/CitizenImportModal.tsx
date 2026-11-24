@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { X, Upload, FileSpreadsheet } from 'lucide-react';
+import { X, Upload, Download, FileSpreadsheet } from 'lucide-react';
 import { API } from '@/lib/api/client';
 import styles from '@/app/citizens/citizens.module.scss';
 
@@ -58,9 +58,20 @@ export default function CitizenImportModal({ onClose, onImported }: { onClose: (
         </div>
         <div className={styles['modal-body']} style={{ display: 'grid', gap: 16 }}>
           <p>Sube un Excel (.xlsx) o CSV de hasta 10 MB y 10.000 contactos. Se requiere nombre y teléfono o usuario de WhatsApp. En este Excel se usa la hoja Contactos.</p>
-          <input type="file" aria-label="Archivo de contactos" accept=".xlsx,.csv" disabled={busy} onChange={e => { setFile(e.target.files?.[0] || null); setResult(null); setError(''); }} />
+          <div className={styles['import-template']}>
+            <div>
+              <strong>1. Descarga y completa la plantilla</strong>
+              <p>Conserva los encabezados. Cada fila debe tener Nombre y al menos Teléfono o Usuario WhatsApp. Las demás columnas son opcionales.</p>
+            </div>
+            <a className="btn-secondary" href="/templates/plantilla-ciudadanos.csv" download="plantilla-ciudadanos.csv"><Download size={16} /> Descargar plantilla CSV</a>
+            <p>El archivo está vacío para que agregues tus contactos. En Excel, guarda como CSV UTF-8 o como Excel (.xlsx) con la hoja «Contactos». Escribe los teléfonos como texto, solo con dígitos e incluyendo el indicativo si corresponde.</p>
+          </div>
+          <label className={styles['import-file']}>
+            <strong>2. Selecciona tu archivo y revisa la vista previa</strong>
+            <input type="file" aria-label="Archivo de contactos" accept=".xlsx,.csv" disabled={busy} onChange={e => { setFile(e.target.files?.[0] || null); setResult(null); setError(''); }} />
+          </label>
           <p style={{ color: 'var(--text-muted)', fontSize: '.85rem' }}>Los registros se relacionan por teléfono o usuario de WhatsApp. Se conservan las columnas originales y quedan sin clasificación social, con cero interacciones nuevas.</p>
-          {error && <p role="alert" style={{ color: '#f87171' }}>{error}</p>}
+          {error && <p role="alert" style={{ color: 'var(--red-600)' }}>{error}</p>}
           {summary && result && <>
             <div role="status" style={{ padding: 12, background: 'rgba(59,130,246,.1)', borderRadius: 8 }}>
               <strong>{completed ? 'Importación guardada' : 'Vista previa'} · {summary.total_processed} filas</strong>

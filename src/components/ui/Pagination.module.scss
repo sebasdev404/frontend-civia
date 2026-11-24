@@ -1,0 +1,16 @@
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 14px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); }
+.summary { display: flex; align-items: center; flex-wrap: wrap; gap: 14px;
+  label { display: inline-flex; align-items: center; gap: 7px; }
+  select { min-height: 36px; height: 36px; padding: 0 8px; font-size: 13px; font-weight: 400; border: 1px solid var(--border-input); border-radius: 6px; color: var(--text-primary); background: var(--bg-input); }
+}
+.controls { display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+  button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 36px; min-height: 36px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); color: var(--text-primary); font-size: 13px; font-weight: 500;
+    &:hover:not(:disabled) { border-color: var(--blue-500); background: var(--blue-50); }
+    &[aria-current='page'] { color: white; background: var(--action-primary); border-color: var(--blue-600); }
+    &:disabled { opacity: .5; cursor: not-allowed; }
+  }
+}
+.number { font-variant-numeric: tabular-nums; }
+.gap { padding: 0 3px; }
+.pageCount { margin-left: 6px; white-space: nowrap; font-size: 12px; }
+@media (max-width: 640px) { .pagination { gap: 12px; } .controls { width: 100%; gap: 4px; button { min-height: 40px; } } .controls > button:first-child span, .controls > button:nth-last-child(2) span { display: none; } .pageCount { flex-basis: 100%; margin: 5px 0 0; } }

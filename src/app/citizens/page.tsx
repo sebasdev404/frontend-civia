@@ -332,37 +332,9 @@ export default function CitizensPage() {
               setReplyPrompt('Por mi crítica salvé el PAE');
               handleGenerateReply('Por mi crítica salvé el PAE', null);
             }}
-            style={{
-              padding: '8px 16px',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.22) 100%)',
-              border: '1px solid rgba(139, 92, 246, 0.45)',
-              borderRadius: '8px',
-              color: '#c4b5fd',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 2px 10px rgba(124, 58, 237, 0.15)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.28) 0%, rgba(139, 92, 246, 0.38) 100%)';
-              e.currentTarget.style.borderColor = 'rgba(167, 139, 250, 0.8)';
-              e.currentTarget.style.color = '#ffffff';
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(124, 58, 237, 0.35)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.22) 100%)';
-              e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.45)';
-              e.currentTarget.style.color = '#c4b5fd';
-              e.currentTarget.style.boxShadow = '0 2px 10px rgba(124, 58, 237, 0.15)';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
+            className={styles['assistant-button']}
           >
-            <Sparkles size={16} style={{ color: '#a78bfa' }} />
+            <Sparkles size={16} />
             <span>Asistente de Respuestas IA</span>
           </button>
 
@@ -403,12 +375,12 @@ export default function CitizensPage() {
         <div className={styles['stat-card']}>
           <div className={styles['stat-title']}>
             <Bot size={16} style={{ color: '#ef4444' }} />
-            <span>Cuentas Bot & Granjas Detectadas</span>
+            <span>Clasificaciones históricas por revisar</span>
           </div>
           <div className={styles['stat-value']} style={{ color: '#ef4444' }}>
             {metrics.total_bots_detected}
           </div>
-          <div className={styles['stat-sub']}>{metrics.bot_percentage}% del volumen total auditado</div>
+          <div className={styles['stat-sub']}>Indicadores previos; no confirman bots ni identidad</div>
         </div>
 
         <div className={styles['stat-card']}>
@@ -456,7 +428,7 @@ export default function CitizensPage() {
               onClick={() => setUserTypeFilter('Bot')}
             >
               <Bot size={14} />
-              <span>🤖 Bots & Granjas ({metrics.total_bots_detected})</span>
+              <span>Señales históricas por revisar ({metrics.total_bots_detected})</span>
             </button>
           </div>
 
@@ -512,7 +484,7 @@ export default function CitizensPage() {
       </div>
 
       {/* TABLA PRINCIPAL DE CONTACTOS Y PERFILES */}
-      {deleteNotice && <p role="status" style={{ color: '#34d399' }}>{deleteNotice}</p>}
+      {deleteNotice && <p role="status" style={{ color: 'var(--emerald-600)' }}>{deleteNotice}</p>}
       {canDelete && <div className={styles['selection-toolbar']}>
         <span>{selectedCitizens.size ? `${selectedCitizens.size} ciudadanos seleccionados, incluidas otras páginas${selectedCitizens.size >= 500 ? ' (máximo por lote)' : ''}` : 'Marca las casillas para eliminar uno o varios ciudadanos.'}</span>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -616,10 +588,10 @@ export default function CitizensPage() {
                         {isBot ? (
                           <>
                             <span className={styles['bot-origin-badge']}>
-                              🤖 {Math.round(citizen.bot_probability * 100)}% Bot
+                              Clasificación previa por revisar
                             </span>
                             <span style={{ fontSize: '0.72rem', color: '#b91c1c', fontWeight: 600 }}>
-                              📍 {citizen.bot_origin || 'Granja de Cuentas / Campaña Opositora'}
+                              Automatización sin verificar
                             </span>
                           </>
                         ) : citizen.user_type === 'Positivo' ? (
@@ -785,7 +757,7 @@ export default function CitizensPage() {
         </table>
       </div>
 
-      {listError && <p role="alert" style={{ color: '#f87171' }}>{listError}</p>}
+      {listError && <p role="alert" style={{ color: 'var(--red-600)' }}>{listError}</p>}
       <nav aria-label="Paginación de ciudadanos" style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end', marginBlock: 16 }}>
         <span>{totalMatched ? offset + 1 : 0} a {Math.min(offset + citizens.length, totalMatched)} de {totalMatched}</span>
         <button type="button" className="btn-ghost" disabled={loading || offset === 0} onClick={() => setOffset(value => Math.max(0, value - pageSize))}>Anterior</button>

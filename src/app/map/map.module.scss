@@ -46,7 +46,7 @@
   background: none;
   border: none;
   color: var(--blue-600);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   cursor: pointer;
   padding: 4px 8px;
@@ -103,9 +103,9 @@
 .sim-button {
   padding: 6px 12px;
   border-radius: var(--radius-md);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  background: var(--blue-600);
+  background: var(--action-primary);
   color: #fff;
   border: none;
   cursor: pointer;
@@ -164,7 +164,7 @@
 
 .pill-btn {
   padding: 8px 12px;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
@@ -181,7 +181,7 @@
   }
 
   &.active {
-    background: var(--blue-600);
+    background: var(--action-primary);
     color: #fff;
     border-color: var(--blue-600);
 
@@ -192,23 +192,23 @@
   }
 
   &.alta.active {
-    background: var(--red-600);
+    background: var(--action-danger);
     border-color: var(--red-600);
   }
 
   &.media.active {
-    background: var(--amber-600);
+    background: var(--action-warning);
     border-color: var(--amber-600);
   }
 
   &.baja.active {
-    background: var(--emerald-600);
+    background: var(--action-success);
     border-color: var(--emerald-600);
   }
 }
 
 .pill-count {
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   padding: 2px 7px;
   border-radius: var(--radius-full);
@@ -234,7 +234,7 @@
   border: 1px solid var(--border);
 
   .legend-title {
-    font-size: 0.7rem;
+    font-size: 0.8125rem;
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -248,7 +248,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 
   span {
     @include flex(row, center, flex-start, 6px);
@@ -291,7 +291,7 @@
 
   @media (max-width: 640px) {
     padding: 6px 10px;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     gap: 6px;
   }
 }

@@ -30,7 +30,7 @@
 }
 
 .kpi-sub {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   color: var(--text-muted);
   margin-top: 6px;
 }
@@ -86,5 +86,5 @@
 .channel-bar-fill {
   height: 100%;
   border-radius: var(--radius-full);
-  background: var(--blue-600);
+  background: var(--action-primary);
 }

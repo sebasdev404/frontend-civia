@@ -65,8 +65,8 @@ export default function AnalyticsPage() {
     <div className="page">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1>Análisis de Inteligencia Social</h1>
-          <p>Métricas consolidadas, tendencias virales y pronósticos de respuesta ciudadana en Neiva (100% Datos Reales)</p>
+          <h1>Indicadores e informes</h1>
+          <p>Consulta las métricas de atención, las emociones de los casos y los problemas más reportados.</p>
         </div>
         <button 
           type="button" 
@@ -90,11 +90,11 @@ export default function AnalyticsPage() {
         </div>
 
         <div className={styles['kpi-card']}>
-          <div className={styles['kpi-title']}>Sentimiento Neto Favorable</div>
+          <div className={styles['kpi-title']}>Balance emocional de los casos</div>
           <div className={styles['kpi-value']} style={{ color: 'var(--emerald-600)' }}>
             {kpis?.net_sentiment || '...'}
           </div>
-          <div className={styles['kpi-sub']}>Basado en la Rueda de Sentimientos</div>
+          <div className={styles['kpi-sub']}>Rueda de emociones. Consulta la postura frente a Johan en Opinión sobre Johan.</div>
         </div>
 
         <div className={styles['kpi-card']}>

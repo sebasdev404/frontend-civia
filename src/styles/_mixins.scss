@@ -27,7 +27,7 @@
   align-items: center;
   padding: 3px 10px;
   border-radius: var(--radius-full);
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   background: $bg;
   color: $color;
@@ -39,7 +39,7 @@
   justify-content: center;
   gap: 6px;
   padding: 8px 18px;
-  background: var(--blue-600);
+  background: var(--action-primary);
   color: #fff;
   border: none;
   border-radius: var(--radius-md);
@@ -58,9 +58,9 @@
   justify-content: center;
   gap: 6px;
   padding: 8px 16px;
-  background: rgba(30, 41, 59, 0.7);
+  background: var(--bg-card);
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-input);
   border-radius: var(--radius-md);
   font-size: 0.875rem;
   font-weight: 600;
@@ -70,10 +70,10 @@
   text-decoration: none;
 
   &:hover {
-    background: rgba(51, 65, 85, 0.85);
-    border-color: rgba(255, 255, 255, 0.25);
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: var(--bg-hover);
+    border-color: var(--blue-500);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
   }
 }
 

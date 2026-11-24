@@ -1,3 +1,7 @@
+> **Documentación central del proyecto:** [Estructura, lógica de negocio, limitaciones y pendientes](../backend-civia/docs/PROYECTO_CIVIA.md), en el repositorio hermano del backend. En GitHub: [documentación del backend](https://github.com/sebasdev404/backend-civia/tree/main/docs) (requiere publicar los cambios locales para reflejar esta revisión).
+>
+> Las versiones y promesas de la presentación antigua que sigue no son la referencia actual. `package.json` declara Next.js 16.3.8 y React 19.2.8. No se garantiza cobertura completa de Meta ni carácter oficial de la plataforma.
+
 # 🏛️ CIVIA - Frontend (Plataforma de Inteligencia Urbana y Participación Ciudadana)
 
 Interfaz de usuario web moderna de alta fidelidad para la Alcaldía de Neiva, construida con **Next.js 15 (App Router)**, **TypeScript**, **SCSS Modules**, **Leaflet** y sincronización en tiempo real con **FastAPI**.

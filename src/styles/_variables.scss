@@ -3,6 +3,19 @@
 // ============================================================
 
 :root {
+  color-scheme: light;
+  --color-scheme: light;
+  --action-primary: #2563eb;
+  --action-danger: #b91c1c;
+  --action-warning: #92400e;
+  --action-success: #047857;
+  --assistant-bg: #f5f3ff;
+  --assistant-text: #6d28d9;
+  --assistant-border: #8b5cf6;
+  --assistant-hover: #ede9fe;
+  --border-hover: #94a3b8;
+  --sidebar-width: 296px;
+  --text-link: #1d4ed8;
   // Fondos
   --bg-app:       #f1f5f9;
   --bg-card:      #ffffff;
@@ -18,12 +31,12 @@
 
   // Bordes
   --border:       #e2e8f0;
-  --border-input: #cbd5e1;
+  --border-input: #7c8ba1;
 
   // Texto
   --text-primary:   #0f172a;
-  --text-secondary: #64748b;
-  --text-muted:     #94a3b8;
+  --text-secondary: #475569;
+  --text-muted:     #526176;
   --text-sidebar:   #cbd5e1;
   --text-white:     #ffffff;
 
@@ -38,21 +51,21 @@
   --red-50:     #fef2f2;
   --red-100:    #fee2e2;
   --red-400:    #f87171;
-  --red-600:    #dc2626;
+  --red-600:    #b91c1c;
   --red-700:    #b91c1c;
   --red-900:    rgba(127, 29, 29, 0.3);
 
   --amber-50:   #fffbeb;
   --amber-100:  #fef3c7;
   --amber-400:  #fbbf24;
-  --amber-600:  #d97706;
+  --amber-600:  #92400e;
   --amber-700:  #b45309;
   --amber-900:  rgba(120, 53, 15, 0.3);
 
   --emerald-50:  #ecfdf5;
   --emerald-100: #d1fae5;
   --emerald-500: #10b981;
-  --emerald-600: #059669;
+  --emerald-600: #047857;
   --emerald-700: #047857;
   --emerald-900: rgba(6, 78, 59, 0.3);
 
@@ -73,6 +86,13 @@
 
 // ─── Modo Oscuro ────────────────────────────────────────────
 :root.dark, html.dark, body.dark, [data-theme='dark'], html[data-theme='dark'] {
+  --color-scheme: dark;
+  --assistant-bg: #2e1065;
+  --assistant-text: #ddd6fe;
+  --assistant-border: #a78bfa;
+  --assistant-hover: #4c1d95;
+  --border-hover: #64748b;
+  --text-link: #93c5fd;
   color-scheme: dark;
   --bg-app:       #020617;
   --bg-card:      #0f172a;
@@ -86,15 +106,16 @@
   --primary:      #3b82f6;
 
   --border:       #1e293b;
-  --border-input: #334155;
+  --border-input: #71829a;
 
   --text-primary:   #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted:     #64748b;
+  --text-secondary: #b2bfd2;
+  --text-muted:     #94a3b8;
   --text-sidebar:   #cbd5e1;
 
   --blue-50:  rgba(59, 130, 246, 0.15);
   --blue-100: rgba(59, 130, 246, 0.25);
+  --blue-600: #93c5fd;
 
   --red-50:     rgba(127, 29, 29, 0.25);
   --red-100:    rgba(127, 29, 29, 0.35);
