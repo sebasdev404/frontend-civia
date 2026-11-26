@@ -1,5 +1,7 @@
 @use '../../styles/mixins' as *;
 
+.row-note { display: block; font-size: 11px; font-weight: 400; line-height: 1.6; color: #475569; margin-top: 5px; }
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -29,6 +31,7 @@
 }
 
 .modal-header-bar {
+  position: relative;
   padding: 1rem 1.5rem;
   background: var(--bg-muted);
   border-bottom: 1px solid var(--border);
@@ -58,6 +61,9 @@
 }
 
 .close-btn {
+  min-width: 40px;
+  min-height: 40px;
+  flex-shrink: 0;
   background: transparent;
   border: none;
   color: var(--text-muted);
@@ -76,6 +82,8 @@
 }
 
 .modal-content-scroll {
+  min-width: 0;
+  min-height: 0;
   padding: 2rem;
   overflow-y: auto;
   flex: 1;
@@ -336,18 +344,45 @@
 }
 
 // ─── Estilos de Impresión Oficial (PDF) ────────────────────────
+@media screen and (max-width: 640px) {
+  .modal-overlay { padding: 12px; }
+  .modal-container { max-height: calc(100dvh - 24px); }
+  .modal-header-bar { display: block; padding: 16px;
+    .header-left { padding-right: 42px; align-items: flex-start; > svg { flex-shrink: 0; } h3 { font-size: 15px; line-height: 1.5; } }
+    .header-actions { margin-top: 14px; flex-wrap: wrap; gap: 8px; > button:not(.close-btn) { flex: 1 1 105px; min-width: 0; min-height: 44px; white-space: normal; > svg { flex-shrink: 0; } } }
+  }
+  .close-btn { position: absolute; top: 12px; right: 12px; }
+  .modal-content-scroll { padding: 12px; }
+  .report-paper { padding: 18px; min-width: 0; gap: 22px; overflow-wrap: anywhere; }
+  .paper-header { flex-direction: column; .paper-meta { text-align: left; } }
+  .kpi-cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .paper-kpi { min-width: 0; padding: 10px; }
+  .report-table { display: block; max-width: 100%; overflow-x: auto; }
+  .signatures-row { flex-wrap: wrap; gap: 24px; }
+}
+
 @media print {
-  // Ocultar todo lo que no sea el reporte
-  :global(body *) {
-    visibility: hidden;
+  :global(html):has(.modal-overlay), :global(body):has(.modal-overlay) {
+    width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color-scheme: light !important;
+  }
+
+  :global(body):has(.modal-overlay) > :not(.modal-overlay) {
+    display: none !important;
   }
 
   .modal-overlay {
     position: static !important;
-    background: none !important;
+    background: #fff !important;
     padding: 0 !important;
     display: block !important;
     overflow: visible !important;
+    animation: none !important;
+    backdrop-filter: none !important;
   }
 
   .modal-container {
@@ -356,6 +391,10 @@
     border: none !important;
     box-shadow: none !important;
     background: transparent !important;
+    display: block !important;
+    overflow: visible !important;
+    animation: none !important;
+    transform: none !important;
   }
 
   .modal-header-bar {
@@ -373,15 +412,17 @@
   }
 
   .report-paper {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
+    display: block !important;
     width: 100% !important;
     border: none !important;
     box-shadow: none !important;
     padding: 1cm !important;
     background: #ffffff !important;
     color: #000000 !important;
+    > section { margin-top: 6mm; }
+    tr { break-inside: avoid; }
+    .section-title { break-after: avoid; }
   }
 }
 

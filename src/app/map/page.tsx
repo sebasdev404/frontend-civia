@@ -6,7 +6,7 @@ import styles from './map.module.scss';
 import ThermometerMap, { MapIncident } from '@/components/map/ThermometerMap';
 import { 
   Layers, Search, TrendingUp, Filter, AlertCircle, ArrowUpRight, 
-  RotateCcw, Radio, X, MapPin, MessageSquare, CheckCircle2 
+  RotateCcw, Radio, X, MapPin, MessageSquare, CheckCircle2, ChevronDown
 } from 'lucide-react';
 import { API } from '@/lib/api/client';
 
@@ -37,6 +37,7 @@ export default function MapPage() {
   const [selectedZone, setSelectedZone] = useState<string>('all');
   const [selectedIncident, setSelectedIncident] = useState<MapIncident | null>(null);
   const [mapError, setMapError] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [selectedBarrio, setSelectedBarrio] = useState<string | null>(null);
   const [customCenterZoom, setCustomCenterZoom] = useState<{ center: [number, number]; zoom: number } | null>(null);
@@ -51,7 +52,7 @@ export default function MapPage() {
     return [...groups.values()].sort((a, b) => b.total_issues - a.total_issues);
   }, [incidents]);
 
-  const handleSelectBarrio = (barrio: any) => {
+  const handleSelectBarrio = (barrio: (typeof topBarrios)[number]) => {
     if (selectedBarrio === barrio.neighborhood) {
       setSelectedBarrio(null);
       setSelectedZone('all');
@@ -88,7 +89,7 @@ export default function MapPage() {
       try {
         const data = await API.map.getIncidents();
         if (isMounted && Array.isArray(data)) {
-          const parsed: MapIncident[] = data.map((item: any) => ({
+          const parsed: MapIncident[] = data.map((item: MapIncident & {reports_count?:number;date_time?:string;is_new?:boolean}) => ({
             id: item.id,
             lat: item.lat,
             lng: item.lng,
@@ -168,13 +169,14 @@ export default function MapPage() {
         <p>Explora menciones territoriales de comentarios capturados. Selecciona una zona para consultar su evidencia.</p>
       </div>
 
-      <div className="section-help" role="note"><div><strong>Ubicaciones aproximadas, no reportes confirmados</strong><p>Solo aparecen menciones de lugares presentes en el comentario original capturado. Los puntos representan referencias de barrio o comuna, no direcciones exactas ni GPS del ciudadano. Una mención no confirma un problema. Se excluyen registros sin origen trazable o sin lugar explícito.</p></div></div>
+      <details className={styles['context-note']}><summary>Ubicaciones aproximadas, no reportes confirmados<ChevronDown size={17} /></summary><p>Solo aparecen menciones de lugares presentes en el comentario original capturado. Los puntos representan referencias de barrio o comuna, no direcciones exactas ni GPS del ciudadano. Una mención no confirma un problema. Se excluyen registros sin origen trazable o sin lugar explícito.</p></details>
       {mapError && <p role="alert" style={{ color: 'var(--red-600)', padding: 12 }}>{mapError}</p>}
 
       <div className={styles['map-layout']}>
         {/* ─── Sidebar de Filtros Completos ─── */}
         <aside className={styles['map-sidebar']}>
           <div className={styles['sidebar-header']}>
+            <button type="button" className={styles['mobile-filter-toggle']} aria-expanded={filtersOpen} aria-controls="map-territorial-filters" onClick={() => setFiltersOpen(value => !value)}><Layers size={18} /><span>Filtros territoriales</span><ChevronDown size={16} /></button>
             <div className={styles['sidebar-title']}>
               <Layers size={18} style={{ color: 'var(--blue-600)' }} />
               <span>Filtros Territoriales</span>
@@ -185,6 +187,7 @@ export default function MapPage() {
             </button>
           </div>
 
+          <div id="map-territorial-filters" className={`${styles['filter-contents']} ${filtersOpen ? styles['filters-open'] : ''}`}>
           {/* ─── RANKING Y FILTRO DE BARRIOS CON MAYOR PROBLEMÁTICA (HEATMAP) ─── */}
           <div className={styles['top-barrios-box']}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -376,6 +379,7 @@ export default function MapPage() {
               <span style={{ color: 'var(--amber-600)' }}>● <strong>Naranja:</strong> Inseguridad o falla moderada</span>
               <span style={{ color: 'var(--emerald-600)' }}>● <strong>Verde:</strong> Reporte leve o solucionado</span>
             </div>
+          </div>
           </div>
         </aside>
 

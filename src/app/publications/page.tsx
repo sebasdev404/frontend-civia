@@ -1,4 +1,5 @@
 "use client";
+import {useHydrated} from '@/hooks/useHydrated';
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -20,7 +21,7 @@ function PublicationsContent() {
   const query = useSearchParams();
   const router = useRouter();
   const sourceId = query.get('source') || 'johan';
-  const [ready, setReady] = useState(false);
+  const ready = useHydrated();
   const [sources, setSources] = useState<PublicationSource[]>([]);
   const [posts, setPosts] = useState<PublicationSummary[]>([]);
   const [total, setTotal] = useState(0);
@@ -35,8 +36,8 @@ function PublicationsContent() {
   const [revision, setRevision] = useState(0);
   const sync = useSyncJob(sourceId === 'johan' ? 'connected' : `source:${sourceId}`, ready);
   const source = sources.find(item => item.id === sourceId);
-  useEffect(() => setReady(true), []);
   useEffect(() => { const timer = setTimeout(() => { setTerm(search); setOffset(0); }, 250); return () => clearTimeout(timer); }, [search]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset transient controls when the external route, permission or capture scope changes.
   useEffect(() => { setOffset(0); setNetwork('all'); setSearch(''); setPosts([]); setTotal(0); }, [sourceId]);
   useEffect(() => {
     if (!ready) return;
@@ -47,6 +48,7 @@ function PublicationsContent() {
   useEffect(() => {
     if (!ready) return;
     const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- The effect owns this asynchronous request and its loading lifecycle.
     setLoading(true);
     API.publications.list(new URLSearchParams({ source_id: sourceId, search: term, network, limit: String(size), offset: String(offset) }), controller.signal)
       .then(page => { setPosts(page.items); setTotal(page.total); setError(''); })

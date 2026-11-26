@@ -42,8 +42,8 @@ export default function TriageReviewModal({ comments, initialTarget, initialMode
     finally { pending.current = false; setBusy(false); }
   };
   return <div className={styles['modal-overlay']} onClick={() => !pending.current && onClose()}><section role="dialog" aria-modal="true" aria-labelledby="triage-review-title" className={styles['modal-card']} onClick={e => e.stopPropagation()}>
-    <div className={styles['modal-header']}><h3 id="triage-review-title">{mode === 'create' ? 'Crear un caso' : 'Vincular a un caso existente'}</h3><button type="button" disabled={busy} onClick={onClose}>Cerrar</button></div>
-    <div className={styles['modal-body']}>
+    <div className={styles['modal-header']}><h3 id="triage-review-title">{mode === 'create' ? 'Crear un caso' : 'Vincular a un caso existente'}</h3><button type="button" className="btn-ghost" disabled={busy} onClick={onClose}>Cerrar</button></div>
+    <div className={`${styles['modal-body']} ${styles['review-body']}`}>
       <p>{comments.length} {comments.length === 1 ? 'comentario seleccionado' : 'comentarios seleccionados'}. Confirma que describen la misma solicitud. El caso nuevo queda pendiente; asigna el responsable después desde su detalle.</p>
       <div style={{ display: 'grid', gap: 8 }}>
         <label><input type="radio" name="triage-action" checked={mode === 'create'} disabled={busy} onChange={() => setMode('create')} /> Crear un caso</label>

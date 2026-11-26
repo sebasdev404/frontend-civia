@@ -22,6 +22,7 @@ export function HelpCenter() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset transient controls when the external route, permission or capture scope changes.
   useEffect(() => { setOpen(false); setSearch(''); setExpanded(null); }, [pathname]);
 
   useEffect(() => {

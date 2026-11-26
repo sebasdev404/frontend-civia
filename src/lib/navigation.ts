@@ -8,7 +8,7 @@ export const navigationItems = [
   { href: '/publications', label: 'Publicaciones', description: 'Fuentes, comentarios y reacciones', group: 'ESCUCHAR Y ATENDER', icon: Library,
     purpose: 'Consulta publicaciones por fuente, sus métricas disponibles, comentarios y señales de actividad para revisión.' },
   { href: '/cases', label: 'Gestión de casos', description: 'Revisar, asignar y dar seguimiento', group: 'ESCUCHAR Y ATENDER', icon: FolderOpen,
-    purpose: 'Abre una publicación para leer sus comentarios o entra a Casos para atender una solicitud.' },
+    purpose: 'Revisa la bandeja de casos, abre un comentario y decide si requiere atención. Asigna responsables y registra el seguimiento.' },
   { href: '/map', label: 'Mapa de reportes', description: 'Problemas por barrio y comuna', group: 'EXPLORAR', icon: MapPin,
     purpose: 'Filtra por zona o tipo de problema y selecciona un punto del mapa para ver su detalle.' },
   { href: '/analytics', label: 'Indicadores', description: 'Métricas, tendencias e informes', group: 'EXPLORAR', icon: ChartNoAxesCombined,

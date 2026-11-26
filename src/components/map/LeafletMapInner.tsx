@@ -48,6 +48,12 @@ function MapController({
   // Invalidate size on mount to ensure proper dimensioning
   useEffect(() => {
     if (!map) return;
+    let resizeFrame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+    });
+    observer.observe(map.getContainer());
     map.whenReady(() => {
       try {
         map.invalidateSize();
@@ -55,6 +61,7 @@ function MapController({
         // Safe fallback
       }
     });
+    return () => { observer.disconnect(); cancelAnimationFrame(resizeFrame); };
   }, [map]);
 
   // Navigate when zone changes

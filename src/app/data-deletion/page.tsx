@@ -74,7 +74,7 @@ export default function DataDeletionPage() {
               <CheckCircle2 size={18} style={{ color: '#10b981' }} /> Solicitud por Correo Electrónico Directo
             </h3>
             <p style={{ margin: 0 }}>
-              Envíe un correo a <strong>johansteedfernandez@hotmail.com</strong> con el asunto <code>"Solicitud de Eliminación de Datos CIVIA"</code>, indicando:
+              Envíe un correo a <strong>johansteedfernandez@hotmail.com</strong> con el asunto <code>&quot;Solicitud de Eliminación de Datos CIVIA&quot;</code>, indicando:
             </p>
             <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.5rem' }}>
               <li>Su nombre o enlace de su perfil público en Facebook o Instagram.</li>

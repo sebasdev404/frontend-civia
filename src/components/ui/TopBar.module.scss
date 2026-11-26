@@ -14,7 +14,7 @@
   z-index: 50;
 
   @media (min-width: 1025px) {
-    padding: 0 2rem;
+    padding: 0 var(--page-gutter);
     gap: 1rem;
   }
 }
@@ -211,6 +211,8 @@
     background: rgba(239, 68, 68, 0.1);
   }
 }
+
+.menu-account-link { display: block; padding: 8px; border-radius: var(--radius-md); color: var(--text-primary); font-size: 0.8125rem; text-decoration: none; &:hover { background: var(--bg-hover); } }
 
 @keyframes fadeIn {
   from {

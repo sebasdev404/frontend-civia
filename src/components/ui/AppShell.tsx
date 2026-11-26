@@ -7,6 +7,7 @@ import { TopBar } from "./TopBar";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 import { HelpCenter } from "./HelpCenter";
 import { useAuth } from "@/context/AuthContext";
+import { safeReturnTo } from '@/lib/session';
 import styles from "./AppShell.module.scss";
 
 function subscribeToViewport(callback: () => void) {
@@ -24,12 +25,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isMobile = useSyncExternalStore(subscribeToViewport, getMobileViewport, getServerViewport);
   const isMenuOpen = isMobile ? mobileMenuOpen : !desktopCollapsed;
   const pathname = usePathname();
+  const isPublicPage = ['/login', '/privacy', '/data-deletion'].includes(pathname);
   const router = useRouter();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, sessionError, sessionExpired, retrySession, logout } = useAuth();
 
   // Cerrar menú móvil al navegar
   useEffect(() => {
-    setMobileMenuOpen(false);
+    const frame = requestAnimationFrame(() => setMobileMenuOpen(false));
+    return () => cancelAnimationFrame(frame);
   }, [pathname]);
 
   // Evitar scroll de fondo mientras el menú móvil está abierto
@@ -64,21 +67,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Guardia de Seguridad y Redirección
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || sessionError) return;
 
-    if (!user && pathname !== '/login') {
-      router.replace('/login');
+    if (!user && !isPublicPage) {
+      const next = safeReturnTo(pathname + window.location.search);
+      router.replace(`/login?${new URLSearchParams({ next, ...(sessionExpired ? { reason: 'expired' } : {}) })}`);
     } else if (user && pathname === '/login') {
-      router.replace('/dashboard');
+      router.replace(safeReturnTo(new URLSearchParams(window.location.search).get('next')));
     }
-  }, [user, isLoading, pathname, router]);
+  }, [user, isLoading, pathname, router, sessionError, sessionExpired, isPublicPage]);
 
   // En la vista de login, nunca mostrar pantalla de carga de administración
-  if (pathname === '/login') {
+  if (isPublicPage) {
     return <>{children}</>;
   }
 
-  // Si está verificando sesión con backend o cargando (con escape automático a los 800ms)
+  if (sessionError) return <div className={styles['auth-loading-screen']}><h1>No pudimos validar tu sesión</h1><p role="alert">{sessionError}</p><button className="btn-primary" onClick={retrySession}>Reintentar</button><button className="btn-secondary" onClick={logout}>Volver al inicio de sesión</button></div>;
+
+  // No montar las vistas ni pedir datos hasta validar la sesión con el servidor.
   if (isLoading) {
     return (
       <div className={styles['auth-loading-screen']}>

@@ -1,15 +1,22 @@
 @use '../../styles/mixins' as *;
 
 .settings-container {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr));
+  align-items: start;
   gap: 1.5rem;
-  max-width: 860px;
+  width: 100%;
+  min-width: 0;
 }
 
 .settings-card {
+  min-width: 0;
   padding: 1.75rem;
   @include card;
+}
+
+.settings-container > .actions {
+  grid-column: 1 / -1;
 }
 
 .card-title {
@@ -76,16 +83,15 @@
 // ─── Monitor de Salud y Estado de Servicios ──────────────────
 .health-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 1rem;
   margin-bottom: 1.25rem;
 
-  @media (min-width: 640px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 .health-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 1rem 1.25rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
@@ -96,6 +102,8 @@
 }
 
 .health-card-header {
+  flex-wrap: wrap;
+  gap: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -379,13 +387,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1500;
   padding: 1.5rem;
 }
 
 .modal-card {
   width: 100%;
   max-width: 520px;
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-width: 0;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -400,6 +413,11 @@
 }
 
 .modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-card);
+  gap: 12px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -420,6 +438,9 @@
 }
 
 .modal-close-btn {
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
   background: none;
   border: none;
   color: var(--text-muted);
@@ -438,6 +459,8 @@
   flex-direction: column;
   gap: 1.1rem;
 }
+.modal-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; > div { min-width: 0; } }
+@media (max-width: 480px) { .modal-overlay { padding: 12px; } .modal-card { padding: 20px; max-height: calc(100dvh - 24px); } .modal-field-grid { grid-template-columns: minmax(0, 1fr); } .modal-footer { flex-wrap: wrap; button { flex: 1; min-height: 44px; white-space: normal; } } }
 
 .modal-footer {
   display: flex;

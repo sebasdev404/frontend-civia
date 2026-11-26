@@ -9,7 +9,7 @@
   height: calc(100vh - 11rem);
   min-height: 700px;
 
-  @media (min-width: 1024px) {
+  @media (min-width: 1280px) {
     flex-direction: row;
   }
 }
@@ -22,8 +22,8 @@
   @include flex(column, flex-start, flex-start, 1.25rem);
   @include card;
 
-  @media (min-width: 1024px) {
-    width: 380px;
+  @media (min-width: 1280px) {
+    width: 320px;
     flex-shrink: 0;
   }
 }
@@ -33,6 +33,19 @@
   width: 100%;
   padding-bottom: 0.875rem;
   border-bottom: 1px solid var(--border);
+}
+.context-note { margin-bottom: 20px; background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: 10px; padding: 12px 16px; summary { min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; color: var(--text-primary); font-size: 13px; font-weight: 650; > svg { flex-shrink: 0; } } p { font-size: 13px; color: var(--text-secondary); line-height: 1.7; margin: 10px 0 0; } }
+.filter-contents { display: contents; }
+.mobile-filter-toggle { display: none; }
+@media (max-width: 1279px) {
+  .map-layout { height: auto; min-height: 0; }
+  .map-sidebar { padding: 16px; overflow: visible; gap: 0; }
+  .sidebar-header { padding-bottom: 0; border-bottom: 0; gap: 10px; }
+  .sidebar-header .sidebar-title { display: none; }
+  .mobile-filter-toggle { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; color: var(--text-primary); min-height: 44px; font: inherit; font-size: 14px; font-weight: 650; padding: 0; cursor: pointer; > svg:last-child { transition: transform 150ms; } &[aria-expanded='true'] > svg:last-child { transform: rotate(180deg); } }
+  .filter-contents { display: none; }
+  .filter-contents.filters-open { display: flex; flex-direction: column; gap: 20px; width: 100%; max-height: min(65dvh, 600px); overflow-y: auto; min-height: 0; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); > * { flex-shrink: 0; } }
+  .map-layout .map-content { flex: none; height: clamp(360px, 65dvh, 600px); min-height: 360px; }
 }
 
 .sidebar-title {

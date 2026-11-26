@@ -1,17 +1,14 @@
 "use client";
+import {useHydrated} from '@/hooks/useHydrated';
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+
 import { Sun, Moon } from "lucide-react";
 import styles from "./ThemeToggle.module.scss";
 
 export function ThemeToggle() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const { theme, setTheme } = useTheme();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!mounted) {
     return <div style={{ width: 64, height: 32 }} />;

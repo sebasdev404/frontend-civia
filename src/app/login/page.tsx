@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { API } from '@/lib/api/client';
+import { safeReturnTo } from '@/lib/session';
 import styles from './login.module.scss';
 import {
   Mail,
@@ -23,7 +24,8 @@ import {
 
 type ViewMode = 'login' | 'forgot_request' | 'forgot_verify' | 'forgot_success';
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams();
   const { login, setSession } = useAuth();
   const router = useRouter();
 
@@ -44,7 +46,6 @@ export default function LoginPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [devOtpNotice, setDevOtpNotice] = useState<string | null>(null);
 
   // ─── 1. Login Normal ──────────────────────────────────────────
   const handleSubmitLogin = async (e: React.FormEvent) => {
@@ -54,25 +55,9 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Credenciales no válidas. Revisa tu correo y contraseña.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSelectRole = async (roleEmail: string, rolePass: string) => {
-    setEmail(roleEmail);
-    setPassword(rolePass);
-    setError(null);
-    setLoading(true);
-
-    try {
-      await login(roleEmail, rolePass);
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Error autenticando rol demo');
+      router.replace(safeReturnTo(searchParams.get('next')));
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : '') || 'Credenciales no válidas. Revisa tu correo y contraseña.');
     } finally {
       setLoading(false);
     }
@@ -96,12 +81,10 @@ export default function LoginPage() {
       const res = await API.auth.forgotPassword(targetEmail);
       setRecoveryEmail(targetEmail);
       setInfoMessage(res.message);
-      if (res.dev_otp) {
-        setDevOtpNotice(res.dev_otp);
-      }
+
       setViewMode('forgot_verify');
-    } catch (err: any) {
-      setError(err.message || 'No fue posible enviar el código. Verifica el correo ingresado.');
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : '') || 'No fue posible enviar el código. Verifica el correo ingresado.');
     } finally {
       setLoading(false);
     }
@@ -112,13 +95,12 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await API.auth.forgotPassword(recoveryEmail);
-      setInfoMessage('Nuevo código OTP generado y enviado.');
-      if (res.dev_otp) {
-        setDevOtpNotice(res.dev_otp);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Error al reenviar el código.');
+      const result = await API.auth.forgotPassword(recoveryEmail);
+      setInfoMessage(result.message);
+      setOtpCode('');
+
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : '') || 'Error al reenviar el código.');
     } finally {
       setLoading(false);
     }
@@ -130,13 +112,18 @@ export default function LoginPage() {
     setError(null);
 
     const cleanOtp = otpCode.trim();
-    if (cleanOtp.length < 6) {
+    if (!/^[0-9]{6}$/.test(cleanOtp)) {
       setError('El código OTP debe tener 6 dígitos numéricos.');
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('La nueva contraseña debe tener al menos 6 caracteres.');
+    if (newPassword.length < 10) {
+      setError('La nueva contraseña debe tener al menos 10 caracteres.');
+      return;
+    }
+
+    if (new TextEncoder().encode(newPassword).length > 72) {
+      setError('La contraseña no puede superar 72 bytes.');
       return;
     }
 
@@ -150,19 +137,19 @@ export default function LoginPage() {
     try {
       const res = await API.auth.resetPassword(recoveryEmail, cleanOtp, newPassword);
       
-      // Iniciar sesión con el nuevo token retornado
-      if (res.access_token && res.user) {
-        setSession(res.user, res.access_token);
+      // El servidor establece la cookie protegida; aquí solo recibimos el perfil.
+      if (res.session_id && res.user) {
+        setSession(res);
       }
 
       setViewMode('forgot_success');
 
       // Redirigir al dashboard después de 1.8 segundos
       setTimeout(() => {
-        router.push('/dashboard');
+        router.replace(safeReturnTo(searchParams.get('next')));
       }, 1800);
-    } catch (err: any) {
-      setError(err.message || 'Código incorrecto o expirado.');
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : '') || 'Código incorrecto o expirado.');
     } finally {
       setLoading(false);
     }
@@ -171,7 +158,6 @@ export default function LoginPage() {
   const handleOpenForgot = () => {
     setError(null);
     setInfoMessage(null);
-    setDevOtpNotice(null);
     setRecoveryEmail(email || '');
     setViewMode('forgot_request');
   };
@@ -194,6 +180,7 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {searchParams.get('reason') === 'expired' && <div className={styles['info-banner']} role="status">Tu sesión terminó. Inicia sesión para continuar donde estabas.</div>}
         {/* Mensaje de Error */}
         {error && (
           <div className={styles['error-banner']}>
@@ -208,12 +195,7 @@ export default function LoginPage() {
             <Info size={18} />
             <div>
               <span>{infoMessage}</span>
-              {devOtpNotice && (
-                <div>
-                  <span style={{ fontSize: '0.75rem', opacity: 0.9 }}>Código OTP de prueba:</span>{' '}
-                  <span className={styles['otp-highlight']}>{devOtpNotice}</span>
-                </div>
-              )}
+
             </div>
           </div>
         )}
@@ -287,63 +269,6 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Accesos Rápidos Demo para Evaluación y Pruebas */}
-            <div className={styles['demo-section']}>
-              <div className={styles['demo-title']}>Accesos Rápidos Demo (1 Clic)</div>
-              <div className={styles['demo-roles']}>
-                <button
-                  type="button"
-                  className={styles['demo-role-btn']}
-                  onClick={() => handleSelectRole('alcalde@civia.gov.co', 'civia2026')}
-                  disabled={loading}
-                >
-                  <div className={styles['role-info']}>
-                    <span className={styles['role-name']}>Johan Steed</span>
-                    <span className={styles['role-sub']}>Despacho del Alcalde Mayor</span>
-                  </div>
-                  <span className={[styles['role-badge'], styles.alcalde].join(' ')}>Alcalde</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={styles['demo-role-btn']}
-                  onClick={() => handleSelectRole('secretario@civia.gov.co', 'civia2026')}
-                  disabled={loading}
-                >
-                  <div className={styles['role-info']}>
-                    <span className={styles['role-name']}>Dra. Camila Morales</span>
-                    <span className={styles['role-sub']}>Secretaría de Movilidad</span>
-                  </div>
-                  <span className={[styles['role-badge'], styles.secretario].join(' ')}>Secretario</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={styles['demo-role-btn']}
-                  onClick={() => handleSelectRole('operador@civia.gov.co', 'civia2026')}
-                  disabled={loading}
-                >
-                  <div className={styles['role-info']}>
-                    <span className={styles['role-name']}>Carlos Mendoza</span>
-                    <span className={styles['role-sub']}>Centro de Atención Ciudadana</span>
-                  </div>
-                  <span className={[styles['role-badge'], styles.operador].join(' ')}>Operador</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={styles['demo-role-btn']}
-                  onClick={() => handleSelectRole('admin@civia.gov.co', 'civia2026')}
-                  disabled={loading}
-                >
-                  <div className={styles['role-info']}>
-                    <span className={styles['role-name']}>Ing. Juan Perdomo</span>
-                    <span className={styles['role-sub']}>Dirección TI y Gobernanza</span>
-                  </div>
-                  <span className={[styles['role-badge'], styles.admin].join(' ')}>Admin TI</span>
-                </button>
-              </div>
-            </div>
           </>
         )}
 
@@ -410,7 +335,7 @@ export default function LoginPage() {
             <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Verificar Código y Nueva Clave</h3>
               <p style={{ margin: '4px 0 0 0', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                Ingresa el código enviado a <strong>{recoveryEmail}</strong> y define tu nueva contraseña.
+                Si recibiste el código para <strong>{recoveryEmail}</strong>, ingrésalo y define tu nueva contraseña.
               </p>
             </div>
 
@@ -421,6 +346,10 @@ export default function LoginPage() {
                   id="otp-code"
                   type="text"
                   maxLength={6}
+                  minLength={6}
+                  pattern="[0-9]{6}"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
                   placeholder="000000"
                   className={styles['otp-input']}
                   value={otpCode}
@@ -438,7 +367,10 @@ export default function LoginPage() {
                 <input
                   id="new-password"
                   type={showNewPassword ? 'text' : 'password'}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 10 caracteres"
+                  minLength={10}
+                  maxLength={72}
+                  autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
@@ -461,6 +393,9 @@ export default function LoginPage() {
                   id="confirm-password"
                   type={showNewPassword ? 'text' : 'password'}
                   placeholder="Repite la nueva contraseña"
+                  minLength={10}
+                  maxLength={72}
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -517,7 +452,7 @@ export default function LoginPage() {
             </div>
             <h3 className={styles['success-title']}>¡Contraseña Restablecida!</h3>
             <p className={styles['success-desc']}>
-              Tu nueva clave de acceso ha sido guardada de forma segura con cifrado SHA-256. Iniciando tu sesión en el Despacho CIVIA...
+              Tu contraseña se actualizó y los accesos anteriores quedaron invalidados. Entrando a CIVIA…
             </p>
             <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--blue-600)', fontWeight: 600, fontSize: '0.875rem' }}>
               <Loader2 size={18} className="animate-spin" />
@@ -529,9 +464,13 @@ export default function LoginPage() {
         {/* Footer de Seguridad */}
         <div className={styles['footer-security']}>
           <ShieldCheck size={14} style={{ color: 'var(--emerald-500)' }} />
-          <span>Autenticación Segura JWT • Cifrado Criptográfico SHA-256</span>
+          <span>Acceso con cuenta autorizada</span>
         </div>
       </div>
     </div>
   );
+}
+
+export default function LoginPage() {
+  return <Suspense fallback={<p role="status">Cargando acceso...</p>}><LoginContent /></Suspense>;
 }

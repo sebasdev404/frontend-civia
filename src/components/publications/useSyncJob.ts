@@ -9,6 +9,7 @@ export function useSyncJob(scope: string, ready: boolean) {
   const epoch = useRef(0);
   const active = job?.status === 'queued' || job?.status === 'running';
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset transient controls when the external route, permission or capture scope changes.
     setJob(null); setError('');
     if (!ready) return;
     const controller = new AbortController();
@@ -35,6 +36,6 @@ export function useSyncJob(scope: string, ready: boolean) {
     }
     poll();
     return () => { controller.abort(); clearTimeout(timer); };
-  }, [job?.id, active, scope]);
+  }, [job?.id, job?.scope, active, scope]);
   return { job, active, completion, error, track: (value: MetaSyncJob) => { ++epoch.current; setJob(value); setError(''); } };
 }

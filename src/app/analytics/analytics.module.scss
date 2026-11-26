@@ -6,8 +6,8 @@
   gap: 1.25rem;
   margin-bottom: 2rem;
 
-  @media (min-width: 640px)  { grid-template-columns: repeat(2, 1fr); }
-  @media (min-width: 1024px) { grid-template-columns: repeat(4, 1fr); }
+  @container workspace (min-width: 600px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @container workspace (min-width: 1000px) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 .kpi-card {
@@ -37,17 +37,20 @@
 
 .analytics-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   margin-bottom: 2rem;
 
-  @media (min-width: 1024px) { grid-template-columns: 1fr 1fr; }
+  @container workspace (min-width: 900px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .analytics-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 1.5rem;
   @include card;
 }
+.ranking-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; > div { min-width: 0; > div:first-child { flex-wrap: wrap; gap: 8px; > div { min-width: 0; } } } }
 
 .card-title {
   font-size: 1.05rem;

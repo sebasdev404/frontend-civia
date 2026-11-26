@@ -34,7 +34,6 @@
   flex-direction: column;
   background: var(--bg-app);
   flex: 1;
-  transition: margin-left 300ms ease, width 300ms ease;
 
   @media (min-width: 1025px) {
     margin-left: var(--sidebar-width);

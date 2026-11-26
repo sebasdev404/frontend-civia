@@ -9,7 +9,7 @@ import {
   Layers, CheckSquare, Sparkles, PlusCircle, Check, X, AlertTriangle, Link as LinkIcon,
   Calendar, Heart, Eye, Share2, RefreshCw, Bot, Zap, Users, ExternalLink, Info
 } from 'lucide-react';
-import { API, type InstagramConnectionStatus, type MonitoredPostSummary, type ConsolidatedCaseSummary } from '@/lib/api/client';
+import { API, type InstagramConnectionStatus, type MonitoredPostSummary, type ConsolidatedCaseSummary, type ConversationAnalysis } from '@/lib/api/client';
 import { CommentAuthor } from '@/components/ui/CommentAuthor';
 import { ConversationBadge } from '@/components/ui/ConversationBadge';
 import CommentReviewQueue from '@/components/cases/CommentReviewQueue';
@@ -48,7 +48,7 @@ export interface RawCommentItem {
 }
 
 
-export function getEmotionConfig(sentiment?: string) {
+function getEmotionConfig(sentiment?: string) {
   if (!sentiment) {
     return {
       primary: 'Paz o tranquilidad',
@@ -143,7 +143,11 @@ const NEIVA_ENTITIES = [
   'Secretaría de Gobierno y Convivencia Ciudadana',
 ];
 
-const INITIAL_CASES: any[] = [];
+type CaseCard = ReturnType<typeof formatCaseSummary>;
+interface LinkedCase { id:string; author:string; content:string; priority:string; status:string; category:string; sentiment:string; location:string; date_time:string; assigned_department?:string; comment_id?:string; author_picture_url?:string; author_is_protected?:boolean; comment_permalink_url?:string }
+interface CapturedComment { followers_count?:number|null; following_count?:number|null; account_age?:string; id:string; message?:string; content?:string; author?:string; time?:string; published_at?:string; case_id?:string; is_bot?:boolean; source?:string; author_picture_url?:string; author_is_protected?:boolean; permalink_url?:string; conversation_analysis?:ConversationAnalysis }
+interface PostDetail extends MonitoredPostSummary { raw_comments?:CapturedComment[]; cases?:LinkedCase[]; conversation_analysis?:Record<string,ConversationAnalysis> }
+const INITIAL_CASES: CaseCard[] = [];
 const POST_PAGE_SIZE = 24;
 const CASE_PAGE_SIZE = 24;
 function formatCaseSummary(item: ConsolidatedCaseSummary) {
@@ -161,7 +165,7 @@ function CasesContent() {
     router.replace(`/cases?${params}`, { scroll: false });
   };
   const [postsList, setPostsList] = useState<MonitoredPostSummary[]>([]);
-  const [selectedPostSnapshot, setSelectedPost] = useState<any | null>(null);
+  const [selectedPostSnapshot, setSelectedPost] = useState<PostDetail | null>(null);
   const selectedPost = selectedPostSnapshot;
   const [loadingPostDetails, setLoadingPostDetails] = useState(false);
   const [postDetailsError, setPostDetailsError] = useState<string | null>(null);
@@ -269,17 +273,18 @@ function CasesContent() {
   const [reviewTarget, setReviewTarget] = useState<string | undefined>();
   const [triageError, setTriageError] = useState<string | null>(null);
   const [groupSuccessMsg, setGroupSuccessMsg] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'card' | 'compact' | 'list' | 'table'>('card');
-  const [search, setSearch] = useState('');
-  const [filterPriority, setFilterPriority] = useState<string>('all');
-  const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [filterSource, setFilterSource] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'card' | 'compact' | 'list' | 'table'>(() => { const value = searchParams.get('layout'); return value === 'card' || value === 'compact' || value === 'table' ? value : 'list'; });
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
+  const [filterPriority, setFilterPriority] = useState<string>(() => searchParams.get('priority') || 'all');
+  const [filterCategory, setFilterCategory] = useState<string>(() => searchParams.get('category') || 'all');
+  const [filterSource, setFilterSource] = useState<string>(() => searchParams.get('source') || 'all');
   const [filterProvenance, setFilterProvenance] = useState<'all' | 'needs_review' | 'recovered_local'>(() => { const value = searchParams.get('provenance'); return value === 'needs_review' || value === 'recovered_local' ? value : 'all'; });
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterDepartment, setFilterDepartment] = useState<string>('all');
-  const [filterPriorityOnly, setFilterPriorityOnly] = useState<boolean>(false);
-  const [casesList, setCasesList] = useState<any[]>(INITIAL_CASES);
-  const [caseOffset, setCaseOffset] = useState(0);
+  const [filterStatus, setFilterStatus] = useState<string>(() => searchParams.get('status') || 'all');
+  const [includeDuplicates, setIncludeDuplicates] = useState(() => searchParams.get('include_duplicates') === 'true');
+  const [filterDepartment, setFilterDepartment] = useState<string>(() => searchParams.get('department') || 'all');
+  const [filterPriorityOnly, setFilterPriorityOnly] = useState<boolean>(() => searchParams.get('priority_only') === 'true');
+  const [casesList, setCasesList] = useState<CaseCard[]>(INITIAL_CASES);
+  const [caseOffset, setCaseOffset] = useState(() => { const value = Number(searchParams.get('skip') || 0); return Number.isSafeInteger(value) && value >= 0 ? value : 0; });
   const [matchedCasesTotal, setMatchedCasesTotal] = useState(0);
   const [casesLoading, setCasesLoading] = useState(false);
   const [casesError, setCasesError] = useState<string | null>(null);
@@ -291,36 +296,21 @@ function CasesContent() {
   const [autoPilotActive, setAutoPilotActive] = useState<boolean>(true);
   const [activeSmartReplyCommentId, setActiveSmartReplyCommentId] = useState<string | null>(null);
   const [smartReplyResult, setSmartReplyResult] = useState<{ text: string; topic: string } | null>(null);
+  const [smartReplyError, setSmartReplyError] = useState('');
   const [smartReplyLoading, setSmartReplyLoading] = useState<boolean>(false);
   const [smartReplyCopied, setSmartReplyCopied] = useState<boolean>(false);
 
-  const handleGenerateCommentReply = async (comment: any) => {
-    setActiveSmartReplyCommentId(comment.id || comment.message);
+  const handleGenerateCommentReply = async (comment: CapturedComment) => {
+    setActiveSmartReplyCommentId(comment.id || comment.message || '');
     setSmartReplyLoading(true);
     setSmartReplyCopied(false);
     try {
-      const res = await fetch('http://localhost:8000/api/v1/ai/generate-smart-reply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          comment_text: comment.message,
-            user_type: 'Sin clasificar'
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSmartReplyResult({ text: data.response_text, topic: data.topic });
-      } else {
-        setSmartReplyResult({
-          text: 'Apreciado ciudadano, el control social y la veeduria fortalecen la transparencia en Neiva. En la administracion de Johan Steed, el PAE cuenta con supervision tecnica permanente en 160 sedes educativas garantizando 38.000 raciones diarias auditadas.',
-          topic: 'Gestion Institucional y PAE'
-        });
-      }
-    } catch {
-      setSmartReplyResult({
-        text: 'Apreciado ciudadano, tu reporte e inquietud quedan formalmente radicados en el sistema CIVIA para atencion tecnica e intervencion en terreno.',
-        topic: 'Atencion Ciudadana'
-      });
+      setSmartReplyError('');
+      setSmartReplyResult(null);
+      const data = await API.ai.generateReply({ comment_text: comment.message || comment.content || '', user_type: 'Sin clasificar' });
+      setSmartReplyResult({ text: data.response_text, topic: data.topic });
+    } catch (error) {
+      setSmartReplyError(error instanceof Error ? error.message : 'No se pudo preparar el borrador.');
     } finally {
       setSmartReplyLoading(false);
     }
@@ -380,7 +370,7 @@ function CasesContent() {
     try {
       const params = new URLSearchParams({limit: String(CASE_PAGE_SIZE), skip: String(caseOffset), search,
         priority: filterPriority, category: filterCategory, source: filterSource, status: filterStatus,
-        department: filterDepartment, provenance: filterProvenance, priority_only: String(filterPriorityOnly)});
+        department: filterDepartment, provenance: filterProvenance, include_duplicates: String(includeDuplicates), priority_only: String(filterPriorityOnly)});
       const page = await API.cases.getPage(params, { signal: controller.signal });
       if (request !== casesRequest.current || controller.signal.aborted) return;
       setCasesList(current => {
@@ -388,19 +378,21 @@ function CasesContent() {
         return page.items.map(item => {
           const formatted = formatCaseSummary(item);
           const previous = old.get(item.id);
-          return previous && Object.keys(formatted).every(key => previous[key] === formatted[key as keyof typeof formatted]) ? previous : formatted;
+          return previous && Object.keys(formatted).every(key => previous[key as keyof typeof formatted] === formatted[key as keyof typeof formatted]) ? previous : formatted;
         });
       });
       setMatchedCasesTotal(page.total);
-      if (!search.trim() && [filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterProvenance].every(value => value === 'all') && !filterPriorityOnly) setCasesTotal(page.total);
+      if (!search.trim() && [filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterProvenance].every(value => value === 'all') && !filterPriorityOnly && !includeDuplicates) setCasesTotal(page.total);
     } catch (error) {
       if (request === casesRequest.current && !controller.signal.aborted) setCasesError(error instanceof Error ? error.message : 'No se pudieron cargar los casos');
     } finally {
       if (request === casesRequest.current && !controller.signal.aborted) setCasesLoading(false);
     }
-  }, [caseOffset, search, filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterPriorityOnly, filterProvenance]);
+  }, [caseOffset, search, filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterPriorityOnly, filterProvenance, includeDuplicates]);
 
-  useEffect(() => { setCaseOffset(0); }, [search, filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterPriorityOnly, filterProvenance]);
+  const filterIdentity = JSON.stringify([search, filterPriority, filterCategory, filterSource, filterStatus, filterDepartment, filterPriorityOnly, filterProvenance, includeDuplicates]);
+  const previousFilterIdentity = useRef(filterIdentity);
+  useEffect(() => { if (previousFilterIdentity.current !== filterIdentity) { previousFilterIdentity.current = filterIdentity; setCaseOffset(0); } }, [filterIdentity]);
   useEffect(() => {
     if (activeTab !== 'CASES') return;
     const timer = setTimeout(() => refreshCases(), search ? 250 : 0);
@@ -497,44 +489,13 @@ function CasesContent() {
 
   const drawerRawComments = useMemo(() => {
     if (!selectedPost) return [];
-    const base: any[] = Array.isArray(selectedPost.raw_comments) ? selectedPost.raw_comments.map((comment: Record<string, unknown>) => ({
+    // Only Meta captures belong in this tab. Historical case text stays in its case.
+    return (selectedPost.raw_comments || []).map(comment => ({
       ...comment,
-      conversation_analysis: selectedPost.conversation_analysis?.[String(comment.id)],
+      conversation_analysis: selectedPost.conversation_analysis?.[comment.id],
       message: comment.message || comment.content || '',
       time: comment.time || comment.published_at,
-    })) : [];
-
-    const byId = new Map(base.map(comment => [comment.id, comment]));
-    const byText = new Map(base.map(comment => [comment.message, comment]));
-    const fromCases: typeof base = [];
-    if (Array.isArray(selectedPost.cases)) {
-      selectedPost.cases.forEach((c: any) => {
-        const match = c.comment_id ? byId.get(c.comment_id) : byText.get(c.content);
-        if (match) {
-          if (!match.case_id) match.case_id = c.id;
-          return;
-        }
-        if (c.content) {
-          const comment = {
-            id: c.comment_id || `case-comm-${c.id}`,
-            author: c.author,
-            author_picture_url: c.author_picture_url,
-            author_is_protected: c.author_is_protected,
-            permalink_url: c.comment_permalink_url,
-            message: c.content,
-            time: c.date_time,
-            case_id: c.id,
-            priority: c.priority,
-            category: c.category,
-          };
-          fromCases.push(comment);
-          byId.set(comment.id, comment);
-          byText.set(comment.message, comment);
-        }
-      });
-    }
-
-    return [...fromCases.reverse(), ...base];
+    }));
   }, [selectedPost]);
 
   const drawerCasesById = useMemo(() => new Map<string, { id: string }>(
@@ -543,7 +504,7 @@ function CasesContent() {
 
   const filteredDrawerComments = useMemo(() => {
     if (!selectedPost) return [];
-    return drawerRawComments.filter((rc: any) => {
+    return drawerRawComments.filter((rc) => {
       const isCase = Boolean(rc.case_id);
 
       const isBot = rc.is_bot === true;
@@ -560,7 +521,7 @@ function CasesContent() {
   }, [drawerRawComments, selectedPost, drawerCommentFilter]);
 
   const handleResetFilters = () => {
-    setFilterProvenance('all');
+    setFilterProvenance('all'); setIncludeDuplicates(false);
     setSearch('');
     setFilterPriority('all');
     setFilterCategory('all');
@@ -577,7 +538,7 @@ function CasesContent() {
     filterSource !== 'all' || 
     filterStatus !== 'all' || 
     filterDepartment !== 'all' || 
-    filterPriorityOnly || filterProvenance !== 'all';
+    filterPriorityOnly || filterProvenance !== 'all' || includeDuplicates;
 
   const getPriorityBadge = (priority: string) => {
     if (priority === 'Alta') return 'badge-alta';
@@ -591,8 +552,20 @@ function CasesContent() {
     return 'badge-media';
   };
 
+  const caseHref = (caseId: string) => {
+    const params = new URLSearchParams({ view: 'cases' });
+    for (const [key, value] of Object.entries({ search, priority: filterPriority, category: filterCategory, source: filterSource, status: filterStatus, department: filterDepartment, provenance: filterProvenance })) {
+      if (value && value !== 'all') params.set(key, value);
+    }
+    if (caseOffset) params.set('skip', String(caseOffset));
+    if (viewMode !== 'list') params.set('layout', viewMode);
+    if (includeDuplicates) params.set('include_duplicates', 'true');
+    if (filterPriorityOnly) params.set('priority_only', 'true');
+    return '/cases/' + encodeURIComponent(caseId) + '?returnTo=' + encodeURIComponent('/cases?' + params.toString());
+  };
+
   return (
-    <div className="page">
+    <div className={`page ${styles.casesWorkspace}`}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>Gestión de casos</h1>
@@ -621,7 +594,7 @@ function CasesContent() {
             style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '0.84rem' }}
           >
             <RefreshCw size={15} className={isSyncing ? styles['spin-icon'] : ''} />
-            <span>{isSyncing ? 'Sincronizando con Meta...' : 'Sincronizar en Tiempo Real'}</span>
+            <span>{isSyncing ? 'Actualizando fuentes…' : 'Actualizar fuentes'}</span>
           </button>
         </div>
       </div>
@@ -651,24 +624,6 @@ function CasesContent() {
       <div className={styles['view-tabs']} role="group" aria-label="Qué quieres revisar">
         <button
           type="button"
-          className={[styles['view-tab-btn'], activeTab === 'POSTS' ? styles.active : ''].join(' ')}
-          onClick={() => setActiveTab('POSTS')}
-          aria-pressed={activeTab === 'POSTS'}
-        >
-          <Layers size={16} />
-          <span>Publicaciones ({postsTotal})</span>
-        </button>
-        <button
-          type="button"
-          className={[styles['view-tab-btn'], activeTab === 'COMMENTS' ? styles.active : ''].join(' ')}
-          onClick={() => setActiveTab('COMMENTS')}
-          aria-pressed={activeTab === 'COMMENTS'}
-        >
-          <Bot size={16} />
-          <span>Revisar comentarios ({rawComments.length} cargados)</span>
-        </button>
-        <button
-          type="button"
           className={[styles['view-tab-btn'], activeTab === 'CASES' ? styles.active : ''].join(' ')}
           onClick={() => setActiveTab('CASES')}
           aria-pressed={activeTab === 'CASES'}
@@ -676,9 +631,27 @@ function CasesContent() {
           <FolderOpen size={16} />
           <span>Casos y seguimiento ({casesTotal})</span>
         </button>
+<button
+          type="button"
+          className={[styles['view-tab-btn'], activeTab === 'COMMENTS' ? styles.active : ''].join(' ')}
+          onClick={() => setActiveTab('COMMENTS')}
+          aria-pressed={activeTab === 'COMMENTS'}
+        >
+          <Bot size={16} />
+          <span>Revisar comentarios{rawComments.length > 0 ? ` (${rawComments.length} cargados)` : ''}</span>
+        </button>
+<button
+          type="button"
+          className={[styles['view-tab-btn'], activeTab === 'POSTS' ? styles.active : ''].join(' ')}
+          onClick={() => setActiveTab('POSTS')}
+          aria-pressed={activeTab === 'POSTS'}
+        >
+          <Layers size={16} />
+          <span>Publicaciones{postsTotal > 0 ? ` (${postsTotal})` : ''}</span>
+        </button>
       </div>
 
-      {activeTab !== 'COMMENTS' && (
+      {activeTab === 'POSTS' && (
       <div className="section-help">
         <div><strong>{activeTab === 'POSTS' ? 'Abre una publicación para ver sus comentarios' : activeTab === 'CASES' ? 'Selecciona un caso para atenderlo' : 'Revisa los comentarios que necesitan una decisión'}</strong>
           <p>{activeTab === 'POSTS' ? 'Cada tarjeta corresponde a una publicación. Dentro encontrarás todos los comentarios y las solicitudes vinculadas.' : activeTab === 'CASES' ? 'Usa los filtros de estado o prioridad. En el detalle puedes asignar la dependencia y registrar avances.' : 'Comprueba el problema detectado antes de vincular un comentario a un caso o crear una solicitud.'}</p></div>
@@ -904,6 +877,10 @@ function CasesContent() {
       {/* VISTA 2: CASOS CONSOLIDADOS */}
       {activeTab === 'CASES' && (
         <>
+          <div className={styles.inboxStatuses} aria-label="Filtrar casos por estado">
+            {(['all', 'Pendiente', 'En Gesti\u00f3n', 'Resuelto', 'No requiere gesti\u00f3n'] as const).map(value => <button key={value} aria-pressed={filterStatus === value} onClick={() => setFilterStatus(value)}>{value === 'all' ? 'Todos' : value === 'Pendiente' ? 'Pendientes' : value === 'Resuelto' ? 'Resueltos' : value === 'No requiere gesti\u00f3n' ? 'Sin solicitud' : value}</button>)}
+            <span>{matchedCasesTotal} registros coincidentes</span>
+          </div>
           <div className={styles.toolbar}>
         <div className={styles.controls}>
           {/* Búsqueda */}
@@ -918,12 +895,14 @@ function CasesContent() {
             />
           </div>
 
+          <details className={styles.advancedFilters}><summary><Filter size={15} />Filtros{hasActiveFilters && <span className={styles.filterDot} />}</summary><div className={styles.filterBody}>
           <div className={[styles['filter-dropdown-wrap'], filterProvenance !== 'all' ? styles.active : ''].join(' ')}>
             <ShieldAlert size={14} className={styles['dropdown-icon']} />
             <select aria-label="Filtrar por procedencia" value={filterProvenance} onChange={event => setFilterProvenance(event.target.value as 'all' | 'needs_review' | 'recovered_local')}>
               <option value="all">Procedencia: Todas</option><option value="needs_review">Origen pendiente de verificar</option><option value="recovered_local">Origen recuperado de captura</option>
             </select>
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}><input type="checkbox" checked={includeDuplicates} onChange={event => setIncludeDuplicates(event.target.checked)} />Incluir duplicados vinculados</label>
           {/* Dropdown de Prioridad */}
           <div className={[styles['filter-dropdown-wrap'], filterPriority !== 'all' ? styles.active : ''].join(' ')}>
             <Filter size={14} className={styles['dropdown-icon']} />
@@ -1013,10 +992,8 @@ function CasesContent() {
             </button>
           )}
 
-          {/* Contador de casos encontrados */}
-          <span className={styles['counter-badge']}>
-            {matchedCasesTotal} {matchedCasesTotal === 1 ? 'caso' : 'casos'}
-          </span>
+          </div></details>
+
         </div>
 
         {/* Selector de vistas */}
@@ -1081,7 +1058,7 @@ function CasesContent() {
                     </div>
                   </div>
 
-                  <CaseProvenanceNote status={c.provenance_status} reason={c.provenance_reason} />
+                  <CaseProvenanceNote status={c.provenance_status} reason={c.provenance_reason} conflict={c.provenance_conflict} duplicateOf={c.duplicate_of} />
                   <div className={styles['source-context']}>
                     <span className={styles['source-context-label']}>PUBLICACIÓN DONDE SE COMENTÓ</span>
                     {c.post_title ? <>
@@ -1115,7 +1092,7 @@ function CasesContent() {
                       💬 Texto registrado del comentario
                     </span>
                     <p className={styles['post-content']} style={{ margin: '3px 0 0', fontStyle: 'italic', color: 'var(--text-primary)' }}>
-                      "{c.content}"
+                      &quot;{c.content}&quot;
                     </p>
                     {c.comment_url && <a href={c.comment_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-link)', fontSize: '.8rem' }}>Ver comentario en Facebook <ExternalLink size={13} /></a>}
                   </div>
@@ -1183,7 +1160,7 @@ function CasesContent() {
                   </div>
 
                   <div className={styles['case-actions']}>
-                    <Link prefetch={false} href={'/cases/' + c.id} className="btn-primary">
+                    <Link prefetch={false} href={caseHref(c.id)} className="btn-primary">
                       Abrir Caso <ArrowUpRight size={16} />
                     </Link>
                   </div>
@@ -1205,7 +1182,7 @@ function CasesContent() {
               )}
               <div style={{ width: '100%' }}>
                 <div className={styles['compact-meta']}>{c.id} • 🕒 {c.dateTime} • {c.source}</div>
-                <h3 className={styles['compact-title']}>{c.title}</h3><CaseProvenanceNote status={c.provenance_status} reason={c.provenance_reason} />
+                <h3 className={styles['compact-title']}>{c.title}</h3><CaseProvenanceNote status={c.provenance_status} reason={c.provenance_reason} conflict={c.provenance_conflict} duplicateOf={c.duplicate_of} />
                 <p className={styles['compact-text']}>{c.content}</p>
                 <div className={styles.tags} style={{ marginTop: '8px' }}>
                   <span className={getPriorityBadge(c.priority)}>{c.priority}</span>
@@ -1226,7 +1203,7 @@ function CasesContent() {
                 </div>
               </div>
               <div className={styles['compact-actions']}>
-                <Link prefetch={false} href={'/cases/' + c.id} className="btn-primary" style={{ width: '100%', textAlign: 'center' }}>
+                <Link prefetch={false} href={caseHref(c.id)} className="btn-primary" style={{ width: '100%', textAlign: 'center' }}>
                   Abrir Caso <ArrowUpRight size={14} />
                 </Link>
               </div>
@@ -1236,44 +1213,24 @@ function CasesContent() {
       )}
 
       {viewMode === 'list' && (
-        <div className={styles['list-container']}>
-          {filteredCases.map((c) => (
-            <div key={c.id} className={styles['list-row']}>
-              <div className={styles['list-thumb']}>
-                {c.imageUrl ? <img src={c.thumbnailUrl || c.imageUrl} alt="" width={40} height={40} loading="lazy" decoding="async" onError={event => { event.currentTarget.style.display = 'none'; }} /> : c.source.charAt(0)}
-              </div>
-              <div className={styles['list-info']}>
-                <div className={styles['list-tags']}>
-                  <span className={getPriorityBadge(c.priority)}>P. {c.priority}</span>
-                  <span className={getStatusBadge(c.status)}>{c.status}</span>
-                  {c.priority_action && (
-                    <span style={{ 
-                      display: 'inline-flex', alignItems: 'center', gap: '3px',
-                      background: '#fee2e2', color: '#b91c1c', border: '1px solid #f87171',
-                      borderRadius: '999px', padding: '2px 8px', fontSize: '0.65rem', fontWeight: 700 
-                    }}>
-                      <Flame size={11} /> Alcaldía
-                    </span>
-                  )}
-                  <span className="badge-tag">{c.category}</span>
-                  <span className="badge-tag">{c.location}</span>
-                  {c.assigned_department && (
-                    <span className="badge-tag">🏢 {c.assigned_department}</span>
-                  )}
-                </div>
-                <div className={styles['list-title']}>{c.title}</div><CaseProvenanceNote status={c.provenance_status} reason={c.provenance_reason} />
-                <div className={styles['list-sub']}>{c.id} • {c.author} • 🕒 {c.dateTime}</div>
-              </div>
-              <Link prefetch={false} href={'/cases/' + c.id} className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.8125rem' }}>
-                Abrir <ArrowUpRight size={14} />
-              </Link>
+        <div className={styles.caseInbox}>
+          <div className={styles.inboxHeader} aria-hidden="true"><span>Comentario</span><span>Estado</span><span>Responsable</span><span /></div>
+          {filteredCases.map(c => <article key={c.id} className={styles.inboxRow}>
+            <div className={styles.inboxMessage}>
+              <div className={styles.inboxAuthor}>{c.author}<span>{c.source}</span></div>
+              <Link prefetch={false} href={caseHref(c.id)} className={styles.inboxText}>{c.content || c.title}</Link>
+              <div className={styles.inboxMeta}><span>{c.id}</span><span>{c.dateTime}</span>{c.provenance_status === 'needs_review' && <span className={styles.inboxWarning}><ShieldAlert size={12} />Revisar origen</span>}{c.duplicate_of && <span>Duplicado de {c.duplicate_of}</span>}</div>
             </div>
-          ))}
+            <div className={styles.inboxStatus}><span className={getStatusBadge(c.status)}>{c.status}</span><small>Prioridad {c.priority}</small></div>
+            <div className={styles.inboxOwner}><strong>{c.assigned_to || 'Sin asignar'}</strong>{c.assigned_to && <small>{c.assigned_department}</small>}</div>
+            <Link prefetch={false} href={caseHref(c.id)} className={styles.inboxOpen} aria-label={'Abrir caso ' + c.id}>Abrir<ArrowUpRight size={16} /></Link>
+          </article>)}
         </div>
       )}
 
       {viewMode === 'table' && (
-        <div className={styles['table-container']}>
+        <div className={styles['table-container']} role="region" aria-label="Tabla de casos" aria-describedby="cases-table-scroll-hint" tabIndex={0} data-horizontal-scroll>
+          <p id="cases-table-scroll-hint" className="table-scroll-hint">Desliza la tabla para consultar todos los datos del caso.</p>
           <table className={styles.table}>
             <thead className={styles['table-head']}>
               <tr>
@@ -1297,7 +1254,7 @@ function CasesContent() {
                     )}
                   </td>
                   <td>
-                    <div className={styles['table-title']}>{c.title}</div>{c.provenance_status && <small>{c.provenance_status === 'needs_review' ? 'Origen pendiente de verificar' : 'Origen recuperado de captura'}</small>}
+                    <div className={styles['table-title']}>{c.title}</div>{c.provenance_status && <small>{c.provenance_status === 'consolidated' ? 'Duplicidad revisada' : c.provenance_status === 'needs_review' ? 'Origen pendiente de verificar' : 'Origen recuperado de captura'}</small>}
                     <div className={styles['table-sub']}>{c.author} • {c.location} • 🕒 {c.dateTime}</div>
                   </td>
                   <td>
@@ -1305,10 +1262,10 @@ function CasesContent() {
                       {c.assigned_department || 'Sin asignar'}
                     </span>
                   </td>
-                  <td><span className={getStatusBadge(c.status)}>{c.status}</span></td>
+                  <td><span className={getStatusBadge(c.status)}>{c.status}</span>{c.duplicate_of && <small>Duplicado de {c.duplicate_of}</small>}</td>
                   <td><span className={getPriorityBadge(c.priority)}>{c.priority}</span></td>
                   <td>
-                    <Link prefetch={false} href={'/cases/' + c.id} className="btn-primary" style={{ padding: '5px 12px', fontSize: '0.75rem' }}>
+                    <Link prefetch={false} href={caseHref(c.id)} className="btn-primary" style={{ padding: '5px 12px', fontSize: '0.75rem' }}>
                       Revisar
                     </Link>
                   </td>
@@ -1333,9 +1290,9 @@ function CasesContent() {
       {/* DRAWER / BANDEJA LATERAL DEDICADA PARA EL POST SELECCIONADO */}
       {selectedPost && (
         <div className={styles['post-drawer-backdrop']} onClick={closePost}>
-          <div className={styles['post-drawer']} onClick={(e) => e.stopPropagation()}>
+          <div className={styles['post-drawer']} role="dialog" aria-modal="true" aria-labelledby="case-post-drawer-title" onClick={(e) => e.stopPropagation()}>
             <div className={styles['post-drawer-header']}>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+              <div className={styles['post-drawer-summary']}>
                 {selectedPost.cover_image && (
                   <img 
                     src={selectedPost.thumbnail_url || selectedPost.cover_image}
@@ -1343,8 +1300,8 @@ function CasesContent() {
                     style={{ width: '64px', height: '64px', borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border)' }}
                   />
                 )}
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                <div className={styles['post-drawer-info']}>
+                  <div className={styles['post-drawer-meta']}>
                     <span className="badge-tag" style={{ fontSize: '0.68rem' }}>
                       {selectedPost.media_type === 'video' ? '🎥 VIDEO / REEL' : '📷 IMAGEN'}
                     </span>
@@ -1352,10 +1309,10 @@ function CasesContent() {
                       🕒 {selectedPost.published_at}
                     </span>
                   </div>
-                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <h3 id="case-post-drawer-title" style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {selectedPost.title}
                   </h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                  <div className={styles['post-drawer-metrics']}>
                     {selectedPost.source !== 'Instagram' && <span className={styles['metric-pill']} title="Total de todos los tipos de reacción">
                       <Heart size={12} />
                       <strong>{selectedPost.reactions_count == null ? '—' : formatNumber(selectedPost.reactions_count)}</strong> Reacciones
@@ -1452,7 +1409,7 @@ function CasesContent() {
                   }}
                 >
                   <FolderOpen size={15} />
-                  <span>Casos Clasificados por IA ({selectedPost.cases?.length || 0})</span>
+                  <span>Casos vinculados ({selectedPost.cases?.length || 0})</span>
                 </button>
                 <button
                   type="button"
@@ -1494,7 +1451,7 @@ function CasesContent() {
               {/* SUB-PESTAÑA 1: CASOS CLASIFICADOS */}
               {postDrawerTab === 'CASES' && (
                 <div>
-                  {(!selectedPost.cases || selectedPost.cases.length === 0) ? (
+                  {(!selectedPost.cases || selectedPost.cases?.length === 0) ? (
                     <div className={styles['empty-state']} style={{ padding: '2rem 1rem' }}>
                       <CheckCircle2 size={36} style={{ color: 'var(--emerald-600)', margin: '0 auto 10px' }} />
                       <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem' }}>Sin problemáticas críticas detectadas</h4>
@@ -1504,7 +1461,7 @@ function CasesContent() {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {selectedPost.cases.slice(0, visibleCaseCount).map((c: any) => (
+                      {selectedPost.cases?.slice(0, visibleCaseCount).map((c) => (
                         <div
                           key={c.id}
                           style={{
@@ -1545,10 +1502,10 @@ function CasesContent() {
                             lineHeight: 1.5,
                             fontStyle: 'italic'
                           }}>
-                            "{c.content}"
+                            &quot;{c.content}&quot;
                           </div>
 
-                          {(selectedPost.source || '').toLowerCase().includes('facebook') && <ConversationBadge analysis={selectedPost.conversation_analysis?.[c.comment_id]} />}
+                          {(selectedPost.source || '').toLowerCase().includes('facebook') && <ConversationBadge analysis={selectedPost.conversation_analysis?.[c.comment_id || '']} />}
 
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', flexWrap: 'wrap', gap: '6px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
@@ -1577,9 +1534,9 @@ function CasesContent() {
                           </div>
                         </div>
                       ))}
-                      {selectedPost.cases.length > visibleCaseCount && (
+                      {selectedPost.cases?.length > visibleCaseCount && (
                         <button type="button" className="btn-secondary" onClick={() => setVisibleCaseCount(count => count + 20)}>
-                          Cargar más casos ({selectedPost.cases.length - visibleCaseCount} restantes)
+                          Cargar más casos ({selectedPost.cases?.length - visibleCaseCount} restantes)
                         </button>
                       )}
                     </div>
@@ -1599,7 +1556,7 @@ function CasesContent() {
                     flexWrap: 'wrap',
                     gap: '8px'
                   }}>
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div className={styles['drawer-comment-filters']}>
                       <button
                         type="button"
                         onClick={() => setDrawerCommentFilter('all')}
@@ -1630,7 +1587,7 @@ function CasesContent() {
                           color: drawerCommentFilter === 'cases_only' ? '#fff' : 'var(--text-secondary)'
                         }}
                       >
-                        Casos Clasificados ({selectedPost.cases?.length || 0})
+                        Casos vinculados ({selectedPost.cases?.length || 0})
                       </button>
                       <button
                         type="button"
@@ -1708,14 +1665,14 @@ function CasesContent() {
                       <MessageSquare size={36} style={{ color: 'var(--blue-500)', margin: '0 auto 10px' }} />
                       <h4 style={{ margin: '0 0 6px', fontSize: '0.95rem' }}>No hay comentarios con este filtro</h4>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
-                        Selecciona "Todos" para ver todas las interacciones de la comunidad en esta publicación.
+                        Selecciona &quot;Todos&quot; para ver todas las interacciones de la comunidad en esta publicación.
                       </p>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {filteredDrawerComments.slice(0, visibleCommentCount).map((rc: any, idx: number) => {
+                      {filteredDrawerComments.slice(0, visibleCommentCount).map((rc, idx) => {
                         const isBot = rc.is_bot === true;
-                        const matchedCase = drawerCasesById.get(rc.case_id);
+                        const matchedCase = drawerCasesById.get(rc.case_id || '');
                         return (
                           <div
                             key={rc.id || idx}
@@ -1765,7 +1722,7 @@ function CasesContent() {
                               </div>
                             </div>
                             <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                              "{rc.message}"
+                              &quot;{rc.message}&quot;
                             </p>
                             {(selectedPost.source || '').toLowerCase().includes('facebook') && <ConversationBadge analysis={rc.conversation_analysis} />}
 
@@ -1773,10 +1730,10 @@ function CasesContent() {
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', flexWrap: 'wrap', gap: '6px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                 <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: 'var(--bg-muted)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                                  👥 {rc.followers_count ?? 0} seg
+                                  👥 {rc.followers_count ?? '—'} seg
                                 </span>
                                 <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: 'var(--bg-muted)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                                  👤 {rc.following_count ?? 0} seguidos
+                                  👤 {rc.following_count ?? '—'} seguidos
                                 </span>
                                 <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', background: 'var(--bg-muted)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                                   📅 {rc.account_age || 'Antigüedad no disponible'}
@@ -1808,13 +1765,13 @@ function CasesContent() {
                             {/* Despliegue de Respuesta Inteligente generada */}
                             {activeSmartReplyCommentId === (rc.id || rc.message) && (
                               <div style={{ marginTop: '8px', padding: '10px 12px', borderRadius: 'var(--radius-md)', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
-                                {smartReplyLoading ? (
+                                {smartReplyError ? <p role="alert">{smartReplyError}</p> : smartReplyLoading ? (
                                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Generando respuesta institucional con IA...</div>
                                 ) : (
                                   <>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                                       <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--blue-600)' }}>
-                                        💡 Respuesta Oficial Sugerida ({smartReplyResult?.topic}):
+                                        💡 Borrador sugerido; requiere revisi?n ({smartReplyResult?.topic}):
                                       </span>
                                       <button
                                         type="button"
@@ -1831,7 +1788,7 @@ function CasesContent() {
                                       </button>
                                     </div>
                                     <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-primary)', lineHeight: 1.45 }}>
-                                      "{smartReplyResult?.text}"
+                                      &quot;{smartReplyResult?.text}&quot;
                                     </p>
                                   </>
                                 )}

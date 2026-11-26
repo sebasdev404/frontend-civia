@@ -1,3 +1,4 @@
 .note { width: 100%; margin-block: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-muted); font-size: .78rem; line-height: 1.6; strong { color: var(--text-primary); } p { color: var(--text-secondary); margin: 4px 0 0; } }
 .recovered { border-left: 3px solid var(--blue-600); }
 .warning { border-left: 3px solid #d97706; }
+.comparison { margin-top: 8px; summary { cursor: pointer; color: var(--text-primary); } a { display: inline-block; margin-top: 8px; color: var(--text-primary); text-decoration: underline; overflow-wrap: anywhere; } }

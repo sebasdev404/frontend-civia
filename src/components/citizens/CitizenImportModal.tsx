@@ -56,7 +56,7 @@ export default function CitizenImportModal({ onClose, onImported }: { onClose: (
           <h3 id="citizen-import-title"><FileSpreadsheet size={20} /> Importar ciudadanos</h3>
           <button type="button" className={styles['modal-close-btn']} aria-label="Cerrar" disabled={busy} onClick={onClose}><X size={20} /></button>
         </div>
-        <div className={styles['modal-body']} style={{ display: 'grid', gap: 16 }}>
+        <div className={`${styles['modal-body']} ${styles['import-body']}`}>
           <p>Sube un Excel (.xlsx) o CSV de hasta 10 MB y 10.000 contactos. Se requiere nombre y teléfono o usuario de WhatsApp. En este Excel se usa la hoja Contactos.</p>
           <div className={styles['import-template']}>
             <div>

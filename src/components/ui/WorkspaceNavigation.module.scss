@@ -1,4 +1,5 @@
-.workspace { padding: 10px 24px; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+.workspace { padding: 10px var(--page-gutter); border-bottom: 1px solid var(--border); background: var(--bg-card); }
+@media (min-width: 1025px) { .workspace { background: transparent; padding-block: 4px; border-bottom: 0; } .tools { display: none !important; } }
 .bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
 .breadcrumb { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; font-size: .875rem; color: var(--text-secondary);
   a { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; &:hover { color: var(--text-link); text-decoration: underline; } }

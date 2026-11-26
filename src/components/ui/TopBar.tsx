@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './TopBar.module.scss';
 import { ThemeToggle } from './ThemeToggle';
-import { Menu, LogOut, ChevronDown, Bell, Radio } from 'lucide-react';
+import { Menu, LogOut, ChevronDown, Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { API } from '@/lib/api/client';
 
@@ -22,18 +22,6 @@ interface AlertItem {
   priority: string;
 }
 
-function getRelativeTime(dateStr?: string): string {
-  if (!dateStr) return 'Reciente';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Hace un momento';
-  if (mins < 60) return `Hace ${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `Hace ${hours}h`;
-  const days = Math.floor(hours / 24);
-  return `Hace ${days}d`;
-}
-
 function getCategoryIcon(cat?: string, prio?: string): string {
   if (prio === 'Alta') return '🚨';
   const c = (cat || '').toLowerCase();
@@ -46,76 +34,30 @@ function getCategoryIcon(cat?: string, prio?: string): string {
   return '📌';
 }
 
-const DEFAULT_NOTIFICATIONS: AlertItem[] = [
-  {
-    id: 'CIV-2026-0001',
-    title: 'Prioridad Inmediata Alcaldía',
-    desc: 'Parque Las Granjas (Comuna 2): Inseguridad y falta de patrullaje reportada en Facebook.',
-    time: 'Hace 15m',
-    icon: '🚨',
-    priority: 'Alta',
-  },
-  {
-    id: 'CIV-2026-0004',
-    title: 'Emergencia Sanitaria',
-    desc: 'Canaima (Comuna 6): Desbordamiento de aguas servidas requiere intervención Las Ceibas E.S.P.',
-    time: 'Hace 45m',
-    icon: '💧',
-    priority: 'Alta',
-  },
-  {
-    id: 'CIV-2026-0007',
-    title: 'Alerta de Movilidad',
-    desc: 'Av. Circunvalar con Cra 5 (Comuna 1): Semáforos averiados generan congestión vial.',
-    time: 'Hace 2h',
-    icon: '🚦',
-    priority: 'Media',
-  },
-];
-
 export function TopBar({ onToggleMenu, isMenuOpen = true }: TopBarProps) {
-  const { user, logout, switchDemoUser } = useAuth();
+  const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [alerts, setAlerts] = useState<AlertItem[]>(DEFAULT_NOTIFICATIONS);
-  const [loadingAlerts, setLoadingAlerts] = useState(false);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
 
-  // Cargar casos reales en vivo desde PostgreSQL
+  // This menu is a recent-case shortcut, not an unread-notification counter.
   useEffect(() => {
-    let isMounted = true;
-    const fetchLiveCases = async () => {
-      try {
-        const data = await API.cases.getAll(15);
-        if (isMounted && Array.isArray(data) && data.length > 0) {
-          // Filtrar y ordenar: primero los de prioridad Alta y más recientes
-          const mapped: AlertItem[] = data.slice(0, 5).map((c: any) => ({
-            id: c.id,
-            title: c.priority === 'Alta' ? 'Prioridad Inmediata Alcaldía' : (c.title || c.category || 'Alerta Territorial'),
-            desc: `${c.location || 'Neiva'}: ${(c.content || c.title || '').slice(0, 80)}...`,
-            time: getRelativeTime(c.created_at),
-            icon: getCategoryIcon(c.category, c.priority),
-            priority: c.priority || 'Media',
-          }));
-          setAlerts(mapped);
-        }
-      } catch (err) {
-        console.warn('Usando alertas de respaldo:', err);
-      }
-    };
+    if (!notifOpen) return;
+    const controller = new AbortController();
+    API.cases.getPage(new URLSearchParams({limit:'5',skip:'0'}), {signal:controller.signal})
+      .then(page => setAlerts(page.items.map(c => ({
+        id:c.id, title:c.title, desc:c.content.slice(0,80),
+        time:c.date_time || 'Fecha no disponible',
+        icon:getCategoryIcon(c.category,c.priority), priority:c.priority,
+      }))))
+      .catch(() => { if (!controller.signal.aborted) setAlerts([]); });
+    return () => controller.abort();
+  }, [notifOpen, user?.id]);
 
-    fetchLiveCases();
-    // Sondeo de tiempo real cada 25 segundos
-    const interval = setInterval(fetchLiveCases, 25000);
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
-
-  const displayName = user?.full_name || 'Johan Steed';
-  const roleLabel = user?.role || 'ALCALDE';
+  const displayName = user?.full_name || 'Usuario';
+  const roleLabel = user?.role || '';
   const initial = displayName.charAt(0).toUpperCase();
 
   // Cerrar menús al hacer click afuera
@@ -167,10 +109,9 @@ export function TopBar({ onToggleMenu, isMenuOpen = true }: TopBarProps) {
               setNotifOpen(!notifOpen);
               setDropdownOpen(false);
             }}
-            aria-label="Notificaciones del sistema"
+            aria-label="Ver casos recientes"
           >
             <Bell size={18} />
-            <span className={styles['bell-badge']}>{alerts.length}</span>
           </button>
 
           {notifOpen && (
@@ -178,9 +119,9 @@ export function TopBar({ onToggleMenu, isMenuOpen = true }: TopBarProps) {
               <div className={styles['notifications-header']}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10b981', boxShadow: '0 0 6px #10b981' }} />
-                  <h4>Alertas Neiva (En Vivo)</h4>
+                  <h4>Casos recientes</h4>
                 </div>
-                <span>{alerts.filter(a => a.priority === 'Alta').length} Críticas</span>
+                <span>Hasta cinco registros</span>
               </div>
               <div className={styles['notifications-list']}>
                 {alerts.map((n) => (
@@ -235,61 +176,16 @@ export function TopBar({ onToggleMenu, isMenuOpen = true }: TopBarProps) {
             <div className={styles['user-menu-dropdown']}>
               <div className={styles['menu-user-header']}>
                 <p className={styles['menu-user-name']}>{displayName}</p>
-                <p className={styles['menu-user-email']}>{user?.email || 'alcalde@civia.gov.co'}</p>
+                <p className={styles['menu-user-email']}>{user?.email || ''}</p>
               </div>
               <div className={styles['menu-divider']} />
-              <div style={{ padding: '4px 8px 4px' }}>
-                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', fontWeight: 700 }}>
-                  Cambiar Rol (Demostración)
-                </span>
-              </div>
-              <button
-                type="button"
-                className={[styles['role-switch-btn'], roleLabel === 'ADMIN' ? styles.active : ''].join(' ')}
-                onClick={() => {
-                  switchDemoUser('ADMIN');
-                  setDropdownOpen(false);
-                }}
-              >
-                ⚙️ Admin (Ing. Juan Perdomo)
-              </button>
-              <button
-                type="button"
-                className={[styles['role-switch-btn'], roleLabel === 'ALCALDE' ? styles.active : ''].join(' ')}
-                onClick={() => {
-                  switchDemoUser('ALCALDE');
-                  setDropdownOpen(false);
-                }}
-              >
-                👑 Alcalde (Johan Steed)
-              </button>
-              <button
-                type="button"
-                className={[styles['role-switch-btn'], roleLabel === 'SECRETARIO' ? styles.active : ''].join(' ')}
-                onClick={() => {
-                  switchDemoUser('SECRETARIO');
-                  setDropdownOpen(false);
-                }}
-              >
-                👔 Secretario (Dra. Camila Morales)
-              </button>
-              <button
-                type="button"
-                className={[styles['role-switch-btn'], roleLabel === 'OPERADOR' ? styles.active : ''].join(' ')}
-                onClick={() => {
-                  switchDemoUser('OPERADOR');
-                  setDropdownOpen(false);
-                }}
-              >
-                🛠️ Operador (Carlos Mendoza)
-              </button>
-              <div className={styles['menu-divider']} />
+              <Link href="/account" className={styles['menu-account-link']} onClick={() => setDropdownOpen(false)}>Mi cuenta y seguridad</Link>
               <button 
                 type="button"
                 className={styles['menu-logout-btn']} 
                 onClick={() => {
                   setDropdownOpen(false);
-                  logout();
+                  void logout();
                 }}
               >
                 <LogOut size={16} />

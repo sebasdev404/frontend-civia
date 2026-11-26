@@ -1,4 +1,5 @@
 "use client";
+import {useHydrated} from '@/hooks/useHydrated';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -21,7 +22,7 @@ function OpinionContent() {
   const setPostId = (id: string) => {
     router.push(id ? `/opinion?post=${encodeURIComponent(id)}` : '/opinion', { scroll: false });
   };
-  const [authReady, setAuthReady] = useState(false);
+  const authReady = useHydrated();
   const [month, setMonth] = useState('all');
   const [stance, setStance] = useState('');
   const [theme, setTheme] = useState('');
@@ -62,10 +63,10 @@ function OpinionContent() {
     document.getElementById('opinion-comments')?.scrollIntoView({ block: 'start', behavior: 'instant' });
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset transient controls when the external route, permission or capture scope changes.
   useEffect(() => { setOffset(0); setTheme(''); }, [postId]);
 
   // La sesión por defecto se guarda en el efecto del AuthProvider durante el montaje.
-  useEffect(() => { setAuthReady(true); }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => { setDebouncedSearch(search); setOffset(0); }, 300);
@@ -98,6 +99,7 @@ function OpinionContent() {
     if (!authReady) return;
     const controller = new AbortController();
     const sequence = ++requestSequence.current;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- The effect owns this asynchronous request and its loading lifecycle.
     setLoading(true);
     API.conversation.getOverview(params(), controller.signal).then(result => {
       if (sequence === requestSequence.current) {
@@ -112,6 +114,7 @@ function OpinionContent() {
 
   useEffect(() => {
     if (!authReady) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset transient controls when the external route, permission or capture scope changes.
     setContext(emptyContext);
     if (!postId) { setContextLoading(false); return; }
     const controller = new AbortController();

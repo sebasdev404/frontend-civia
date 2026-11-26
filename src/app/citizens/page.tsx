@@ -14,7 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { API } from '@/lib/api/client';
 import { getEmotionConfig } from '@/lib/emotions';
 
-export function getCitizenSocialLink(name?: string, handle?: string, channel?: string) {
+function getCitizenSocialLink(name?: string, handle?: string, channel?: string) {
   if (!['Facebook', 'Instagram'].includes(channel || '')) return null;
   const cleanName = (name || '').trim();
   const rawHandle = (handle || '').replace(/[@\s]/g, '').trim();
@@ -78,9 +78,12 @@ interface CitizenItem {
   whatsapp_username?: string | null;
 }
 
+interface CitizenHistoryComment { case_id:string; author:string; comment_text:string; title:string; sentiment:string; category:string; location:string; date_time:string; status:string; public_response?:string; workflow_revision:string; ai_suggestion?:{suggested_reply?:string;tone?:string;talking_points:string[]}|null; post:{cover_image:string|null;source:string;published_at:string|null;title:string;permalink_url:string|null} }
+interface CitizenHistory {citizen:CitizenItem;total_comments:number;comments:CitizenHistoryComment[];relationship_status:string;relationship_note:string}
 export default function CitizensPage() {
   const { user } = useAuth();
   const canDelete = user?.role === 'ADMIN' || user?.role === 'ALCALDE';
+  const canWriteDraft = user?.role === 'ADMIN' || user?.role === 'SECRETARIO' || user?.role === 'OPERADOR';
   const [citizens, setCitizens] = useState<CitizenItem[]>([]);
   const [selectedCitizens, setSelectedCitizens] = useState<Map<string, CitizenDeleteTarget>>(new Map());
   const [deleteTargets, setDeleteTargets] = useState<CitizenDeleteTarget[] | null>(null);
@@ -116,17 +119,19 @@ export default function CitizensPage() {
 
   // Modal 3: Expediente de Comentarios y Posts
   const [commentsModalOpen, setCommentsModalOpen] = useState(false);
-  const [selectedCitizenHistory, setSelectedCitizenHistory] = useState<any | null>(null);
+  const [selectedCitizenHistory, setSelectedCitizenHistory] = useState<CitizenHistory | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [savingReplyId, setSavingReplyId] = useState<string | null>(null);
   const [savedReplySuccess, setSavedReplySuccess] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState('');
   const [copiedCommentId, setCopiedCommentId] = useState<string | null>(null);
 
   const handleOpenCitizenHistory = async (citizen: CitizenItem) => {
     setCommentsModalOpen(true);
     setLoadingHistory(true);
     setSelectedCitizenHistory(null);
+    setHistoryError('');
     setSavedReplySuccess(null);
     try {
       const data = await API.citizens.getComments(citizen.id);
@@ -137,7 +142,7 @@ export default function CitizensPage() {
       });
       setReplyDrafts(drafts);
     } catch (e) {
-      console.warn('Error loading citizen history:', e);
+      setHistoryError(e instanceof Error ? e.message : 'No se pudo cargar el historial.');
     } finally {
       setLoadingHistory(false);
     }
@@ -146,15 +151,21 @@ export default function CitizensPage() {
   const handleSaveCitizenReply = async (caseId: string) => {
     if (!selectedCitizenHistory?.citizen?.id) return;
     setSavingReplyId(caseId);
+    setHistoryError('');
     setSavedReplySuccess(null);
     try {
-      await API.citizens.saveReply(selectedCitizenHistory.citizen.id, {
-        case_id: caseId, reply_text: replyDrafts[caseId] || '', status: 'En Gesti\u00f3n',
+      const current = selectedCitizenHistory.comments?.find((item: { case_id: string }) => item.case_id === caseId);
+      const saved = await API.citizens.saveReply(selectedCitizenHistory.citizen.id, {
+        case_id: caseId, reply_text: replyDrafts[caseId] || '', expected_revision: current?.workflow_revision || '',
+      });
+      setSelectedCitizenHistory((previous) => {
+        if (!previous || previous.citizen.id !== selectedCitizenHistory.citizen.id) return previous;
+        return { ...previous, comments: previous.comments.map((item) => item.case_id === caseId ? { ...item, workflow_revision: saved.workflow_revision, public_response: saved.public_response } : item) };
       });
       setSavedReplySuccess(caseId);
       setTimeout(() => setSavedReplySuccess(null), 3000);
     } catch (e) {
-      console.error('Error saving reply:', e);
+      setHistoryError(e instanceof Error ? e.message : 'No se pudo guardar el borrador.');
     } finally {
       setSavingReplyId(null);
     }
@@ -170,6 +181,7 @@ export default function CitizensPage() {
   const [replyPrompt, setReplyPrompt] = useState('Por mi crítica salvé el PAE');
   const [generatedReply, setGeneratedReply] = useState<string | null>(null);
   const [replyTopic, setReplyTopic] = useState<string | null>(null);
+  const [replyError, setReplyError] = useState('');
   const [isGeneratingReply, setIsGeneratingReply] = useState(false);
   const [copiedSuccess, setCopiedSuccess] = useState(false);
 
@@ -202,7 +214,9 @@ export default function CitizensPage() {
     }
   }, [offset, userTypeFilter, followersFilter, accountAgeFilter, search]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset transient controls when the external route, permission or capture scope changes.
   useEffect(() => { setOffset(0); setSelectedCitizens(new Map()); }, [userTypeFilter, followersFilter, accountAgeFilter, search]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset transient controls when the external route, permission or capture scope changes.
   useEffect(() => { if (!canDelete) { setSelectedCitizens(new Map()); setDeleteTargets(null); } }, [canDelete]);
   useEffect(() => {
     const controller = new AbortController();
@@ -256,44 +270,16 @@ export default function CitizensPage() {
     const targetType = citizen ? citizen.user_type : 'Negativo';
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/ai/generate-smart-reply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          comment_text: promptText,
-          author_metadata: citizen ? {
-            author: citizen.name,
-            handle: citizen.handle,
-            followers: citizen.followers_count,
-            following: citizen.following_count
-          } : {},
-          user_type: targetType
-        })
+      setReplyError('');
+      setGeneratedReply(null);
+      const data = await API.ai.generateReply({
+        comment_text: promptText, user_type: targetType,
+        author_metadata: citizen ? { author: citizen.name, handle: citizen.handle, followers: citizen.followers_count, following: citizen.following_count } : {},
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        setGeneratedReply(data.response_text);
-        setReplyTopic(data.topic);
-      } else {
-        // Fallback local
-        if (promptText.toLowerCase().includes('pae')) {
-          setGeneratedReply(
-            'Apreciado ciudadano, el control social y la veeduría son fundamentales para la transparencia de Neiva. Bajo la actual administración de Johan Steed, el Programa de Alimentación Escolar (PAE) opera con supervisión técnica permanente en las 160 sedes educativas de la ciudad, garantizando más de 38.000 raciones diarias auditadas por nutricionistas y comités de veeduría comunitaria. Toda observación ciudadana se radica formalmente para inspección inmediata en sitio por la Secretaría de Educación.'
-          );
-          setReplyTopic('Programa de Alimentación Escolar (PAE)');
-        } else {
-          setGeneratedReply(
-            'Agradecemos tu reporte ciudadano. En la administración municipal hacemos seguimiento estricto a cada intervención en territorio. Tu solicitud ha sido radicada formalmente en el sistema CIVIA para despacho y atención prioritaria.'
-          );
-          setReplyTopic('Atención Institucional');
-        }
-      }
-    } catch {
-      setGeneratedReply(
-        'Apreciado ciudadano, el Programa de Alimentación Escolar (PAE) de Neiva cuenta con supervisión técnica continua en las 160 sedes educativas, garantizando 38.000 raciones diarias auditadas con total transparencia.'
-      );
-      setReplyTopic('Programa de Alimentación Escolar (PAE)');
+      setGeneratedReply(data.response_text);
+      setReplyTopic(data.topic);
+    } catch (error) {
+      setReplyError(error instanceof Error ? error.message : 'No se pudo preparar el borrador.');
     } finally {
       setIsGeneratingReply(false);
     }
@@ -460,7 +446,7 @@ export default function CitizensPage() {
           <select 
             className={styles['filter-select']}
             value={followersFilter}
-            onChange={(e) => setFollowersFilter(e.target.value as any)}
+            onChange={(e) => setFollowersFilter(e.target.value as typeof followersFilter)}
             title="Filtrar por número de seguidores del perfil"
           >
             <option value="all">Seguidores: Todos</option>
@@ -473,7 +459,7 @@ export default function CitizensPage() {
           <select 
             className={styles['filter-select']}
             value={accountAgeFilter}
-            onChange={(e) => setAccountAgeFilter(e.target.value as any)}
+            onChange={(e) => setAccountAgeFilter(e.target.value as typeof accountAgeFilter)}
             title="Filtrar por fecha de creación de la cuenta"
           >
             <option value="all">Creación: Todas</option>
@@ -492,7 +478,8 @@ export default function CitizensPage() {
           <button type="button" className={styles['delete-btn']} disabled={loading || selectedCitizens.size === 0} onClick={() => setDeleteTargets([...selectedCitizens.values()])}><Trash2 size={15} />Eliminar seleccionados ({selectedCitizens.size})</button>
         </div>
       </div>}
-      <div className={styles['citizens-table-card']}>
+      <div className={styles['citizens-table-card']} role="region" aria-label="Directorio de ciudadanos" aria-describedby="citizens-table-scroll-hint" tabIndex={0} data-horizontal-scroll>
+        <p id="citizens-table-scroll-hint" className="table-scroll-hint">Desliza la tabla para consultar todas las columnas y acciones.</p>
         <table className={styles.table}>
           <thead className={styles['table-head']}>
             <tr>
@@ -641,7 +628,7 @@ export default function CitizensPage() {
                       </div>
                       {citizen.notes && (
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={citizen.notes}>
-                          "{citizen.notes}"
+                          &quot;{citizen.notes}&quot;
                         </div>
                       )}
                     </td>
@@ -823,7 +810,7 @@ export default function CitizensPage() {
                       handleGenerateReply(text, activeCitizenForReply);
                     }}
                   >
-                    🍲 "Por mi crítica salvé el PAE"
+                    🍲 &quot;Por mi crítica salvé el PAE&quot;
                   </button>
                   <button
                     type="button"
@@ -889,6 +876,7 @@ export default function CitizensPage() {
               </div>
 
               {/* Respuesta Generada por IA */}
+              {replyError && <p role="alert">{replyError}</p>}
               {generatedReply && (
                 <div style={{
                   padding: '14px',
@@ -933,7 +921,7 @@ export default function CitizensPage() {
                   </div>
 
                   <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.55 }}>
-                    "{generatedReply}"
+                    &quot;{generatedReply}&quot;
                   </p>
                 </div>
               )}
@@ -976,14 +964,16 @@ export default function CitizensPage() {
           <div 
             className={styles['modal-card']} 
             onClick={(e) => e.stopPropagation()} 
-            style={{ maxWidth: '920px', width: '92vw', maxHeight: '88vh' }}
+            style={{ maxWidth: '920px', width: '92vw', maxHeight: '88dvh' }}
+            role="dialog" aria-modal="true" aria-labelledby="citizen-history-title"
           >
             {/* Header del Expediente Ciudadano */}
             <div className={styles['modal-header']} style={{ background: 'rgba(15, 23, 42, 0.75)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div className={styles['history-identity']}>
                 <div style={{
                   width: '42px',
                   height: '42px',
+                  flexShrink: 0,
                   borderRadius: '50%',
                   background: selectedCitizenHistory?.citizen?.user_type === 'Bot' ? 'rgba(239, 68, 68, 0.2)' : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
                   display: 'flex',
@@ -996,9 +986,9 @@ export default function CitizensPage() {
                 }}>
                   {selectedCitizenHistory?.citizen?.user_type === 'Bot' ? <Bot size={22} /> : (selectedCitizenHistory?.citizen?.name ? selectedCitizenHistory.citizen.name.charAt(0).toUpperCase() : 'C')}
                 </div>
-                <div>
+                <div className={styles['history-details']}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                    <h3 id="citizen-history-title" style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
                       {selectedCitizenHistory?.citizen?.name || 'Expediente de Comentarios'}
                     </h3>
                     <code style={{ fontSize: '0.78rem', color: '#93c5fd', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
@@ -1037,6 +1027,7 @@ export default function CitizensPage() {
 
             {/* Cuerpo con Historial de Posts, Comentarios y Propuestas de Respuesta */}
             <div className={styles['modal-body']} style={{ padding: '20px 24px', overflowY: 'auto' }}>
+              {historyError && <p role="alert">{historyError} Reabre el historial para revisar la versión actual antes de guardar.</p>}
               {loadingHistory ? (
                 <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   <RefreshCw size={32} className="spin" style={{ margin: '0 auto 12px', display: 'block', color: 'var(--blue-500)' }} />
@@ -1064,7 +1055,7 @@ export default function CitizensPage() {
                     gap: '10px'
                   }}>
                     <span>
-                      📊 <strong>{selectedCitizenHistory?.total_comments} publicaciones comentadas</strong> por este usuario. Puedes revisar el post original, verificar lo que escribió y gestionar la respuesta institucional.
+                      📊 <strong>{selectedCitizenHistory?.total_comments} expedientes coincidentes</strong>. {selectedCitizenHistory?.relationship_note}
                     </span>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
 {(() => {
@@ -1104,15 +1095,16 @@ export default function CitizensPage() {
                     {(!selectedCitizenHistory?.comments || selectedCitizenHistory.comments.length === 0) ? (
                       <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)' }}>
                         <Info size={32} style={{ color: 'var(--text-muted)', marginBottom: '12px', display: 'inline-block' }} />
-                        <h4 style={{ margin: '0 0 6px', fontSize: '1rem', color: 'var(--text-primary)' }}>Sin comentarios radicados para este perfil</h4>
+                        <h4 style={{ margin: '0 0 6px', fontSize: '1rem', color: 'var(--text-primary)' }}>Sin expedientes coincidentes</h4>
                         <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '450px', marginInline: 'auto' }}>
-                          Este perfil no registra comentarios directos en las publicaciones analizadas de 2026.
+                          {selectedCitizenHistory?.relationship_note || 'La información disponible no permite vincular comentarios a este contacto.'}
                         </p>
                       </div>
                     ) : (
-                      selectedCitizenHistory.comments.map((item: any, idx: number) => (
+                      selectedCitizenHistory.comments.map((item, idx) => (
                       <div 
                         key={item.case_id || idx}
+                        data-case-id={item.case_id}
                         style={{
                           background: 'var(--bg-card)',
                           border: '1px solid var(--border)',
@@ -1130,19 +1122,7 @@ export default function CitizensPage() {
                           background: 'rgba(255, 255, 255, 0.02)',
                           borderBottom: '1px solid var(--border)'
                         }}>
-                          <img 
-                            src={item.post.cover_image} 
-                            alt="Portada del post"
-                            style={{
-                              width: '85px',
-                              height: '56px',
-                              borderRadius: '6px',
-                              objectFit: 'cover',
-                              border: '1px solid var(--border)',
-                              flexShrink: 0
-                            }}
-                            onError={(e: any) => { e.target.src = 'http://localhost:8000/static/covers/default_cover.jpg'; }}
-                          />
+                          <HistoryPostImage key={item.post.cover_image || 'missing'} src={item.post.cover_image} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                               <span style={{ 
@@ -1156,7 +1136,7 @@ export default function CitizensPage() {
                                 {item.post.source}
                               </span>
                               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                Publicado: {item.post.published_at}
+                                Publicado: {item.post.published_at || 'Fecha no disponible'}
                               </span>
                             </div>
                             <h4 style={{ 
@@ -1196,7 +1176,7 @@ export default function CitizensPage() {
 {(() => {
                                 const authorName = item.author || selectedCitizenHistory?.citizen?.name;
                                 const cit = selectedCitizenHistory?.citizen;
-                                const authorHandle = (authorName === cit?.name) ? cit?.handle : `@${authorName.toLowerCase().replace(/[^a-z0-9]/g, '.')}`;
+                                const authorHandle = (authorName === cit?.name) ? cit?.handle : undefined;
                                 const sLink = getCitizenSocialLink(authorName, authorHandle, item.post.source || cit?.channel);
                                 if (!sLink) return null;
                                 return (
@@ -1262,7 +1242,7 @@ export default function CitizensPage() {
                             lineHeight: 1.5,
                             fontStyle: 'italic'
                           }}>
-                            "{item.comment_text}"
+                            &quot;{item.comment_text}&quot;
                           </div>
 
                           <div style={{ display: 'flex', gap: '12px', marginTop: '8px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
@@ -1278,16 +1258,17 @@ export default function CitizensPage() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <Sparkles size={14} style={{ color: 'var(--blue-500)' }} />
                               <strong style={{ fontSize: '0.78rem', color: '#93c5fd' }}>
-                                ¿Qué podemos responder? (Propuesta Institucional IA):
+                                Borrador interno de respuesta
                               </strong>
                             </div>
                             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
-                              Tono: {item.ai_suggestion?.tone || 'Institucional Asertivo'}
+                              {item.ai_suggestion?.tone ? `Tono propuesto: ${item.ai_suggestion.tone}` : 'Edición manual'}
                             </span>
                           </div>
 
                           <textarea
                             rows={3}
+                            readOnly={!canWriteDraft || !['Pendiente', 'En Gestión'].includes(item.status)}
                             value={replyDrafts[item.case_id] ?? (item.public_response || item.ai_suggestion?.suggested_reply || '')}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -1309,9 +1290,9 @@ export default function CitizensPage() {
                           />
 
                           {/* Puntos de Apoyo sugeridos */}
-                          {item.ai_suggestion?.talking_points?.length > 0 && (
+                          {Boolean(item.ai_suggestion?.talking_points?.length) && (
                             <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                              {item.ai_suggestion.talking_points.map((pt: string, pidx: number) => (
+                              {item.ai_suggestion?.talking_points.map((pt: string, pidx: number) => (
                                 <span key={pidx} style={{ fontSize: '0.67rem', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.04)', padding: '1px 6px', borderRadius: '3px' }}>
                                   ✓ {pt}
                                 </span>
@@ -1326,7 +1307,7 @@ export default function CitizensPage() {
                                 type="button"
                                 className="btn-primary"
                                 onClick={() => handleSaveCitizenReply(item.case_id)}
-                                disabled={savingReplyId === item.case_id}
+                                disabled={savingReplyId === item.case_id || !canWriteDraft || !['Pendiente', 'En Gestión'].includes(item.status) || !(replyDrafts[item.case_id] || '').trim()}
                                 style={{ fontSize: '0.75rem', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                               >
                                 {savingReplyId === item.case_id ? (
@@ -1337,12 +1318,12 @@ export default function CitizensPage() {
                                 ) : savedReplySuccess === item.case_id ? (
                                   <>
                                     <Check size={12} style={{ color: '#10b981' }} />
-                                    <span>¡Guardado Oficialmente!</span>
+                                    <span>Borrador guardado</span>
                                   </>
                                 ) : (
                                   <>
                                     <CheckCircle2 size={12} />
-                                    <span>Guardar Respuesta Oficial</span>
+                                    <span>Guardar borrador</span>
                                   </>
                                 )}
                               </button>
@@ -1424,4 +1405,11 @@ export default function CitizensPage() {
 
     </div>
   );
+}
+
+function HistoryPostImage({ src }: { src?: string | null }) {
+  const [failed, setFailed] = useState(false);
+  return src && !failed
+    ? <img src={src} alt="Portada original disponible" style={{ width: 85, height: 56, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} onError={() => setFailed(true)} />
+    : <span style={{ width: 85, fontSize: '0.7rem', color: 'var(--text-muted)', flexShrink: 0 }}>Sin imagen disponible</span>;
 }

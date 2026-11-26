@@ -1,211 +1,96 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { API } from '@/lib/api/client';
-
-export type UserRole = 'ADMIN' | 'ALCALDE' | 'SECRETARIO' | 'OPERADOR';
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  full_name: string;
-  role: UserRole;
-  department?: string;
-  avatar_url?: string | null;
-  is_active: boolean;
-  created_at: string;
-}
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { API, ApiError } from '@/lib/api/client';
+import { acceptSession, clearLegacyCredentials, clearSession, expireSession, notifyOtherTabs, sessionGeneration, SESSION_CHANGED, SESSION_EXPIRED, type AuthUser, type SessionInfo } from '@/lib/session';
+export type { AuthUser, UserRole, SessionInfo } from '@/lib/session';
 
 interface AuthContextType {
-  user: AuthUser | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
+  user: AuthUser | null; isAuthenticated: boolean; isLoading: boolean;
+  sessionError: string | null; sessionExpired: boolean; retrySession: () => void;
   login: (email: string, password: string) => Promise<AuthUser>;
-  logout: () => void;
-  switchDemoUser: (role: UserRole) => Promise<void>;
-  setSession: (user: AuthUser, token: string) => void;
+  logout: () => Promise<void>; logoutAll: () => Promise<void>; setSession: (info: SessionInfo) => void;
 }
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const DEMO_ACCOUNTS: Record<UserRole, AuthUser> = {
-  ADMIN: {
-    id: 'USR-000',
-    email: 'admin@civia.gov.co',
-    full_name: 'Ing. Juan Perdomo',
-    role: 'ADMIN',
-    department: 'Dirección de Tecnologías y Seguridad TI',
-    avatar_url: null,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  ALCALDE: {
-    id: 'USR-001',
-    email: 'alcalde@civia.gov.co',
-    full_name: 'Johan Steed',
-    role: 'ALCALDE',
-    department: 'Despacho del Alcalde',
-    avatar_url: null,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  SECRETARIO: {
-    id: 'USR-002',
-    email: 'secretario@civia.gov.co',
-    full_name: 'Dra. Camila Morales',
-    role: 'SECRETARIO',
-    department: 'Secretaría de Movilidad y Servicios',
-    avatar_url: null,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  OPERADOR: {
-    id: 'USR-003',
-    email: 'operador@civia.gov.co',
-    full_name: 'Carlos Mendoza',
-    role: 'OPERADOR',
-    department: 'Centro de Monitoreo Ciudadano',
-    avatar_url: null,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-};
-
-const DEFAULT_DEMO_USER: AuthUser = DEMO_ACCOUNTS.ALCALDE;
+const initial = { user: null as AuthUser | null, session_id: null as string | null, expires_at: '', isLoading: true, sessionError: null as string | null, sessionExpired: false };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(DEFAULT_DEMO_USER);
-  const [token, setToken] = useState<string | null>('demo-token-alcalde');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const router = useRouter();
-
-  // Inicializar estado desde LocalStorage al cargar la aplicación
-  useEffect(() => {
+  const [session, setState] = useState(initial);
+  const sequence = useRef(0);
+  const validate = useCallback(async (signal?: AbortSignal) => {
+    if (signal?.aborted) return;
+    const attempt = ++sequence.current;
     try {
-      const storedToken = localStorage.getItem('civia_token');
-      const storedUser = localStorage.getItem('civia_user');
-
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        
-        // Revalidación silenciosa con el backend
-        API.auth.me()
-          .then((freshUser: any) => {
-            if (freshUser && freshUser.id) {
-              setUser(freshUser);
-              localStorage.setItem('civia_user', JSON.stringify(freshUser));
-            }
-          })
-          .catch(() => {
-            // Si el backend no responde o tarda, conservamos la sesión local activa
-          });
+      const info = await API.auth.me(signal);
+      if (signal?.aborted || attempt !== sequence.current) return;
+      acceptSession(info);
+      setState({ ...initial, isLoading: false, ...info });
+    } catch (error) {
+      if (signal?.aborted || attempt !== sequence.current) return;
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession();
+        setState(previous => ({ ...initial, isLoading: false, sessionExpired: !!previous.user || error.code !== 'NO_SESSION' || sessionStorage.getItem('civia_session_notice') === 'expired' }));
       } else {
-        // Inicializar sesión por defecto de Johan Steed (Alcalde) para acceso inmediato sin pantallas de espera
-        setUser(DEFAULT_DEMO_USER);
-        setToken('demo-token-alcalde');
-        localStorage.setItem('civia_token', 'demo-token-alcalde');
-        localStorage.setItem('civia_user', JSON.stringify(DEFAULT_DEMO_USER));
+        setState(previous => previous.user ? previous : { ...initial, isLoading: false, sessionError: 'No pudimos contactar al servidor para validar tu sesión. Reintenta cuando vuelva la conexión.' });
       }
-    } catch (e) {
-      console.warn('Error leyendo sesión local:', e);
-      setUser(DEFAULT_DEMO_USER);
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    clearLegacyCredentials();
+    void Promise.resolve().then(() => validate(controller.signal));
+    const expired = () => { sequence.current++; setState({ ...initial, isLoading: false, sessionExpired: true }); };
+    const changed = () => { void validate(controller.signal); };
+    const storage = (event: StorageEvent) => { if (event.key === 'civia_session_signal') changed(); };
+    window.addEventListener(SESSION_EXPIRED, expired);
+    window.addEventListener(SESSION_CHANGED, changed);
+    window.addEventListener('storage', storage);
+    window.addEventListener('focus', changed);
+    return () => { controller.abort(); window.removeEventListener(SESSION_EXPIRED, expired); window.removeEventListener(SESSION_CHANGED, changed); window.removeEventListener('storage', storage); window.removeEventListener('focus', changed); };
+  }, [validate]);
+
+  useEffect(() => {
+    if (!session.session_id || !session.expires_at) return;
+    const epoch = sessionGeneration();
+    let timer = 0;
+    const arm = () => {
+      const remaining = Date.parse(session.expires_at) - Date.now();
+      if (!Number.isFinite(remaining) || remaining <= 0) expireSession(epoch, session.session_id!);
+      else timer = window.setTimeout(arm, Math.min(remaining, 2147483647));
+    };
+    arm();
+    return () => clearTimeout(timer);
+  }, [session.session_id, session.expires_at]);
+
+  const setSession = (info: SessionInfo) => {
+    sequence.current++;
+    acceptSession(info);
+    setState({ ...initial, isLoading: false, ...info });
+    notifyOtherTabs();
+  };
   const login = async (email: string, password: string): Promise<AuthUser> => {
+    const result = await API.auth.login({ email, password });
+    setSession(result);
+    return result.user;
+  };
+  const closeSession = async (all: boolean) => {
     try {
-      const res = await API.auth.login({ email, password });
-      const loggedUser = res.user;
-      const accessToken = res.access_token;
-
-      setUser(loggedUser);
-      setToken(accessToken);
-
-      localStorage.setItem('civia_token', accessToken);
-      localStorage.setItem('civia_user', JSON.stringify(loggedUser));
-      document.cookie = `civia_token=${accessToken}; path=/; max-age=691200; SameSite=Lax`;
-
-      return loggedUser;
-    } catch (err: any) {
-      // Si el backend estuviera offline, permitimos autenticación de prueba local
-      const roleMatch = Object.values(DEMO_ACCOUNTS).find(acc => acc.email.toLowerCase() === email.toLowerCase());
-      if (roleMatch && password === 'civia2026') {
-        setUser(roleMatch);
-        const demoToken = `demo-token-${roleMatch.role.toLowerCase()}`;
-        setToken(demoToken);
-        localStorage.setItem('civia_token', demoToken);
-        localStorage.setItem('civia_user', JSON.stringify(roleMatch));
-        return roleMatch;
-      }
-      throw err;
+      if (all) await API.auth.logoutAll(); else await API.auth.logout();
+      sequence.current++;
+      clearSession(); sessionStorage.removeItem('civia_session_notice');
+      setState({ ...initial, isLoading: false }); notifyOtherTabs();
+    } catch (error) {
+      if (error instanceof ApiError && error.code === 'SESSION_CHANGED') { await validate(); return; }
+      setState(previous => ({ ...previous, sessionError: 'No pudimos confirmar el cierre en el servidor. Reintenta cuando vuelva la conexión.' }));
     }
   };
-
-  const switchDemoUser = async (role: UserRole) => {
-    const target = DEMO_ACCOUNTS[role];
-    try {
-      await login(target.email, 'civia2026');
-    } catch {
-      setUser(target);
-      setToken(`demo-token-${role.toLowerCase()}`);
-      localStorage.setItem('civia_token', `demo-token-${role.toLowerCase()}`);
-      localStorage.setItem('civia_user', JSON.stringify(target));
-    }
-  };
-
-  const setSession = (authUser: AuthUser, accessToken: string) => {
-    setUser(authUser);
-    setToken(accessToken);
-    localStorage.setItem('civia_token', accessToken);
-    localStorage.setItem('civia_user', JSON.stringify(authUser));
-    document.cookie = `civia_token=${accessToken}; path=/; max-age=691200; SameSite=Lax`;
-  };
-
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('civia_token');
-    localStorage.removeItem('civia_user');
-    document.cookie = 'civia_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-    router.push('/login');
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        logout,
-        switchDemoUser,
-        setSession,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const retrySession = () => { setState(initial); void validate(); };
+  return <AuthContext.Provider value={{ ...session, isAuthenticated: !!session.user, login, logout: () => closeSession(false), logoutAll: () => closeSession(true), setSession, retrySession }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    return {
-      user: DEFAULT_DEMO_USER,
-      token: 'demo-token',
-      isAuthenticated: true,
-      isLoading: false,
-      login: async () => DEFAULT_DEMO_USER,
-      logout: () => {},
-      switchDemoUser: async () => {},
-      setSession: () => {},
-    };
-  }
+  if (!context) throw new Error('useAuth requiere AuthProvider.');
   return context;
 }

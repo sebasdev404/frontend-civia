@@ -110,9 +110,9 @@ export const MonitoredPostCard = memo(function MonitoredPostCard({ post, selecte
                           <Share2 size={12} style={{ color: '#8b5cf6' }} />
                           <span><strong suppressHydrationWarning>{formatCompactNumber(post.shares_count)}</strong> Compartidos</span>
                         </div>
-                        <div className={styles['metric-pill']} title={`Comentarios totales: ${post.total_comments || 0}`}>
+                        <div className={styles['metric-pill']} title={`Capturados: ${post.captured_comments ?? 'No disponible'} · Reportados por Meta: ${post.reported_comments ?? 'No disponible'}`}>
                           <MessageSquare size={12} style={{ color: '#f59e0b' }} />
-                          <span><strong>{formatCompactNumber(post.total_comments || 0)}</strong> Comms</span>
+                          <span><strong>{formatCompactNumber(post.captured_comments)}</strong> Capturados</span>
                         </div>
                       </div>
 
@@ -120,11 +120,11 @@ export const MonitoredPostCard = memo(function MonitoredPostCard({ post, selecte
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: '6px', gap: '6px', flexWrap: 'wrap' }}>
                         <span className={post.cases_count > 0 ? "badge-blue" : "badge-baja"} style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', whiteSpace: 'nowrap' }}>
-                          📁 {post.cases_count} {post.cases_count === 1 ? 'caso IA' : 'casos IA'}
+                          📁 {post.cases_count} {post.cases_count === 1 ? 'caso' : 'casos'}
                         </span>
                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <span style={{ width: 6, height: 6, borderRadius: '50%', background: post.cases_count > 0 ? '#10b981' : '#94a3b8', display: 'inline-block' }} />
-                          {post.cases_count > 0 ? 'Casos vinculados' : 'Conversación general'}
+                          {post.cases_count > 0 ? 'Casos vinculados' : 'Sin casos vinculados'}
                         </span>
                       </div>
                     </div>

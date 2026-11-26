@@ -1,0 +1,12 @@
+.panel {
+  min-width: 0;
+  margin-top: 12px;
+  > button { width: 100%; }
+  form { margin-top: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); }
+  button { min-height: 44px; max-width: 100%; white-space: normal; justify-content: center; }
+  p { margin: 18px 0; color: var(--text-secondary); font-size: 13px; line-height: 1.65; }
+  fieldset { display: grid; gap: 16px; padding: 0; margin: 0; border: 0; min-width: 0; }
+  label { display: grid; gap: 8px; font-size: 13px; font-weight: 600; line-height: 1.6; }
+  textarea { display: block; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; resize: vertical; border: 1px solid var(--border-input); border-radius: 8px; padding: 10px; background: var(--bg-input); color: var(--text-primary); font: inherit; font-weight: 400; }
+  fieldset > label.confirmation { display: flex; align-items: flex-start; gap: 10px; font-weight: 400; input { flex: 0 0 18px; width: 18px; height: 18px; margin-top: 3px; } }
+}

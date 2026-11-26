@@ -9,8 +9,8 @@
   display: grid;
   grid-template-columns: 260px 1fr;
   min-height: 100vh;
-  width: 100vw;
-  max-width: 100vw;
+  width: 100%;
+  max-width: 100%;
   background: var(--bg-app);
   color: var(--text-primary);
   transition: background 200ms ease, color 200ms ease;
@@ -35,16 +35,14 @@
 }
 
 .page {
-  padding: 2rem;
+  padding: 24px var(--page-gutter) 32px;
   min-height: 100%;
   width: 100%;
   background: var(--bg-app);
   transition: background 200ms ease;
   box-sizing: border-box;
-
-  @media (max-width: 1440px) {
-    padding: 1.25rem 1.5rem;
-  }
+  min-width: 0;
+  container: workspace / inline-size;
 
   @media (max-width: 768px) {
     padding: 1rem;
@@ -114,6 +112,9 @@
 }
 
 button:disabled { cursor: not-allowed; }
+.table-scroll-hint { display: none; }
+[data-horizontal-scroll] { overscroll-behavior-x: contain; }
+@media (max-width: 768px) { .table-scroll-hint { display: block; padding: 10px 14px; margin: 0; font-size: 11px; color: var(--text-secondary); line-height: 1.6; } }
 .page :where(input:not([type='checkbox']):not([type='radio']), select, textarea) { min-height: 44px; }
 .page :where(th, td) { line-height: 1.6; }
 

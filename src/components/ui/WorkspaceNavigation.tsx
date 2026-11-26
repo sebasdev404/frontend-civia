@@ -13,6 +13,8 @@ export function WorkspaceNavigation() {
   if (!current) return null;
   const isDetail = pathname.startsWith('/cases/');
   const isPublicationDetail = pathname.startsWith('/publications/');
+  // The case workspace has its own back link and record identifier.
+  if (isDetail) return null;
 
   return <div className={styles.workspace}>
     <div className={styles.bar}>

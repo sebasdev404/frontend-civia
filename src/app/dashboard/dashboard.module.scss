@@ -2,15 +2,16 @@
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
   margin-bottom: 2rem;
 
-  @media (min-width: 640px)  { grid-template-columns: repeat(2, 1fr); }
-  @media (min-width: 1024px) { grid-template-columns: repeat(4, 1fr); }
+  @container workspace (min-width: 600px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @container workspace (min-width: 1000px) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 .metric-card {
+  min-width: 0;
   padding: 1.5rem;
   @include flex(row, center, flex-start, 1rem);
   @include card;
@@ -54,16 +55,17 @@
 
 .charts-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   margin-bottom: 2rem;
 
-  @media (min-width: 1024px) {
-    grid-template-columns: 1.3fr 1fr;
+  @container workspace (min-width: 900px) {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
   }
 }
 
 .chart-card {
+  min-width: 0;
   padding: 1.5rem;
   @include card;
 }

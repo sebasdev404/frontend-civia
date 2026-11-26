@@ -102,7 +102,7 @@
   padding: 1rem .8rem;
 }
 
-.group + .group { margin-top: 22px; }
+.group + .group { margin-top: 18px; }
 
 .sidebar-label {
   font-size: 0.72rem;
@@ -117,7 +117,7 @@
 .nav-link {
   @include flex(row, center, flex-start, 12px);
   padding: .75rem .8rem;
-  min-height: 62px;
+  min-height: 48px;
   border: 1px solid transparent;
   border-radius: 8px;
   color: #cbd5e1;
@@ -142,6 +142,8 @@
 }
 
 .linkText { display: block; min-width: 0; strong { font-size: .91rem; line-height: 1.4; font-weight: 650; display: block; } small { display: block; font-size: .76rem; line-height: 1.5; color: #a9b8ce; margin-top: 3px; } }
+.linkText small { display: none; }
+.nav-link[aria-current='page'] .linkText small { display: block; font-size: 11px; }
 
 .nav-badge {
   margin-left: auto;

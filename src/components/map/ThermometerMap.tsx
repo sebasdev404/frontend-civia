@@ -1,6 +1,7 @@
 "use client";
+import {useHydrated} from '@/hooks/useHydrated';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 import { useTheme } from 'next-themes';
 import { MapIncident } from './types';
@@ -30,12 +31,8 @@ const InnerMap = dynamic<React.ComponentProps<typeof LeafletMapInnerComponent>>(
 );
 
 export default function ThermometerMap(props: ThermometerMapProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const { theme } = useTheme();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!mounted) {
     return (

@@ -1,4 +1,5 @@
 "use client";
+import {useHydrated} from '@/hooks/useHydrated';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -18,7 +19,7 @@ export default function PublicationDetailPage() {
   const params = useParams<{ source: string; id: string }>();
   const sourceId = params.source;
   const postId = params.id;
-  const [ready, setReady] = useState(false);
+  const ready = useHydrated();
   const [data, setData] = useState<PublicationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -31,12 +32,13 @@ export default function PublicationDetailPage() {
   const [signalsOnly, setSignalsOnly] = useState(false);
   const [exporting, setExporting] = useState(false);
   const sync = useSyncJob(`post:${sourceId}:${postId}`, ready);
-  useEffect(() => setReady(true), []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset transient controls when the external route, permission or capture scope changes.
   useEffect(() => { setData(null); setOffset(0); setReactionsOffset(0); setSearch(''); setSignalsOnly(false); }, [sourceId, postId]);
   useEffect(() => { const timer = setTimeout(() => { setTerm(search); setOffset(0); }, 250); return () => clearTimeout(timer); }, [search]);
   useEffect(() => {
     if (!ready) return;
     const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- The effect owns this asynchronous request and its loading lifecycle.
     setLoading(true);
     API.publications.detail(sourceId, postId, new URLSearchParams({ offset: String(offset), reactions_offset: String(reactionsOffset), limit: '5', search: term, signals_only: String(signalsOnly) }), controller.signal)
       .then(value => { setData(value); setError(''); })
