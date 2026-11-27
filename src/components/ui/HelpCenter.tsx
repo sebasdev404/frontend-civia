@@ -57,7 +57,7 @@ export function HelpCenter() {
   return <div className={styles.widget} ref={widgetRef}>
     <section id="civia-help-panel" hidden={!open} role="dialog" aria-modal="false" aria-labelledby="civia-help-title" className={styles.panel}>
       <header className={styles.header}>
-        <div className={styles.heading}><BookOpen size={20} /><div><h2 id="civia-help-title">Centro de ayuda</h2><p>Cómo funciona CIVIA</p></div></div>
+        <div className={styles.heading}><BookOpen size={20} /><div><h2 id="civia-help-title">Centro de ayuda</h2><p>Cómo funciona Ordenemos a Neiva</p></div></div>
         <button type="button" onClick={close} className={styles.close} aria-label="Cerrar centro de ayuda"><X size={20} /></button>
       </header>
       <div className={styles.searchArea}>
@@ -80,7 +80,7 @@ export function HelpCenter() {
       </div>
       <footer className={styles.footer}>Puedes seguir trabajando mientras consultas esta ayuda.</footer>
     </section>
-    <button type="button" ref={triggerRef} className={styles.trigger} aria-label={open ? 'Cerrar ayuda de CIVIA' : 'Abrir ayuda de CIVIA'} aria-expanded={open} aria-controls="civia-help-panel" aria-haspopup="dialog" onClick={() => setOpen(!open)}>
+    <button type="button" ref={triggerRef} className={styles.trigger} aria-label={open ? 'Cerrar ayuda de Ordenemos a Neiva' : 'Abrir ayuda de Ordenemos a Neiva'} aria-expanded={open} aria-controls="civia-help-panel" aria-haspopup="dialog" onClick={() => setOpen(!open)}>
       {open ? <X size={24} /> : <CircleHelp size={27} />}<span className={styles.tooltip}>Ayuda</span>
     </button>
   </div>;

@@ -175,8 +175,7 @@ function LoginContent() {
       <div className={styles['login-card']}>
         {/* Cabecera de Marca */}
         <div className={styles['brand-header']}>
-          <Image src={logo} alt="CIVIA" width={112} loading="eager" className={styles['brand-logo']} />
-          {/* <h1 className={styles['brand-title']}>CIVIA</h1> */}
+          <Image src={logo} alt="Ordenemos a Neiva" width={112} loading="eager" className={styles['brand-logo']} />
           <p className={styles['brand-motto']}>{'"Ordenemos a Neiva"'}</p>
         </div>
 
@@ -211,7 +210,7 @@ function LoginContent() {
                   <input
                     id="email"
                     type="email"
-                    placeholder="usuario@civia.gov.co"
+                    placeholder="tu-correo@ejemplo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -292,7 +291,7 @@ function LoginContent() {
                 <input
                   id="recovery-email"
                   type="email"
-                  placeholder="ejemplo@civia.gov.co"
+                  placeholder="tu-correo@ejemplo.com"
                   value={recoveryEmail}
                   onChange={(e) => setRecoveryEmail(e.target.value)}
                   required
@@ -425,7 +424,7 @@ function LoginContent() {
                   </>
                 ) : (
                   <>
-                    <span>Guardar y Entrar a CIVIA</span>
+                    <span>Guardar y Entrar a Ordenemos a Neiva</span>
                     <ArrowRight size={18} />
                   </>
                 )}
@@ -452,7 +451,7 @@ function LoginContent() {
             </div>
             <h3 className={styles['success-title']}>¡Contraseña Restablecida!</h3>
             <p className={styles['success-desc']}>
-              Tu contraseña se actualizó y los accesos anteriores quedaron invalidados. Entrando a CIVIA…
+              Tu contraseña se actualizó y los accesos anteriores quedaron invalidados. Entrando a Ordenemos a Neiva…
             </p>
             <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-link)', fontWeight: 600, fontSize: '0.875rem' }}>
               <Loader2 size={18} className="animate-spin" />

@@ -121,7 +121,7 @@ export function CaseWorkspace({ id, backHref = '/cases?view=cases' }: { id: stri
   const hasTest = Boolean(data.internal_notes?.toLowerCase().includes('despacho de prueba'));
   const needsAudit = hasTest || data.provenance_status === 'needs_review' || readOnly;
   const sourceLink = data.comment_url || data.post_data?.permalink_url;
-  const history = (data.internal_notes || '').split('\n').filter(line => line.trim() && !line.includes('[CIVIA ') && !/^\[(Post ID|Comment ID|Publicación de Origen|Enlace en Facebook|Canal)\]:/.test(line)).reverse();
+  const history = (data.internal_notes || '').split('\n').filter(line => line.trim() && !['[CIVIA ', '[Ordenemos a Neiva '].some(marker => line.includes(marker)) && !/^\[(Post ID|Comment ID|Publicación de Origen|Enlace en Facebook|Canal)\]:/.test(line)).reverse();
   const eventLabels: Record<string, string> = { registration_recorded: 'Radicado externo registrado', registration_cancelled: 'Referencia externa retirada', created: 'Expediente creado', created_from_comments: 'Caso creado desde comentarios', comments_linked: 'Comentarios vinculados', assigned: 'Responsable asignado', note_added: 'Avance registrado', response_drafted: 'Borrador guardado', resolved: 'Solución documentada', no_request: 'Conversación sin solicitud', reopened: 'Caso reabierto para revisión', priority_changed: 'Prioridad especial revisada', classified: 'Clasificación revisada' };
   const tabs: { id: Tab; label: string; icon: typeof MessageSquare }[] = [
     { id: 'comment', label: 'Comentario', icon: MessageSquare },
@@ -177,7 +177,7 @@ export function CaseWorkspace({ id, backHref = '/cases?view=cases' }: { id: stri
             <div className={styles.sectionHeading}><p className={styles.eyebrow}>ATENCIÓN DEL CASO</p><h2>{task === 'assignment' ? '¿Quién lo va a atender?' : task === 'response' ? 'Preparar una respuesta' : 'Documentar el resultado'}</h2></div>
             <div className={styles.taskNav} aria-label="Acciones de atención">{([['assignment', 'Asignación'], ['response', 'Respuesta'], ['resolution', 'Solución y cierre']] as const).map(([key, label]) => <button type="button" key={key} aria-pressed={task === key} onClick={() => setTask(key)}>{label}</button>)}</div>
             {task === 'assignment' && <form onSubmit={e => { e.preventDefault(); void save(() => API.cases.dispatch(data.id, { assigned_department: department, assigned_to: assignee.trim(), note: instruction.trim(), confirmed_review: reviewed, expected_revision: data.workflow_revision }), 'Responsable y próxima actuación guardados.'); }}>
-              <p className={styles.hint}>La asignación se registra en CIVIA. No envía oficios ni notificaciones externas.</p><fieldset disabled={busy || closed || !canClose}>
+              <p className={styles.hint}>La asignación se registra en Ordenemos a Neiva. No envía oficios ni notificaciones externas.</p><fieldset disabled={busy || closed || !canClose}>
                 <label>Entidad o equipo<select required value={department} onChange={e => setDepartment(e.target.value)}><option value="">Selecciona el equipo responsable</option>{[...new Set([...DEPARTMENTS, ...(data.assigned_department ? [data.assigned_department] : [])])].map(value => <option key={value}>{value}</option>)}</select></label>
                 <label>Persona responsable<input required value={assignee} onChange={e => setAssignee(e.target.value)} placeholder="Nombre del responsable" autoComplete="off" /></label>
                 <label>Próxima actuación<textarea required minLength={10} maxLength={10000} value={instruction} onChange={e => setInstruction(e.target.value)} placeholder="Qué se hará y qué información hace falta" rows={4} /></label>
@@ -198,7 +198,7 @@ export function CaseWorkspace({ id, backHref = '/cases?view=cases' }: { id: stri
                 {!assigned && <p className={styles.inlineWarning}>Asigna un equipo y una persona antes de cerrar.</p>}
                 <fieldset disabled={busy || !assigned || !canClose}><label>Resultado de la atención<textarea required minLength={20} maxLength={10000} rows={5} value={resolution} onChange={e => setResolution(e.target.value)} placeholder="Qué se hizo y cuál fue el resultado" /></label>
                   <label>Referencia del soporte<input required minLength={5} maxLength={2000} value={evidence} onChange={e => setEvidence(e.target.value)} placeholder="Enlace, acta, documento o referencia de la verificación" /></label>
-                  <p className={styles.hint}>Registra una referencia real. CIVIA conserva lo declarado y quién lo confirmó; no verifica automáticamente el documento.</p>
+                  <p className={styles.hint}>Registra una referencia real. Ordenemos a Neiva conserva lo declarado y quién lo confirmó; no verifica automáticamente el documento.</p>
                   <label className={styles.check}><input required type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />Verifiqué la solución y su soporte.</label><button className="btn-primary">Guardar solución y cerrar</button>
                 </fieldset>{!canClose && <p className={styles.hint}>El cierre corresponde a Administración o Secretaría.</p>}
               </form>}
@@ -267,7 +267,7 @@ export function CaseWorkspace({ id, backHref = '/cases?view=cases' }: { id: stri
         <section className={styles.caseInfo}><h2>Seguimiento actual</h2><dl><div><dt>Responsable</dt><dd><UserRound size={15} />{data.assigned_to || 'Sin asignar'}</dd></div>{data.assigned_department && <div><dt>Entidad o equipo registrado</dt><dd>{data.assigned_department}</dd></div>}<div><dt>Prioridad registrada</dt><dd><span className={`${styles.priorityDot} ${data.priority === 'Alta' ? styles.high : ''}`} />{data.priority}</dd></div><div><dt>Respuesta</dt><dd>{data.public_response ? 'Borrador guardado' : 'Sin borrador'}</dd></div></dl>
           <details className={styles.moreActions}><summary>Más acciones<ChevronDown size={15} /></summary><button onClick={() => navigate('audit')}>Revisar datos y origen</button>{!closed && (user?.role === 'ADMIN' || user?.role === 'ALCALDE') && <button disabled={busy} onClick={() => void save(() => API.cases.togglePriority(data.id, !data.priority_action, data.workflow_revision), 'Prioridad especial actualizada.')}>{data.priority_action ? 'Retirar prioridad especial' : 'Marcar prioridad especial'}</button>}</details>
         </section>
-        <p className={styles.railNote}>Los cambios se guardan en CIVIA. Publicar respuestas o notificar a una entidad requiere una acción externa.</p>
+        <p className={styles.railNote}>Los cambios se guardan en Ordenemos a Neiva. Publicar respuestas o notificar a una entidad requiere una acción externa.</p>
       </aside>
     </div>
   </div>;

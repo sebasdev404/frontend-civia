@@ -1074,7 +1074,7 @@ function CasesContent() {
                   ) : (
                     <div className={styles['source-unavailable']}>
                       <Info size={17} aria-hidden="true" />
-                      <div><strong>Sin imagen de origen disponible</strong><p>{c.post_id && !c.post_title ? 'La publicación de origen no está guardada en CIVIA. Se conserva el comentario capturado.' : 'No hay una imagen original guardada para este caso. Puedes revisar el comentario y su seguimiento.'}</p></div>
+                      <div><strong>Sin imagen de origen disponible</strong><p>{c.post_id && !c.post_title ? 'La publicación de origen no está guardada en Ordenemos a Neiva. Se conserva el comentario capturado.' : 'No hay una imagen original guardada para este caso. Puedes revisar el comentario y su seguimiento.'}</p></div>
                     </div>
                   )}
 
@@ -1434,7 +1434,7 @@ function CasesContent() {
                 </button>
               </div>
 
-              {/* Nota explicativa de CIVIA */}
+              {/* Nota explicativa de Ordenemos a Neiva */}
               <div style={{
                 padding: '8px 12px',
                 background: 'rgba(59, 130, 246, 0.06)',
@@ -1445,7 +1445,7 @@ function CasesContent() {
                 color: 'var(--text-secondary)',
                 lineHeight: 1.45
               }}>
-                💡 <strong>¿Cómo funciona la clasificación?</strong> CIVIA analiza cada comentario recibido en Facebook. Los comentarios con quejas, huecos, luminarias, agua o solicitudes ciudadanas se radican automáticamente como <strong>Casos Institucionales</strong>. Los saludos o reacciones generales se conservan en la pestaña de comentarios completos.
+                💡 <strong>¿Cómo funciona la clasificación?</strong> Ordenemos a Neiva analiza cada comentario recibido en Facebook. Los comentarios con quejas, huecos, luminarias, agua o solicitudes ciudadanas se radican automáticamente como <strong>Casos Institucionales</strong>. Los saludos o reacciones generales se conservan en la pestaña de comentarios completos.
               </div>
 
               {/* SUB-PESTAÑA 1: CASOS CLASIFICADOS */}

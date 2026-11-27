@@ -42,12 +42,12 @@ function Settings() {
     finally{setBusy(false);}
   }
   return <div className="page">
-    <header className="page-header"><div><h1>Administración de CIVIA</h1><p>Cuentas, estado consultado y conexiones del servidor.</p></div><Link className="btn-secondary" href="/audit">Auditoría y eventos</Link></header>
+    <header className="page-header"><div><h1>Administración de Ordenemos a Neiva</h1><p>Cuentas, estado consultado y conexiones del servidor.</p></div><Link className="btn-secondary" href="/audit">Auditoría y eventos</Link></header>
     <nav className={styles.tabs} aria-label="Administración">{[['users','Cuentas y permisos'],['services','Estado del sistema'],['connections','Conexiones y presupuesto']].map(([key,label])=><button key={key} className={view===key?'btn-primary':'btn-secondary'} aria-pressed={view===key} onClick={()=>{setEditor(null);setNotice('');router.replace('/settings?view='+key);}}>{label}</button>)}<button className="btn-secondary" disabled={loading||busy} onClick={()=>void refresh()}>{loading?'Consultando…':'Actualizar'}</button></nav>
     {error&&<p role="alert" className={styles.error}>{error}</p>}{notice&&<p role="status" className={styles.notice}>{notice}</p>}
     {view==='users'&&<>
       <div className={styles.toolbar}><input aria-label="Buscar cuentas" placeholder="Buscar por nombre, correo o equipo" value={search} onChange={e=>setSearch(e.target.value)}/><button className="btn-primary" disabled={busy} onClick={()=>edit('new')}>Crear cuenta</button></div>
-      <p>Secretaría consulta todos los expedientes de CIVIA. Las operaciones siguen limitadas por rol. Las claves no se muestran; cada titular puede cambiarlas en Mi cuenta.</p>
+      <p>Secretaría consulta todos los expedientes de Ordenemos a Neiva. Las operaciones siguen limitadas por rol. Las claves no se muestran; cada titular puede cambiarlas en Mi cuenta.</p>
       {editor&&<section className={styles.card}><h2>{editor==='new'?'Nueva cuenta':'Editar cuenta'}</h2><form onSubmit={saveAccount}><fieldset disabled={busy} className={styles.form}>
         <label>Nombre completo<input required maxLength={150} value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/></label>
         {editor==='new'?<><label>Correo de acceso<input type="email" required autoComplete="off" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label><label>Contraseña inicial<input type="password" required minLength={10} maxLength={72} autoComplete="new-password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/></label></>:<p>Correo de acceso: {editor.email}</p>}

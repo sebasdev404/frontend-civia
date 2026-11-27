@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { ShieldCheck, Lock, FileText, ArrowLeft, Mail, Globe } from 'lucide-react';
 
 export const metadata = {
-  title: 'Política de Privacidad y Tratamiento de Datos | Proyecto CIVIA',
-  description: 'Política oficial de privacidad y tratamiento de datos de Proyecto CIVIA conforme a la Ley 1581 de 2012 y Términos de la Plataforma Meta.',
+  title: 'Política de Privacidad y Tratamiento de Datos | Proyecto Ordenemos a Neiva',
+  description: 'Política oficial de privacidad y tratamiento de datos de Proyecto Ordenemos a Neiva conforme a la Ley 1581 de 2012 y Términos de la Plataforma Meta.',
 };
 
 export default function PrivacyPolicyPage() {
@@ -37,7 +37,7 @@ export default function PrivacyPolicyPage() {
             marginBottom: '1rem',
             fontWeight: 600
           }}>
-            <ArrowLeft size={16} /> Volver al Tablero CIVIA
+            <ArrowLeft size={16} /> Volver al Tablero Ordenemos a Neiva
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -57,7 +57,7 @@ export default function PrivacyPolicyPage() {
                 Política de Privacidad y Tratamiento de Datos
               </h1>
               <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#94a3b8' }}>
-                Proyecto CIVIA • Inteligencia Ciudadana y Escucha Social • App ID Meta: 2097352517811401
+                Proyecto Ordenemos a Neiva • Inteligencia Ciudadana y Escucha Social • App ID Meta: 2097352517811401
               </p>
             </div>
           </div>
@@ -70,7 +70,7 @@ export default function PrivacyPolicyPage() {
               1. Identificación del Proyecto y Responsable
             </h2>
             <p>
-              El sistema <strong>CIVIA (Centro Integrado de Vigilancia e Inteligencia Administrativa)</strong> es una plataforma tecnológica independiente de analítica de datos, escucha ciudadana y monitoreo del debate público en redes sociales, administrada por el equipo de Proyecto CIVIA.
+              El sistema <strong>Ordenemos a Neiva</strong> es una plataforma tecnológica independiente de analítica de datos, escucha ciudadana y monitoreo del debate público en redes sociales, administrada por el equipo de Proyecto Ordenemos a Neiva.
             </p>
           </section>
 
@@ -79,7 +79,7 @@ export default function PrivacyPolicyPage() {
               2. Finalidad del Uso de la API de Meta (Facebook e Instagram)
             </h2>
             <p>
-              CIVIA integra la <strong>Meta Graph API</strong> para consultar exclusivamente publicaciones públicas y comentarios abiertos realizados de manera libre y voluntaria por usuarios en los canales monitoreados. La finalidad comprende:
+              Ordenemos a Neiva integra la <strong>Meta Graph API</strong> para consultar exclusivamente publicaciones públicas y comentarios abiertos realizados de manera libre y voluntaria por usuarios en los canales monitoreados. La finalidad comprende:
             </p>
             <ul style={{ paddingLeft: '1.5rem', margin: '0.5rem 0' }}>
               <li>Análisis de sentimiento y percepción ciudadana sobre problemáticas urbanas y comunitarias.</li>
@@ -93,7 +93,7 @@ export default function PrivacyPolicyPage() {
               3. Datos Recopilados y Permisos Solicitados
             </h2>
             <p>
-              A través de los permisos públicos de la Meta Graph API, la aplicación únicamente accede a la información pública del comentario (texto del comentario, fecha y nombre de perfil público que Meta proporciona). CIVIA <strong>no accede ni almacena contraseñas, mensajes privados, listas de contactos ni información confidencial de navegación</strong>.
+              A través de los permisos públicos de la Meta Graph API, la aplicación únicamente accede a la información pública del comentario (texto del comentario, fecha y nombre de perfil público que Meta proporciona). Ordenemos a Neiva <strong>no accede ni almacena contraseñas, mensajes privados, listas de contactos ni información confidencial de navegación</strong>.
             </p>
           </section>
 
@@ -119,7 +119,7 @@ export default function PrivacyPolicyPage() {
         {/* Footer */}
         <div style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: '#64748b' }}>
           <span>Última actualización: Octubre 2026 • Neiva, Huila</span>
-          <span>Proyecto CIVIA • Social Intelligence</span>
+          <span>Proyecto Ordenemos a Neiva • Social Intelligence</span>
         </div>
       </div>
     </div>

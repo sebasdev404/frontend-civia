@@ -70,19 +70,12 @@
   color: var(--text-primary);
   z-index: 9999;
   gap: 1.25rem;
+  padding: 1.5rem;
 
   .logo-badge {
-    width: 60px;
-    height: 60px;
-    border-radius: var(--radius-lg);
-    background: linear-gradient(135deg, var(--action-primary), var(--action-primary-hover));
-    color: #ffffff;
-    font-size: 1.75rem;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 10px 25px var(--accent-halo);
+    width: 80px;
+    height: auto;
+    object-fit: contain;
     animation: pulseLogo 2s infinite ease-in-out;
   }
 

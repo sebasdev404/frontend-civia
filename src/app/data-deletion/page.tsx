@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { Trash2, ArrowLeft, CheckCircle2, Mail, ShieldAlert } from 'lucide-react';
 
 export const metadata = {
-  title: 'Instrucciones de Eliminación de Datos | Proyecto CIVIA',
-  description: 'Instrucciones para solicitar la eliminación de datos de usuario de la plataforma Proyecto CIVIA (App ID Meta: 2097352517811401).',
+  title: 'Instrucciones de Eliminación de Datos | Proyecto Ordenemos a Neiva',
+  description: 'Instrucciones para solicitar la eliminación de datos de usuario de la plataforma Proyecto Ordenemos a Neiva (App ID Meta: 2097352517811401).',
 };
 
 export default function DataDeletionPage() {
@@ -37,7 +37,7 @@ export default function DataDeletionPage() {
             marginBottom: '1rem',
             fontWeight: 600
           }}>
-            <ArrowLeft size={16} /> Volver al Tablero CIVIA
+            <ArrowLeft size={16} /> Volver al Tablero Ordenemos a Neiva
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -57,7 +57,7 @@ export default function DataDeletionPage() {
                 Instrucciones de Eliminación y Supresión de Datos
               </h1>
               <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#94a3b8' }}>
-                Proyecto CIVIA • Conforme a los Términos de Meta y Ley 1581 de 2012
+                Proyecto Ordenemos a Neiva • Conforme a los Términos de Meta y Ley 1581 de 2012
               </p>
             </div>
           </div>
@@ -66,7 +66,7 @@ export default function DataDeletionPage() {
         {/* Instructions */}
         <div style={{ fontSize: '0.9375rem', lineHeight: '1.7', color: '#cbd5e1', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <p>
-            Proyecto CIVIA (App Meta ID: <strong>2097352517811401</strong>) respeta el derecho a la privacidad de los usuarios. Si usted ha interactuado públicamente en redes sociales y desea que cualquier registro o análisis indexado sea eliminado definitivamente de nuestra base de datos, puede hacerlo mediante:
+            Proyecto Ordenemos a Neiva (App Meta ID: <strong>2097352517811401</strong>) respeta el derecho a la privacidad de los usuarios. Si usted ha interactuado públicamente en redes sociales y desea que cualquier registro o análisis indexado sea eliminado definitivamente de nuestra base de datos, puede hacerlo mediante:
           </p>
 
           <div style={{ background: '#1e293b', borderRadius: '12px', padding: '1.5rem', border: '1px solid #334155' }}>
@@ -74,7 +74,7 @@ export default function DataDeletionPage() {
               <CheckCircle2 size={18} style={{ color: '#10b981' }} /> Solicitud por Correo Electrónico Directo
             </h3>
             <p style={{ margin: 0 }}>
-              Envíe un correo a <strong>johansteedfernandez@hotmail.com</strong> con el asunto <code>&quot;Solicitud de Eliminación de Datos CIVIA&quot;</code>, indicando:
+              Envíe un correo a <strong>johansteedfernandez@hotmail.com</strong> con el asunto <code>&quot;Solicitud de Eliminación de Datos Ordenemos a Neiva&quot;</code>, indicando:
             </p>
             <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.5rem' }}>
               <li>Su nombre o enlace de su perfil público en Facebook o Instagram.</li>
@@ -88,7 +88,7 @@ export default function DataDeletionPage() {
 
         {/* Footer */}
         <div style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: '#64748b' }}>
-          <span>Proyecto CIVIA • Neiva, Huila 2026</span>
+          <span>Proyecto Ordenemos a Neiva • Neiva, Huila 2026</span>
           <Link href="/privacy" style={{ color: '#38bdf8', textDecoration: 'none' }}>Ver Política de Privacidad</Link>
         </div>
       </div>

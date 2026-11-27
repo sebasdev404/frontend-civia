@@ -4,12 +4,13 @@ import "../styles/globals.scss";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/context/AuthContext";
 import { AppShell } from "@/components/ui/AppShell";
+import { APP_NAME, APP_DESCRIPTION } from "@/lib/brand";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CIVIA - Plataforma de Inteligencia Ciudadana",
-  description: "Citizen Voice and Intelligence Analytics - Neiva, Huila",
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
 };
 
 export default function RootLayout({

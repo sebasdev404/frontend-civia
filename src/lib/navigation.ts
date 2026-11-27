@@ -16,7 +16,7 @@ export const navigationItems = [
   { href: '/citizens', label: 'Ciudadanos y contactos', description: 'Directorio e historial de atención', group: 'EXPLORAR', icon: Users,
     purpose: 'Busca un contacto, consulta su información e historial o importa tu base de datos.' },
   { href: '/settings', label: 'Configuración', description: 'Usuarios, conexiones y sistema', group: 'ADMINISTRAR', icon: Settings,
-    purpose: 'Administra usuarios y revisa las conexiones y el estado de los servicios de CIVIA.' },
+    purpose: 'Administra usuarios y revisa las conexiones y el estado de los servicios de Ordenemos a Neiva.' },
 ] as const;
 
 export function getNavigationItem(pathname: string) {

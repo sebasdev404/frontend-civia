@@ -4,7 +4,7 @@ import { type AnalyticsOverview, metric, rankedCounts, snapshotDate } from '@/li
 import styles from './AnalyticsViews.module.scss';
 
 export function SnapshotStatus({ data }: { data: AnalyticsOverview }) {
-  return <div className={styles.snapshot}><div><strong>Histórico guardado en CIVIA</strong><p>{data.scope}</p></div><div>Consultado: {snapshotDate(data.generated_at)}<br />Última modificación registrada: {snapshotDate(data.data_updated_at)}</div></div>;
+  return <div className={styles.snapshot}><div><strong>Histórico guardado en Ordenemos a Neiva</strong><p>{data.scope}</p></div><div>Consultado: {snapshotDate(data.generated_at)}<br />Última modificación registrada: {snapshotDate(data.data_updated_at)}</div></div>;
 }
 
 export function MetricCard({ title, value, detail, href, accent }: { title: string; value: number | null; detail: string; href?: string; accent?: 'red' | 'green' | 'yellow' }) {

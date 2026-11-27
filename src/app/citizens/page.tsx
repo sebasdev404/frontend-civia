@@ -1388,7 +1388,7 @@ export default function CitizensPage() {
             {/* Footer del Modal */}
             <div className={styles['modal-footer']} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                CIVIA Social Intelligence • Alcaldía de Neiva 2026
+                Ordenemos a Neiva • Escucha y gestión ciudadana
               </div>
               <button 
                 type="button" 

@@ -7,6 +7,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { Menu, LogOut, ChevronDown, Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { API } from '@/lib/api/client';
+import { APP_NAME } from '@/lib/brand';
 
 interface TopBarProps {
   onToggleMenu?: () => void;
@@ -93,7 +94,7 @@ export function TopBar({ onToggleMenu, isMenuOpen = true }: TopBarProps) {
         )}
         <div className={styles['system-status']}>
           <div className={styles['status-dot']} />
-          <span>CIVIA · Neiva</span>
+          <span>{APP_NAME}</span>
         </div>
       </div>
 

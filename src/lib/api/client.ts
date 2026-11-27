@@ -348,7 +348,7 @@ export const API = {
       query.set('paginated', 'true');
       const page = await fetcher(`/cases?${query}`, options);
       if (!page || !Array.isArray(page.items) || !Number.isInteger(page.total) || typeof page.has_more !== 'boolean') {
-        throw new Error('El servidor no devolvió una página de casos válida. Reinicia el backend si acabas de actualizar CIVIA.');
+        throw new Error('El servidor no devolvió una página de casos válida. Reinicia el backend si acabas de actualizar Ordenemos a Neiva.');
       }
       return page;
     },
@@ -412,7 +412,7 @@ export const API = {
       });
       const page = await fetcher(`/meta/posts?${params.toString()}`, options);
       if (Array.isArray(page)) {
-        throw new Error('El servidor de CIVIA está ejecutando una versión anterior. Reinicia el backend para cargar las publicaciones.');
+        throw new Error('El servidor de Ordenemos a Neiva está ejecutando una versión anterior. Reinicia el backend para cargar las publicaciones.');
       }
       if (!page || !Array.isArray(page.items) || !Number.isInteger(page.total) || page.total < 0 || typeof page.has_more !== 'boolean') {
         throw new Error('La API de publicaciones devolvió un formato inválido. Intenta nuevamente.');

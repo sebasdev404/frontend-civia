@@ -19,7 +19,7 @@ function analysisStatus(data: ConversationOverview) {
   if (!data.ai_available) return 'La IA no está disponible.';
   if (!data.automatic_analysis) return 'El análisis automático está desactivado.';
   if (data.analysis_status === 'running' || data.analysis_status === 'queued') return 'Análisis automático en curso.';
-  if (['failed', 'partial', 'interrupted'].includes(data.analysis_status)) return 'El último lote automático quedó incompleto. CIVIA volverá a intentarlo.';
+  if (['failed', 'partial', 'interrupted'].includes(data.analysis_status)) return 'El último lote automático quedó incompleto. Ordenemos a Neiva volverá a intentarlo.';
   return 'Análisis automático activo.';
 }
 
@@ -172,7 +172,7 @@ function OpinionContent() {
   const waitingForContext = (summary?.pending ?? 0) - readyToAnalyze;
   const hasAnalyses = Boolean(summary?.analyzed);
   const cards = [
-    { title: 'Comentarios capturados', value: summary?.captured, detail: 'Comentarios disponibles en CIVIA', filter: '', kind: '' },
+    { title: 'Comentarios capturados', value: summary?.captured, detail: 'Comentarios disponibles en Ordenemos a Neiva', filter: '', kind: '' },
     { title: 'A favor de Johan', value: hasAnalyses ? summary?.stances.support ?? 0 : undefined, detail: hasAnalyses ? `${summary?.anger_in_support ?? 0} expresan rabia y respaldan su postura` : 'Pendiente de análisis', filter: 'support', kind: 'support' },
     { title: 'Críticas a Johan', value: hasAnalyses ? summary?.stances.criticism ?? 0 : undefined, detail: hasAnalyses ? 'Cuestionan a Johan o su argumento' : 'Pendiente de análisis', filter: 'criticism', kind: 'criticism' },
     { title: 'Por revisar', value: summary?.review, detail: 'Falta contexto, análisis o hay ambigüedad', filter: 'review', kind: 'review' },
@@ -234,7 +234,7 @@ function OpinionContent() {
           {postId ? <section className={styles.panel} aria-busy={contextLoading}>
             <button type="button" className={styles.backButton} disabled={busy} onClick={() => { setPostId(''); setOffset(0); setTheme(''); }}><ArrowLeft size={17} /> Volver a todas las publicaciones</button>
             <div className={styles.sectionTitle}><h2><Video size={18} /> Contexto de la publicación</h2><span className={styles.tag}>{contextLoading ? 'Cargando…' : sourceLabels[context.source]}</span></div>
-            <p>Describe el problema que denuncia Johan, su postura y a quién cuestiona. Para videos, aporta un resumen o la transcripción: CIVIA no reproduce ni escucha el video automáticamente.</p>
+            <p>Describe el problema que denuncia Johan, su postura y a quién cuestiona. Para videos, aporta un resumen o la transcripción: Ordenemos a Neiva no reproduce ni escucha el video automáticamente.</p>
             {context.caption && <details className={styles.original}><summary>Ver texto original de la publicación</summary><p>{context.caption}</p></details>}
             <label className={styles.field}>Resumen del contenido<textarea disabled={busy || contextLoading} maxLength={6000} rows={3} value={context.summary} onChange={e => setContext({ ...context, summary: e.target.value })} placeholder="Johan denuncia los robos en Neiva y pide…" /></label>
             <details className={styles.original}><summary>Aportar transcripción del video</summary><label className={styles.field}>Transcripción (hasta 24.000 caracteres)<textarea disabled={busy || contextLoading} rows={6} maxLength={24000} value={context.transcript} onChange={e => setContext({ ...context, transcript: e.target.value })} /></label></details>

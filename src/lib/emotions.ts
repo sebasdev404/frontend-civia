@@ -1,5 +1,5 @@
 /**
- * RUEDA DE SENTIMIENTOS CIVIA - ALCALDÍA DE NEIVA
+ * RUEDA DE SENTIMIENTOS Ordenemos a Neiva - ALCALDÍA DE NEIVA
  * 1. Tristeza: soledad, culpa, vergüenza, aburrimiento, desánimo, apatía.
  * 2. Enojo o ira: rabia, frustración, celos, irritación, furia, resentimiento.
  * 3. Miedo: ansiedad, inseguridad, confusión, rechazo, debilidad, impotencia.

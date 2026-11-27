@@ -1,6 +1,6 @@
 export const helpArticles = [
   {
-    id: 'start', title: '¿Cómo empiezo a usar CIVIA?', keywords: 'inicio navegar menu plataforma guia', href: '/dashboard', linkLabel: 'Ir al inicio',
+    id: 'start', title: '¿Cómo empiezo a usar Ordenemos a Neiva?', keywords: 'inicio navegar menu plataforma guia', href: '/dashboard', linkLabel: 'Ir al inicio',
     steps: [
       'En Inicio tienes el resumen general y accesos para revisar publicaciones, analizar la opinión sobre Johan y atender casos.',
       'El menú de la izquierda agrupa las secciones. En pantallas pequeñas, ábrelo con el botón Menú.',
@@ -23,7 +23,7 @@ export const helpArticles = [
       'Selecciona la publicación en el filtro Publicación de Opinión sobre Johan.',
       'Escribe de qué habla Johan, qué denuncia y cuál es su postura, o aporta una transcripción del video.',
       'Pulsa Guardar resumen y contexto y después Analizar comentarios pendientes. Se procesan hasta 20 comentarios por vez.',
-      'CIVIA aún no escucha automáticamente el video. Sin contexto suficiente, el comentario permanece pendiente; si cambia el contexto, su análisis debe actualizarse.',
+      'Ordenemos a Neiva aún no escucha automáticamente el video. Sin contexto suficiente, el comentario permanece pendiente; si cambia el contexto, su análisis debe actualizarse.',
     ],
   },
   {

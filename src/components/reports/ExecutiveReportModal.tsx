@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { X, Printer, FileSpreadsheet, FileText, Download } from 'lucide-react';
 import { type AnalyticsOverview, metric, snapshotDate } from '@/lib/analytics';
 import { reportRows, reportCsv } from '@/lib/analytics-report';
+import { APP_NAME, APP_FILE_PREFIX } from '@/lib/brand';
 import styles from './ExecutiveReportModal.module.scss';
 
 interface Props { isOpen: boolean; onClose: () => void; data: AnalyticsOverview }
@@ -31,7 +32,7 @@ export function ExecutiveReportModal({ isOpen, onClose, data }: Props) {
   }, [isOpen, onClose]);
   if (!isOpen || typeof document === 'undefined') return null;
   const rows = reportRows(data);
-  const filename = `CIVIA-resumen-${new Date(data.generated_at).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })}`;
+  const filename = `${APP_FILE_PREFIX}-resumen-${new Date(data.generated_at).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })}`;
   const csv = () => {
     const url = URL.createObjectURL(new Blob([reportCsv(data)], { type: 'text/csv;charset=utf-8;' }));
     const link = document.createElement('a'); link.href = url; link.download = `${filename}.csv`; link.click();
@@ -42,17 +43,19 @@ export function ExecutiveReportModal({ isOpen, onClose, data }: Props) {
     try {
       const { jsPDF } = await import('jspdf');
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-      doc.setProperties({ title: 'CIVIA - Resumen de datos guardados', author: 'CIVIA' });
+      doc.setProperties({ title: `${APP_NAME} - Resumen de datos guardados`, author: APP_NAME });
       const pageHeight = doc.internal.pageSize.getHeight();
       let y = 0;
       const page = () => {
         if (y) doc.addPage();
-        doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 23, 'F');
+        doc.setFillColor(21, 21, 21); doc.rect(0, 0, 210, 28, 'F');
         doc.setTextColor(255); doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
-        doc.text('CIVIA | Resumen de datos guardados', 15, 14);
+        doc.text(APP_NAME, 15, 12);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+        doc.text('Resumen de datos guardados', 15, 21);
         doc.setTextColor(71, 85, 105); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-        doc.text(`Consulta: ${snapshotDate(data.generated_at)} | Historico almacenado`, 15, 31);
-        y = 42;
+        doc.text(`Consulta: ${snapshotDate(data.generated_at)} | Historico almacenado`, 15, 36);
+        y = 47;
       };
       page();
       let section = '';
@@ -65,7 +68,7 @@ export function ExecutiveReportModal({ isOpen, onClose, data }: Props) {
         const blockHeight = lines.length * 5 + note.length * 4 + 6 + (section !== row.section ? 10 : 0);
         if (y + blockHeight > pageHeight - 18) { page(); section = ''; }
         if (section !== row.section) {
-          section = row.section; doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(29, 78, 216);
+          section = row.section; doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(34, 128, 77);
           doc.text(section, 15, y); y += 8;
         }
         doc.setTextColor(15, 23, 42); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
@@ -74,7 +77,7 @@ export function ExecutiveReportModal({ isOpen, onClose, data }: Props) {
         y += 6;
       }
       const count = doc.getNumberOfPages();
-      for (let n = 1; n <= count; n++) { doc.setPage(n); doc.setFontSize(8); doc.setTextColor(100); doc.text(`CIVIA | ${n} / ${count}`, 195, pageHeight - 9, { align: 'right' }); }
+      for (let n = 1; n <= count; n++) { doc.setPage(n); doc.setFontSize(8); doc.setTextColor(100); doc.text(`${APP_NAME} | ${n} / ${count}`, 195, pageHeight - 9, { align: 'right' }); }
       doc.save(`${filename}.pdf`);
     } catch { setError('No se pudo generar el PDF. Puedes reintentar o imprimir el informe.'); }
     finally { setGenerating(false); }
@@ -94,7 +97,7 @@ export function ExecutiveReportModal({ isOpen, onClose, data }: Props) {
       <div className={styles['modal-content-scroll']}>
         {error && <p role="alert">{error}</p>}
         <article className={styles['report-paper']}>
-          <header className={styles['paper-header']}><div className={styles['gov-badge']}><span className={styles['gov-entity']}>CIVIA</span><h1 className={styles['gov-title']}>Resumen del histórico guardado</h1><p className={styles['gov-subtitle']}>Consulta: {snapshotDate(data.generated_at)}</p></div></header>
+          <header className={styles['paper-header']}><div className={styles['gov-badge']}><span className={styles['gov-entity']}>{APP_NAME}</span><h1 className={styles['gov-title']}>Resumen del histórico guardado</h1><p className={styles['gov-subtitle']}>Consulta: {snapshotDate(data.generated_at)}</p></div></header>
           <div className={styles['summary-banner']}>{data.scope} Las clasificaciones y estados históricos están sujetos a revisión. Este informe no acredita despachos, soluciones ni firmas institucionales.</div>
           {Array.from(new Set(rows.map(row => row.section))).map(section => <section key={section}>
             <h2 className={styles['section-title']}>{section}</h2>

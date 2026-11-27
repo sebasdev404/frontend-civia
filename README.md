@@ -1,6 +1,6 @@
-# CIVIA — interfaz web
+# Ordenemos a Neiva — interfaz web
 
-Proyecto independiente de escucha y gestión ciudadana en Neiva. No acredita carácter oficial de la Alcaldía ni integración con su radicación. Captura, análisis y atención son procesos distintos; un borrador o una asignación en CIVIA no envían comunicaciones externas.
+Proyecto independiente de escucha y gestión ciudadana en Neiva. No acredita carácter oficial de la Alcaldía ni integración con su radicación. Captura, análisis y atención son procesos distintos; un borrador o una asignación en Ordenemos a Neiva no envían comunicaciones externas.
 
 Next.js 16.4.6, React 19.2.8, TypeScript, SCSS Modules y Leaflet. Usar Node.js 24 y las versiones de `package-lock.json`.
 

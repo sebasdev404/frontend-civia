@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useSyncExternalStore } from "react";
+import Image from 'next/image';
+import logo from '../../../public/logo.png';
+import { APP_NAME } from '@/lib/brand';
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -88,9 +91,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className={styles['auth-loading-screen']}>
-        <div className={styles['logo-badge']}>C</div>
+        <Image src={logo} alt="" width={80} className={styles['logo-badge']} priority />
         <div className={styles['loading-text']}>
-          <h3>CIVIA INTELLIGENCE</h3>
+          <h3>{APP_NAME}</h3>
           <p>Cargando plataforma...</p>
         </div>
         <div className={styles.spinner} />
@@ -102,9 +105,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!user) {
     return (
       <div className={styles['auth-loading-screen']}>
-        <div className={styles['logo-badge']}>C</div>
+        <Image src={logo} alt="" width={80} className={styles['logo-badge']} priority />
         <div className={styles['loading-text']}>
-          <h3>CIVIA</h3>
+          <h3>{APP_NAME}</h3>
           <p>Redirigiendo a inicio de sesión seguro...</p>
         </div>
         <div className={styles.spinner} />
