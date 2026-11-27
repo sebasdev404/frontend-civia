@@ -151,24 +151,42 @@ export interface PublicationContext {
 export interface ConversationOverview {
   summary: { captured: number; analyzed: number; pending: number; pending_with_context: number; review: number;
     stances: Partial<Record<ConversationStance, number>>; anger_in_support: number;
-    reported: number; posts_missing_context: number };
+    reported: number; posts_missing_context: number; pending_eligible: number; uncertain: number };
   themes: { topic: string; narrative: string; label: string; count: number }[];
   posts: { id: string; title: string; month: string | null; captured: number; reported: number;
     context_ready: boolean; context_source: string; is_video: boolean }[];
   items: ConversationComment[]; total: number; has_more: boolean; ai_available: boolean;
   automatic_analysis: boolean;
   analysis_status: MetaSyncJob['status'];
+  analysis_model: string;
+  analysis_job: MetaSyncJob;
 }
 
 export interface MetaSyncJob {
   id: string | null; scope: string | null;
-  status: 'idle' | 'queued' | 'running' | 'success' | 'partial' | 'failed' | 'interrupted';
-  progress: { stage?: string; detail?: string; network?: string; completed?: number; total?: number };
+  status: 'idle' | 'queued' | 'running' | 'cancelling' | 'cancelled' | 'success' | 'partial' | 'failed' | 'interrupted';
+  progress: { stage?: string; detail?: string; network?: string; completed?: number; total?: number;
+    model?: string; classified?: number; uncertain?: number; failed?: number; filters?: { month?: string | null; post_id?: string | null; include_review?: boolean } };
   result: { status?: string; detail?: string; posts_updated?: number; new_comments_captured?: number; timestamp?: string; instagram_status?: string; instagram_detail?: string; errors?: string[] } | null;
   error: string | null; created_at?: string; updated_at?: string; already_running?: boolean;
 }
 export interface PublicationSource {
   id: string; name: string; url: string; status: string; detail: string | null; checked_at: string | null; posts_count: number;
+}
+
+export interface NewsSource extends PublicationSource { enabled: boolean }
+export interface RegionalNewsAnalysis {
+  priority: 'Alta' | 'Media' | 'Baja' | 'Fuera de foco' | 'Por revisar';
+  territory: string; topic: string; summary: string; reason: string; place: string;
+  confidence: number; needs_review: boolean;
+}
+export interface RegionalNews {
+  id: string; source_id: string; source_name: string; title: string; message: string;
+  published_at: string | null; url: string | null; cover_image: string | null; analysis: RegionalNewsAnalysis | null;
+}
+export interface NewsFeed {
+  items: RegionalNews[]; total: number; model: string; ai_available: boolean;
+  summary: {captured: number; classified: number; pending: number; high: number; review: number};
 }
 export interface PublicationSummary {
   id: string; title: string; message: string | null; source: string; cover_image: string | null; thumbnail_url: string | null;
@@ -216,7 +234,10 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     const errorData = await response.json().catch(() => ({}));
     if (response.status === 401 && !publicAuth && (errorData.code !== 'NO_SESSION' || sid !== null) && typeof window !== 'undefined') expireSession(requestGeneration, errorData.session_id);
     if (errorData.code === 'SESSION_CHANGED' && typeof window !== 'undefined') window.dispatchEvent(new Event(SESSION_CHANGED));
-    const detail = typeof errorData.detail === 'string' ? errorData.detail : response.status === 403 ? 'Tu rol no permite realizar esta acción.' : 'No se pudo completar la solicitud.';
+    const validationMessages = response.status === 422 && Array.isArray(errorData.detail)
+      ? errorData.detail.slice(0, 5).flatMap((item: unknown) => typeof item === 'object' && item !== null && 'msg' in item && typeof item.msg === 'string' ? [item.msg.replace(/^Value error, /, '')] : []).join('. ')
+      : '';
+    const detail = typeof errorData.detail === 'string' ? errorData.detail : validationMessages || (response.status === 403 ? 'Tu rol no permite realizar esta acción.' : 'No se pudo completar la solicitud.');
     throw new ApiError(detail, response.status, errorData.code);
   }
   return response;
@@ -256,6 +277,11 @@ export const API = {
     consolidate: (payload: { comments: { post_id: string; comment_id: string }[]; target_case_id?: string; title?: string }): Promise<{ case_id: string; created: boolean; linked: number; already_linked: number; comments_count: number }> => fetcher('/triage/consolidate', { method: 'POST', body: JSON.stringify(payload) }),
   },
   publications: {
+    newsSources: (signal?: AbortSignal): Promise<NewsSource[]> => fetcher('/publications/news/sources', {signal}),
+    createNewsSource: (data: {name: string; url: string}): Promise<NewsSource> => fetcher('/publications/news/sources', {method: 'POST', body: JSON.stringify(data)}),
+    setNewsSource: (id: string, enabled: boolean) => fetcher(`/publications/news/sources/${encodeURIComponent(id)}`, {method: 'PATCH', body: JSON.stringify({enabled})}),
+    news: (params: URLSearchParams, signal?: AbortSignal): Promise<NewsFeed> => fetcher(`/publications/news?${params}`, {signal}),
+    updateNews: (): Promise<MetaSyncJob> => fetcher('/publications/news/update', {method: 'POST'}),
     sources: (signal?: AbortSignal): Promise<PublicationSource[]> => fetcher('/publications/sources', { signal }),
     list: (params: URLSearchParams, signal?: AbortSignal): Promise<{ items: PublicationSummary[]; total: number; has_more: boolean }> => fetcher(`/publications?${params}`, { signal }),
     detail: (sourceId: string, postId: string, params: URLSearchParams, signal?: AbortSignal): Promise<PublicationDetail> => fetcher(`/publications/${encodeURIComponent(sourceId)}/${encodeURIComponent(postId)}?${params}`, { signal }),
@@ -267,6 +293,8 @@ export const API = {
     },
   },
   conversation: {
+    getPostOptions: (month: string, signal?: AbortSignal): Promise<{id: string; title: string}[]> =>
+      fetcher(`/conversation/posts?${new URLSearchParams({month})}`, {signal}),
     getOverview: (params: URLSearchParams, signal?: AbortSignal): Promise<ConversationOverview> =>
       fetcher(`/conversation?${params}`, { signal }),
     getContext: (postId: string, signal?: AbortSignal): Promise<PublicationContext> =>
@@ -275,6 +303,11 @@ export const API = {
       fetcher(`/conversation/posts/${encodeURIComponent(postId)}/context`, { method: 'PUT', body: JSON.stringify(payload) }),
     analyze: (params: URLSearchParams): Promise<{ processed: number; detail: string }> =>
       fetcher(`/conversation/analyze?${params}`, { method: 'POST' }),
+    startAnalysis: (scope: {month: string; post_id?: string; include_review: boolean}): Promise<MetaSyncJob> =>
+      fetcher('/conversation/analysis-jobs', {method: 'POST', body: JSON.stringify(scope)}),
+    getAnalysisJob: (signal?: AbortSignal): Promise<MetaSyncJob> => fetcher('/conversation/analysis-jobs/latest', {signal}),
+    resumeAnalysis: (id: string): Promise<MetaSyncJob> => fetcher(`/conversation/analysis-jobs/${encodeURIComponent(id)}/resume`, {method: 'POST'}),
+    stopAnalysis: (id: string): Promise<MetaSyncJob> => fetcher(`/conversation/analysis-jobs/${encodeURIComponent(id)}/cancel`, {method: 'POST'}),
   },
   citizens: {
     getAll: (params: URLSearchParams, signal?: AbortSignal) => fetcher(`/citizens?${params}`, { signal }),
@@ -283,9 +316,12 @@ export const API = {
     deleteMany: (ids: string[]): Promise<{ success: boolean; deleted_count: number; deleted_ids: string[] }> => fetcher('/citizens/bulk-delete', { method: 'POST', body: JSON.stringify({ citizen_ids: ids }) }),
     getComments: (id: string) => fetcher(`/citizens/${encodeURIComponent(id)}/comments`, {  }),
     saveReply: (id: string, payload: { case_id: string; reply_text: string; expected_revision: string }) => fetcher(`/citizens/${encodeURIComponent(id)}/reply`, { method: 'POST', body: JSON.stringify(payload) }),
-    importFile: (file: File, preview: boolean) => {
+    create: (payload: import('@/lib/contact-origin').CitizenRegistration) => fetcher('/citizens', { method: 'POST', body: JSON.stringify(payload) }),
+    importFile: (file: File, preview: boolean, provenance: import('@/lib/contact-origin').ContactProvenance) => {
       const body = new FormData();
       body.append('file', file);
+      body.append('contact_origin', provenance.contact_origin);
+      body.append('origin_observation', provenance.origin_observation);
       return fetcher(`/citizens/import${preview ? '/preview' : ''}`, { method: 'POST', body });
     },
   },
@@ -328,11 +364,11 @@ export const API = {
     updateUser: (id:string,data:{full_name:string;role:string;department:string;is_active:boolean;reason:string;expected_revision:string}) => fetcher(`/auth/users/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(data)}),
     createUser: (userData: {
       email: string;
-      password: string;
+      password?: string;
       full_name: string;
       role: string;
       department?: string;
-    }) =>
+    }): Promise<{ id: string; welcome_email_status: string; welcome_email_detail: string }> =>
       fetcher('/auth/register', {
         method: 'POST',
         body: JSON.stringify(userData),

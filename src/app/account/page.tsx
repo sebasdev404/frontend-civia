@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { KeyRound, LogOut, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { API } from '@/lib/api/client';
+import { PASSWORD_PATTERN, PASSWORD_RULES, passwordPolicyError } from '@/lib/password-policy';
 import styles from './account.module.scss';
 
 export default function AccountPage() {
@@ -21,7 +22,8 @@ export default function AccountPage() {
   async function changePassword(event: React.FormEvent) {
     event.preventDefault(); setError(''); setNotice('');
     if (newPassword !== confirmation) { setError('Las contraseñas nuevas no coinciden.'); return; }
-    if (new TextEncoder().encode(newPassword).length > 72) { setError('La contraseña es demasiado larga; utiliza como máximo 72 bytes.'); return; }
+    const passwordError = passwordPolicyError(newPassword);
+    if (passwordError) { setError(passwordError); return; }
     setBusy(true);
     try {
       setSession(await API.auth.changePassword(currentPassword, newPassword));
@@ -42,9 +44,9 @@ export default function AccountPage() {
         <p>El cambio invalida los accesos anteriores. Guarda cualquier trabajo pendiente antes de continuar.</p>
         <form onSubmit={changePassword}><fieldset disabled={busy}>
           <label>Contraseña actual<input type="password" required autoComplete="current-password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} /></label>
-          <label>Nueva contraseña<input type="password" required minLength={10} maxLength={72} autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} /></label>
+          <label>Nueva contraseña<input type="password" required minLength={10} maxLength={72} pattern={PASSWORD_PATTERN} title={PASSWORD_RULES} aria-describedby="account-password-rules" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} /></label>
           <label>Repetir nueva contraseña<input type="password" required minLength={10} maxLength={72} autoComplete="new-password" value={confirmation} onChange={e => setConfirmation(e.target.value)} /></label>
-          <p>Utiliza al menos 10 caracteres. Evita reutilizar la contraseña de otro servicio.</p>
+          <p id="account-password-rules">{PASSWORD_RULES} Evita reutilizar la contraseña de otro servicio.</p>
           <button className="btn-primary" type="submit">{busy ? 'Actualizando…' : 'Actualizar contraseña'}</button>
         </fieldset></form>
       </section>

@@ -27,6 +27,7 @@ npm run build -- --webpack
 El Dockerfile usa salida `standalone`, incluye los recursos estáticos y ejecuta el servidor como usuario sin privilegios. El despliegue necesita ambos repositorios como directorios hermanos.
 
 - [Arquitectura y lógica del negocio](../backend-civia/docs/PROYECTO_CIVIA.md).
+- [Instalación y traslado al portátil](https://github.com/sebasdev404/backend-civia/blob/main/docs/INSTALACION_PORTATIL.md).
 - [Seguimiento de tareas](../backend-civia/docs/SEGUIMIENTO.md).
 - [Preparación de producción y evidencias](../backend-civia/docs/PREPARACION_PRODUCCION_20261125.md).
 - [Instalación, copias y reversión](../backend-civia/deploy/README.md).

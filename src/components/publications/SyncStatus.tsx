@@ -10,7 +10,7 @@ export function SyncStatus({ job }: { job: MetaSyncJob | null }) {
     <p>{detail}</p>
     {active && typeof job.progress.total === 'number' && job.progress.total > 0 && <div className={styles.progress}>
       <progress max={job.progress.total} value={job.progress.completed || 0} aria-label="Publicaciones consultadas en esta etapa" />
-      <span>{job.progress.network}: {job.progress.completed || 0} de {job.progress.total}</span>
+      <span>{job.progress.network || 'Avance de esta etapa'}: {Math.min(100, Math.max(0, (job.progress.completed || 0) / job.progress.total * 100)).toLocaleString('es-CO', {maximumFractionDigits: 1})} % · {job.progress.completed || 0} de {job.progress.total}</span>
     </div>}
     {active && <small>Los datos se guardan progresivamente. Puedes navegar y volver a consultar el avance; no es necesario pulsar otra vez.</small>}
     {!active && Boolean(job.result?.errors?.length) && <details><summary>Ver observaciones ({job.result!.errors!.length})</summary><ul style={{ paddingLeft: 18, marginTop: 8 }}>{job.result!.errors!.slice(0, 12).map((item, index) => <li key={index}>{item}</li>)}</ul></details>}

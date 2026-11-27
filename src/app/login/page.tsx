@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { API } from '@/lib/api/client';
 import { safeReturnTo } from '@/lib/session';
+import { PASSWORD_PATTERN, PASSWORD_RULES, passwordPolicyError } from '@/lib/password-policy';
 import logo from '../../../public/logo.png';
 import styles from './login.module.scss';
 import {
@@ -119,13 +120,9 @@ function LoginContent() {
       return;
     }
 
-    if (newPassword.length < 10) {
-      setError('La nueva contraseña debe tener al menos 10 caracteres.');
-      return;
-    }
-
-    if (new TextEncoder().encode(newPassword).length > 72) {
-      setError('La contraseña no puede superar 72 bytes.');
+    const passwordError = passwordPolicyError(newPassword);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -369,6 +366,9 @@ function LoginContent() {
                   placeholder="Mínimo 10 caracteres"
                   minLength={10}
                   maxLength={72}
+                  pattern={PASSWORD_PATTERN}
+                  title={PASSWORD_RULES}
+                  aria-describedby="recovery-password-rules"
                   autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -384,6 +384,7 @@ function LoginContent() {
               </div>
             </div>
 
+            <p id="recovery-password-rules" style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{PASSWORD_RULES}</p>
             <div className={styles['form-group']}>
               <label htmlFor="confirm-password">Confirmar Nueva Contraseña</label>
               <div className={styles['input-container']}>

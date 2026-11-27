@@ -11,7 +11,7 @@ export function ConversationBadge({ analysis }: { analysis?: ConversationAnalysi
   return (
     <span title={analysis?.explanation || 'Falta analizar el comentario con el contexto de su publicación.'}
       style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 8px', fontSize: 13, lineHeight: 1.6, color }}>
-      {review ? 'Pendiente de revisión' : stanceLabels[analysis.stance]}
+      {review ? analysis?.status === 'analyzed' ? 'Analizado · Necesita revisión' : 'Sin analizar' : stanceLabels[analysis.stance]}
       {analysis?.status === 'analyzed' && <> · Emoción: {analysis.emotion}</>}
     </span>
   );

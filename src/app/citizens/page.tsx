@@ -7,6 +7,7 @@ import {
   Upload, FileSpreadsheet, Bot, Sparkles, Copy, ExternalLink, RefreshCw, 
   Filter, Users, UserX, Phone, ChevronRight, Check, Trash2
 } from 'lucide-react';
+import CitizenCreateModal from '@/components/citizens/CitizenCreateModal';
 import CitizenImportModal from '@/components/citizens/CitizenImportModal';
 import CitizenSourceModal from '@/components/citizens/CitizenSourceModal';
 import CitizenDeleteModal, { type CitizenDeleteTarget } from '@/components/citizens/CitizenDeleteModal';
@@ -62,6 +63,8 @@ interface CitizenItem {
   neighborhood: string | null;
   zone?: string | null;
   has_source_data?: boolean;
+  contact_origin?: string | null;
+  origin_observation?: string | null;
   total_reports: number;
   phone?: string | null;
   followers_count: number;
@@ -113,6 +116,7 @@ export default function CitizensPage() {
   const [totalMatched, setTotalMatched] = useState(0);
   const [offset, setOffset] = useState(0);
   const pageSize = 50;
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [smartReplyModalOpen, setSmartReplyModalOpen] = useState(false);
   const [activeCitizenForReply, setActiveCitizenForReply] = useState<CitizenItem | null>(null);
@@ -178,11 +182,12 @@ export default function CitizensPage() {
   };
 
   // Estado del Smart Responder
-  const [replyPrompt, setReplyPrompt] = useState('Por mi crítica salvé el PAE');
+  const [replyPrompt, setReplyPrompt] = useState('');
   const [generatedReply, setGeneratedReply] = useState<string | null>(null);
   const [replyTopic, setReplyTopic] = useState<string | null>(null);
   const [replyError, setReplyError] = useState('');
   const [isGeneratingReply, setIsGeneratingReply] = useState(false);
+  const replyRequest = useRef(0);
   const [copiedSuccess, setCopiedSuccess] = useState(false);
 
   // Cargar datos del Backend
@@ -264,33 +269,44 @@ export default function CitizensPage() {
     else fetchCitizens();
   };
 
-  const handleGenerateReply = async (promptText: string, citizen?: CitizenItem | null) => {
+  const handleGenerateReply = async (promptText: string) => {
+    if (!promptText.trim()) return;
+    const request = ++replyRequest.current;
     setIsGeneratingReply(true);
     setCopiedSuccess(false);
-    const targetType = citizen ? citizen.user_type : 'Negativo';
 
     try {
       setReplyError('');
       setGeneratedReply(null);
       const data = await API.ai.generateReply({
-        comment_text: promptText, user_type: targetType,
-        author_metadata: citizen ? { author: citizen.name, handle: citizen.handle, followers: citizen.followers_count, following: citizen.following_count } : {},
+        comment_text: promptText, user_type: 'Sin clasificar', author_metadata: {},
       });
+      if (request !== replyRequest.current) return;
       setGeneratedReply(data.response_text);
       setReplyTopic(data.topic);
     } catch (error) {
+      if (request !== replyRequest.current) return;
       setReplyError(error instanceof Error ? error.message : 'No se pudo preparar el borrador.');
     } finally {
-      setIsGeneratingReply(false);
+      if (request === replyRequest.current) setIsGeneratingReply(false);
     }
   };
 
   const handleOpenSmartReplyForCitizen = (citizen: CitizenItem) => {
+    ++replyRequest.current;
+    setIsGeneratingReply(false);
     setActiveCitizenForReply(citizen);
     setSmartReplyModalOpen(true);
-    const defaultText = citizen.notes || (citizen.user_type === 'Bot' ? 'la misma mierda no hacen nada corruptos' : 'Por mi crítica salvé el PAE');
-    setReplyPrompt(defaultText);
-    handleGenerateReply(defaultText, citizen);
+    setReplyPrompt('');
+    setGeneratedReply(null);
+    setReplyError('');
+    setCopiedSuccess(false);
+  };
+
+  const closeSmartReply = () => {
+    ++replyRequest.current;
+    setIsGeneratingReply(false);
+    setSmartReplyModalOpen(false);
   };
 
   const handleCopyReply = () => {
@@ -313,10 +329,14 @@ export default function CitizensPage() {
           <button 
             type="button" 
             onClick={() => {
+              ++replyRequest.current;
+              setIsGeneratingReply(false);
               setActiveCitizenForReply(null);
               setSmartReplyModalOpen(true);
-              setReplyPrompt('Por mi crítica salvé el PAE');
-              handleGenerateReply('Por mi crítica salvé el PAE', null);
+              setReplyPrompt('');
+              setGeneratedReply(null);
+              setReplyError('');
+              setCopiedSuccess(false);
             }}
             className={styles['assistant-button']}
           >
@@ -324,15 +344,10 @@ export default function CitizensPage() {
             <span>Asistente de Respuestas IA</span>
           </button>
 
-          <button 
-            type="button" 
-            className="btn-primary" 
-            onClick={() => setUploadModalOpen(true)}
-            style={{ padding: '8px 16px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <Upload size={15} />
-            <span>📤 Subir Base de Datos (CSV / Excel)</span>
-          </button>
+          {canDelete && <>
+            <button type="button" className="btn-primary" onClick={() => setCreateModalOpen(true)}><Users size={16} /> Agregar ciudadano</button>
+            <button type="button" className="btn-secondary" onClick={() => setUploadModalOpen(true)}><Upload size={16} /> Importar ciudadanos</button>
+          </>}
         </div>
       </div>
 
@@ -530,7 +545,7 @@ export default function CitizensPage() {
                             )}
                           </div>
                           <div style={{ fontSize: '0.74rem', color: '#38bdf8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <span style={{ fontWeight: 600 }}>{citizen.whatsapp_username || (citizen.handle.startsWith("contact:") ? "Contacto importado" : citizen.handle)}</span>
+                            <span style={{ fontWeight: 600 }}>{citizen.whatsapp_username || (citizen.handle.startsWith("contact:") ? (citizen.contact_origin || "Contacto registrado") : citizen.handle)}</span>
                             <span style={{ color: 'var(--text-muted)' }}>({citizen.channel})</span>
 {(() => {
                               const sLink = getCitizenSocialLink(citizen.name, citizen.handle, citizen.channel);
@@ -641,14 +656,14 @@ export default function CitizensPage() {
                             📞 {citizen.phone}
                           </span>
                           <a
-                            href={citizen.whatsapp_link || `https://wa.me/${citizen.phone.replace(/[^0-9]/g, '')}`}
+                            href={citizen.whatsapp_link || `tel:${citizen.phone}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={styles['whatsapp-btn']}
-                            title="Abrir chat directo de WhatsApp"
+                            title={citizen.whatsapp_link ? "Abrir WhatsApp (disponibilidad no verificada)" : "Llamar al teléfono fijo"}
                           >
                             <MessageSquare size={13} />
-                            <span>Contactar WhatsApp</span>
+                            <span>{citizen.whatsapp_link ? "Abrir WhatsApp" : "Llamar al fijo"}</span>
                           </a>
                         </div>
                       ) : (
@@ -662,7 +677,7 @@ export default function CitizensPage() {
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
                         {canDelete && <button type="button" className={styles['delete-btn']} disabled={loading} aria-label={`Eliminar a ${citizen.name}`} onClick={() => setDeleteTargets([{ id: citizen.id, name: citizen.name }])}><Trash2 size={14} />Eliminar</button>}
-                        {citizen.has_source_data && <button type="button" className="btn-ghost" onClick={() => setSourceCitizenId(citizen.id)} style={{ padding: '6px 10px', fontSize: '.75rem' }}>Datos importados</button>}
+                        {citizen.has_source_data && <button type="button" className="btn-ghost" onClick={() => setSourceCitizenId(citizen.id)} style={{ padding: '6px 10px', fontSize: '.75rem' }}>Origen y datos</button>}
 
 {(() => {
                           const sLink = getCitizenSocialLink(citizen.name, citizen.handle, citizen.channel);
@@ -752,19 +767,20 @@ export default function CitizensPage() {
       </nav>
 
       {/* ─── MODAL 1: SUBIDA DE BASE DE DATOS (CSV / EXCEL) ─── */}
-      {uploadModalOpen && <CitizenImportModal onClose={() => setUploadModalOpen(false)} onImported={() => { setOffset(0); fetchCitizens(); }} />}
+      {createModalOpen && canDelete && <CitizenCreateModal onClose={() => setCreateModalOpen(false)} onCreated={() => { setOffset(0); fetchCitizens(); setDeleteNotice("Ciudadano registrado correctamente"); }} />}
+      {uploadModalOpen && canDelete && <CitizenImportModal onClose={() => setUploadModalOpen(false)} onImported={() => { setOffset(0); fetchCitizens(); }} />}
       {sourceCitizenId && <CitizenSourceModal id={sourceCitizenId} onClose={() => setSourceCitizenId(null)} />}
       {deleteTargets && <CitizenDeleteModal citizens={deleteTargets} onClose={closeDelete} onDeleted={handleDeletedCitizens} />}
 
       {smartReplyModalOpen && (
-        <div className={styles['modal-overlay']} onClick={() => setSmartReplyModalOpen(false)}>
-          <div className={styles['modal-card']} onClick={(e) => e.stopPropagation()}>
+        <div className={styles['modal-overlay']} onClick={closeSmartReply}>
+          <div className={styles['modal-card']} role="dialog" aria-modal="true" aria-labelledby="citizen-assistant-title" onClick={(e) => e.stopPropagation()}>
             <div className={styles['modal-header']}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Sparkles size={20} style={{ color: 'var(--blue-600)' }} />
-                <h3>Generador de Respuesta Inteligente Institucional</h3>
+                <h3 id="citizen-assistant-title">Asistente de atención ciudadana</h3>
               </div>
-              <button className={styles['modal-close-btn']} onClick={() => setSmartReplyModalOpen(false)}>
+              <button type="button" aria-label="Cerrar asistente" className={styles['modal-close-btn']} onClick={closeSmartReply}>
                 <X size={18} />
               </button>
             </div>
@@ -784,7 +800,7 @@ export default function CitizensPage() {
                   <div>
                     <strong>Destinatario:</strong> {activeCitizenForReply.name} ({activeCitizenForReply.handle})
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
-                      Tipo: {activeCitizenForReply.user_type} • Barrio: {activeCitizenForReply.neighborhood}
+                      Origen: {activeCitizenForReply.contact_origin || 'No registrado'} · Barrio: {activeCitizenForReply.neighborhood || 'No registrado'}
                     </div>
                   </div>
                   {activeCitizenForReply.phone && (
@@ -795,70 +811,20 @@ export default function CitizensPage() {
                 </div>
               )}
 
-              {/* Botones de Escenarios Rápidos */}
-              <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  Seleccionar Escenario / Crítica de Neiva:
-                </span>
-                <div className={styles['quick-templates']}>
-                  <button
-                    type="button"
-                    className={[styles['template-chip'], replyPrompt.includes('PAE') ? styles.active : ''].join(' ')}
-                    onClick={() => {
-                      const text = 'Por mi crítica salvé el PAE';
-                      setReplyPrompt(text);
-                      handleGenerateReply(text, activeCitizenForReply);
-                    }}
-                  >
-                    🍲 &quot;Por mi crítica salvé el PAE&quot;
-                  </button>
-                  <button
-                    type="button"
-                    className={[styles['template-chip'], replyPrompt.includes('hueco') ? styles.active : ''].join(' ')}
-                    onClick={() => {
-                      const text = 'Puros huecos en la vía de La Toma y la Cra 5ta, no pavimentan nada';
-                      setReplyPrompt(text);
-                      handleGenerateReply(text, activeCitizenForReply);
-                    }}
-                  >
-                    🚧 Malla Vial & Huecos
-                  </button>
-                  <button
-                    type="button"
-                    className={[styles['template-chip'], replyPrompt.includes('agua') ? styles.active : ''].join(' ')}
-                    onClick={() => {
-                      const text = 'Llevamos 3 días sin agua en Las Granjas y el recibo de Las Ceibas carísimo';
-                      setReplyPrompt(text);
-                      handleGenerateReply(text, activeCitizenForReply);
-                    }}
-                  >
-                    💧 Acueducto Las Ceibas
-                  </button>
-                  <button
-                    type="button"
-                    className={[styles['template-chip'], replyPrompt.includes('mierda') ? styles.active : ''].join(' ')}
-                    onClick={() => {
-                      const text = 'la misma mierda politiqueros corruptos se roban la plata';
-                      setReplyPrompt(text);
-                      handleGenerateReply(text, activeCitizenForReply);
-                    }}
-                  >
-                    🤖 Neutralizar Bot / Troll
-                  </button>
-                </div>
-              </div>
+              <p role="note" style={{ color: 'var(--text-secondary)', fontSize: '.85rem' }}>La IA prepara un borrador de atención ciudadana que puedes editar. Abrir WhatsApp no envía el mensaje ni confirma su entrega. El envío se realiza manualmente en el chat; no hay envíos automáticos ni masivos.</p>
 
               {/* Campo para editar la crítica del usuario */}
               <div>
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
-                  Comentario o Crítica a Responder:
+                  Mensaje recibido o indicaciones para el borrador:
                 </label>
                 <textarea
                   className={styles['modal-textarea']}
                   style={{ minHeight: '65px' }}
                   value={replyPrompt}
                   onChange={(e) => setReplyPrompt(e.target.value)}
-                  placeholder="Escribe el comentario del usuario aquí..."
+                  maxLength={20000}
+                  placeholder="Pega el mensaje real del ciudadano o explica qué información deseas comunicar. No se incluyen mensajes de ejemplo."
                 />
               </div>
 
@@ -867,17 +833,17 @@ export default function CitizensPage() {
                   type="button"
                   className="btn-secondary"
                   disabled={isGeneratingReply || !replyPrompt.trim()}
-                  onClick={() => handleGenerateReply(replyPrompt, activeCitizenForReply)}
+                  onClick={() => handleGenerateReply(replyPrompt)}
                   style={{ fontSize: '0.75rem', padding: '6px 12px' }}
                 >
                   <Sparkles size={13} />
-                  <span>{isGeneratingReply ? 'Generando respuesta...' : 'Regenerar Respuesta'}</span>
+                  <span>{isGeneratingReply ? 'Generando borrador…' : generatedReply ? 'Regenerar borrador' : 'Generar borrador con IA'}</span>
                 </button>
               </div>
 
               {/* Respuesta Generada por IA */}
               {replyError && <p role="alert">{replyError}</p>}
-              {generatedReply && (
+              {generatedReply !== null && (
                 <div style={{
                   padding: '14px',
                   borderRadius: 'var(--radius-lg)',
@@ -890,10 +856,10 @@ export default function CitizensPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span className="badge-blue" style={{ fontSize: '0.7rem' }}>
-                        Tema: {replyTopic || 'Gestión Institucional'}
+                        Tema: {replyTopic || 'Atención ciudadana'}
                       </span>
                       <span style={{ fontSize: '0.72rem', color: 'var(--emerald-600)', fontWeight: 700 }}>
-                        ✓ Argumento Verificado
+                        Borrador · requiere revisión
                       </span>
                     </div>
 
@@ -920,27 +886,27 @@ export default function CitizensPage() {
                     </button>
                   </div>
 
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.55 }}>
-                    &quot;{generatedReply}&quot;
-                  </p>
+                  <label style={{ display: 'grid', gap: 8 }}>Borrador editable
+                    <textarea className={styles['modal-textarea']} rows={5} maxLength={4096} value={generatedReply || ''} onChange={e => { setGeneratedReply(e.target.value); setCopiedSuccess(false); }} />
+                  </label>
                 </div>
               )}
             </div>
 
             <div className={styles['modal-footer']}>
-              <button type="button" className="btn-ghost" onClick={() => setSmartReplyModalOpen(false)}>
+              <button type="button" className="btn-ghost" onClick={closeSmartReply}>
                 Cerrar
               </button>
 
-              {activeCitizenForReply?.phone && generatedReply && (
+              {activeCitizenForReply?.whatsapp_link && generatedReply?.trim() && (
                 <a
-                  href={`https://wa.me/${activeCitizenForReply.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(generatedReply)}`}
+                  href={`${activeCitizenForReply.whatsapp_link}?text=${encodeURIComponent(generatedReply)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={styles['whatsapp-btn']}
                 >
                   <MessageSquare size={14} />
-                  <span>Enviar por WhatsApp</span>
+                  <span>Abrir WhatsApp con borrador</span>
                 </a>
               )}
 
@@ -1006,7 +972,7 @@ export default function CitizensPage() {
                     <span>📍 {selectedCitizenHistory?.citizen?.neighborhood || 'Neiva'}</span>
                     <span style={{ margin: '0 6px' }}>•</span>
                     <span>Canal: <strong>{selectedCitizenHistory?.citizen?.channel || 'Facebook'}</strong></span>
-                    {selectedCitizenHistory?.citizen?.phone && (
+                    {selectedCitizenHistory?.citizen?.whatsapp_link && (
                       <>
                         <span style={{ margin: '0 6px' }}>•</span>
                         <span style={{ color: '#10b981' }}>📞 {selectedCitizenHistory.citizen.phone}</span>
@@ -1349,17 +1315,17 @@ export default function CitizensPage() {
                             </div>
 
                             <div style={{ display: 'flex', gap: '6px' }}>
-                              {selectedCitizenHistory?.citizen?.phone && (
+                              {selectedCitizenHistory?.citizen?.whatsapp_link && (
                                 <a
-                                  href={`https://wa.me/${selectedCitizenHistory.citizen.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(replyDrafts[item.case_id] || item.ai_suggestion?.suggested_reply || '')}`}
+                                  href={`${selectedCitizenHistory.citizen.whatsapp_link}?text=${encodeURIComponent(replyDrafts[item.case_id] || item.ai_suggestion?.suggested_reply || '')}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="btn-secondary"
                                   style={{ fontSize: '0.75rem', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-                                  title="Enviar esta respuesta al WhatsApp del ciudadano"
+                                  title="Abrir el chat con el borrador para revisar y enviar manualmente"
                                 >
                                   <MessageSquare size={12} />
-                                  <span>Enviar WhatsApp</span>
+                                  <span>Abrir WhatsApp con borrador</span>
                                 </a>
                               )}
                               {item.post.permalink_url && (

@@ -6,18 +6,18 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { ArrowLeft, ArrowRight, BookOpen, ExternalLink, MessageSquare, RefreshCw, Search, Sparkles, Video, X } from 'lucide-react';
-import { API, type ConversationOverview, type PublicationContext } from '@/lib/api/client';
+import { API, type ConversationOverview, type PublicationContext, type MetaSyncJob } from '@/lib/api/client';
 import { ConversationBadge } from '@/components/ui/ConversationBadge';
 import { CommentAuthor } from '@/components/ui/CommentAuthor';
 import { Pagination } from '@/components/ui/Pagination';
 import styles from './opinion.module.scss';
 
-const sourceLabels: Record<string, string> = { transcript: 'Transcripción aportada', summary: 'Resumen aportado', post_text: 'Texto de la publicación', missing: 'Falta contexto del video' };
+const sourceLabels: Record<string, string> = { transcript: 'Transcripción aportada', summary: 'Resumen aportado', post_text: 'Texto de la publicación', missing: 'Video sin transcripción; se usa el texto disponible' };
 const emptyContext: PublicationContext = { title: '', caption: '', summary: '', transcript: '', ready: false, is_video: false, source: 'missing' };
 
 function analysisStatus(data: ConversationOverview) {
   if (!data.ai_available) return 'La IA no está disponible.';
-  if (!data.automatic_analysis) return 'El análisis automático está desactivado.';
+  if (!data.automatic_analysis) return 'Puedes iniciar el análisis completo con el botón.';
   if (data.analysis_status === 'running' || data.analysis_status === 'queued') return 'Análisis automático en curso.';
   if (['failed', 'partial', 'interrupted'].includes(data.analysis_status)) return 'El último lote automático quedó incompleto. Ordenemos a Neiva volverá a intentarlo.';
   return 'Análisis automático activo.';
@@ -39,7 +39,10 @@ function OpinionContent() {
   const [offset, setOffset] = useState(0);
   const [pageSize, setPageSize] = useState(5);
   const [data, setData] = useState<ConversationOverview | null>(null);
-  const [posts, setPosts] = useState<ConversationOverview['posts']>([]);
+  const [analysisJob, setAnalysisJob] = useState<MetaSyncJob | null>(null);
+  const lastAnalysisRefresh = useRef(0);
+  const previousJobStatus = useRef('');
+  const [posts, setPosts] = useState<{id: string; title: string}[]>([]);
   const [months, setMonths] = useState<{ key: string; label: string }[]>([]);
   const [context, setContext] = useState<PublicationContext>(emptyContext);
   const [savedContext, setSavedContext] = useState<PublicationContext>(emptyContext);
@@ -86,10 +89,36 @@ function OpinionContent() {
   useEffect(() => {
     if (!authReady) return;
     const controller = new AbortController();
-    API.conversation.getOverview(new URLSearchParams({ month, limit: '1' }), controller.signal)
-      .then(result => setPosts(result.posts)).catch(e => { if (e.name !== 'AbortError') setError(e.message); });
+    API.conversation.getPostOptions(month, controller.signal).then(setPosts)
+      .catch(failure => {if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : 'No se pudieron consultar las publicaciones.');});
     return () => controller.abort();
-  }, [authReady, month, revision]);
+  }, [authReady, month]);
+
+  useEffect(() => {
+    if (!authReady) return;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
+      try {
+        const job = await API.conversation.getAnalysisJob(controller.signal);
+        if (controller.signal.aborted) return;
+        setAnalysisJob(job);
+        const active = ['queued', 'running', 'cancelling'].includes(job.status);
+        const identity = `${job.id}:${job.status}`;
+        if ((active && Date.now() - lastAnalysisRefresh.current > 15000) ||
+            (previousJobStatus.current && previousJobStatus.current !== identity && !active)) {
+          lastAnalysisRefresh.current = Date.now(); setRevision(value => value + 1);
+        }
+        previousJobStatus.current = identity;
+      } catch (failure) {
+        if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : 'No se pudo consultar el avance del análisis.');
+      } finally {
+        if (!controller.signal.aborted) timer = setTimeout(poll, 3000);
+      }
+    }
+    void poll();
+    return () => { controller.abort(); clearTimeout(timer); };
+  }, [authReady]);
 
   useEffect(() => {
     API.meta.getMonths().then(setMonths).catch(() => setMonths([{ key: 'all', label: 'Todos los meses' }]));
@@ -150,7 +179,7 @@ function OpinionContent() {
       setContext(saved); setSavedContext(saved);
       setNotice(automatic
         ? 'Contexto guardado. El análisis automático retomará los comentarios pendientes de esta publicación.'
-        : 'Contexto guardado. Pulsa Analizar comentarios pendientes para actualizar los resultados.');
+        : 'Contexto guardado. Pulsa Analizar pendientes y dudosos para actualizar los resultados.');
       setRevision(r => r + 1);
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo guardar el contexto.'); }
     finally { setBusy(false); }
@@ -159,48 +188,65 @@ function OpinionContent() {
   async function analyze() {
     setBusy(true); setError(''); setNotice('');
     try {
-      const scope = new URLSearchParams({ month, limit: '20' });
-      if (postId) scope.set('post_id', postId);
-      const result = await API.conversation.analyze(scope);
-      setNotice(result.detail); setRevision(r => r + 1);
+      const job = await API.conversation.startAnalysis({month, ...(postId ? {post_id: postId} : {}), include_review: true});
+      setAnalysisJob(job); setNotice('Análisis iniciado. Recorrerá todos los pendientes y dudosos del período y la publicación seleccionados, aunque salgas de esta pantalla.');
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo completar el análisis.'); }
     finally { setBusy(false); }
   }
 
   const summary = data?.summary;
-  const readyToAnalyze = summary?.pending_with_context ?? 0;
-  const waitingForContext = (summary?.pending ?? 0) - readyToAnalyze;
+  const readyToAnalyze = (summary?.pending_eligible ?? summary?.pending ?? 0) + (summary?.uncertain ?? 0);
+  const analysisRunning = analysisJob && ['queued', 'running', 'cancelling'].includes(analysisJob.status);
+  const canResume = analysisJob?.id && ['partial', 'failed', 'interrupted', 'cancelled'].includes(analysisJob.status);
+  const analysisTotal = Math.max(0, analysisJob?.progress.total ?? 0);
+  const analysisCompleted = Math.min(analysisTotal, Math.max(0, analysisJob?.progress.completed ?? 0));
+  const analysisPercent = analysisTotal > 0 ? Math.min(100, analysisCompleted / analysisTotal * 100) : analysisJob?.status === 'success' ? 100 : 0;
   const hasAnalyses = Boolean(summary?.analyzed);
   const cards = [
     { title: 'Comentarios capturados', value: summary?.captured, detail: 'Comentarios disponibles en Ordenemos a Neiva', filter: '', kind: '' },
     { title: 'A favor de Johan', value: hasAnalyses ? summary?.stances.support ?? 0 : undefined, detail: hasAnalyses ? `${summary?.anger_in_support ?? 0} expresan rabia y respaldan su postura` : 'Pendiente de análisis', filter: 'support', kind: 'support' },
     { title: 'Críticas a Johan', value: hasAnalyses ? summary?.stances.criticism ?? 0 : undefined, detail: hasAnalyses ? 'Cuestionan a Johan o su argumento' : 'Pendiente de análisis', filter: 'criticism', kind: 'criticism' },
-    { title: 'Por revisar', value: summary?.review, detail: 'Falta contexto, análisis o hay ambigüedad', filter: 'review', kind: 'review' },
+    { title: 'Por revisar', value: summary?.review, detail: `${summary?.pending ?? 0} sin analizar · ${summary?.uncertain ?? 0} analizados que necesitan revisión`, filter: 'review', kind: 'review' },
   ];
 
   return (
     <div className={`page ${styles.page}`}>
       <header className={styles.header}>
         <div><span className={styles.eyebrow}>CENTRO DE ANÁLISIS DE COMENTARIOS</span><h1>Opinión sobre Johan</h1>
-          <p>Todos los comentarios, apoyos, críticas y temas sobre Johan, en un solo lugar.</p><span className={styles.source}>Fuente actual: Facebook</span></div>
+          <span className={styles.source}>Fuente actual: Facebook{data?.analysis_model && <> · IA integrada: {data.analysis_model}</>}</span></div>
         <div className={styles.actions}>
           <button className="btn-secondary" type="button" disabled={busy || loading} onClick={() => setRevision(r => r + 1)}><RefreshCw size={16} /> Actualizar</button>
-          <button className="btn-primary" type="button" disabled={busy || loading || contextLoading || contextDirty || !data?.ai_available || !readyToAnalyze || automaticRunning} onClick={analyze}><Sparkles size={18} /> {busy || automaticRunning ? 'Procesando comentarios…' : 'Analizar comentarios pendientes'}</button>
+          <button className="btn-primary" type="button" disabled={busy || loading || contextLoading || contextDirty || !data?.ai_available || !readyToAnalyze || automaticRunning || Boolean(analysisRunning)} onClick={analyze}><Sparkles size={18} /> {analysisRunning ? 'Análisis completo en curso…' : 'Analizar pendientes y dudosos'}</button>
         </div>
       </header>
 
       {data && <div className={styles.actionHint} role="status">
         <strong>{analysisStatus(data)}</strong>{' '}
-        {readyToAnalyze.toLocaleString('es-CO')} listos para analizar · {waitingForContext.toLocaleString('es-CO')} esperan contexto.
+        {readyToAnalyze.toLocaleString('es-CO')} pendientes o dudosos para analizar. El botón recorre toda la selección; no se limita a la página visible ni a 20 comentarios.
+        <p>La IA usa el texto de la publicación, el comentario y la respuesta anterior. La falta de transcripción no bloquea una postura explícita. Los casos realmente ambiguos se conservan para revisión.</p>
         {contextDirty && <p>Guarda el contexto que estás editando antes de analizar.</p>}
       </div>}
+
+      {analysisJob?.id && <section className={styles.analysisProgress} aria-label="Avance del análisis completo">
+        <div className={styles.sectionTitle}><strong>{analysisRunning ? 'Clasificando comentarios con la IA' : 'Último análisis de comentarios'}</strong><span><b>{analysisPercent.toLocaleString('es-CO', {maximumFractionDigits: 1})} %</b> · {analysisCompleted.toLocaleString('es-CO')} de {analysisJob.progress.total != null ? analysisTotal.toLocaleString('es-CO') : '…'} procesados</span></div>
+        <p>GPT‑4o mini clasifica los comentarios pendientes y dudosos en apoyos, críticas o mensajes sin postura; conserva los ya clasificados. El porcentaje indica el avance de este trabajo, no la exactitud de la IA.</p>
+        <p>{analysisJob.error || analysisJob.progress.detail || analysisJob.result?.detail}</p>
+        <p>Alcance del trabajo: {analysisJob.progress.filters?.month && analysisJob.progress.filters.month !== 'all' ? analysisJob.progress.filters.month : 'Todos los meses'} · {analysisJob.progress.filters?.post_id ? 'Publicación seleccionada al iniciar' : 'Todas las publicaciones'}.</p>
+        {analysisJob.progress.model && <p>Modelo de este trabajo: {analysisJob.progress.model}</p>}
+        {analysisTotal > 0 && <><progress max={analysisTotal} value={analysisCompleted} aria-label="Avance de clasificación de comentarios" aria-valuetext={`${analysisPercent.toFixed(1)} % completado`} /><p>{Math.max(0, analysisTotal - analysisCompleted).toLocaleString('es-CO')} comentarios restantes en este trabajo.</p></>}
+        <p>{analysisJob.progress.classified ?? 0} clasificados · {analysisJob.progress.uncertain ?? 0} necesitan revisión{analysisJob.progress.failed ? ` · ${analysisJob.progress.failed} pendientes por respuesta incompleta del proveedor` : ''}.</p>
+        <div className={styles.actions}>
+          {analysisRunning && <button type="button" className="btn-secondary" disabled={busy || analysisJob.status === 'cancelling'} onClick={async () => {setBusy(true);try {setAnalysisJob(await API.conversation.stopAnalysis(analysisJob.id!));} catch (failure) {setError(failure instanceof Error ? failure.message : 'No se pudo solicitar la detención.');} finally {setBusy(false);}}}>{analysisJob.status === 'cancelling' ? 'Deteniendo al terminar el lote…' : 'Detener análisis'}</button>}
+          {canResume && <button type="button" className="btn-primary" disabled={busy || !data?.ai_available} onClick={async () => {setBusy(true);setError('');try {setAnalysisJob(await API.conversation.resumeAnalysis(analysisJob.id!));} catch (failure) {setError(failure instanceof Error ? failure.message : 'No se pudo reanudar.');} finally {setBusy(false);}}}>Reanudar análisis guardado</button>}
+        </div>
+      </section>}
 
       {error && <div className={styles.error} role="alert">{error}</div>}
       {notice && <div className={styles.notice} role="status">{notice}</div>}
 
       <section className={styles.filters} id="opinion-filters" aria-label="Filtrar opinión sobre Johan">
         <label>Período<select value={month} disabled={busy} onChange={e => { setMonth(e.target.value); setPostId(''); setOffset(0); setTheme(''); }}><option value="all">Todos los meses</option>{months.filter(m => m.key !== 'all').map(m => <option key={m.key} value={m.key}>{m.label}</option>)}</select></label>
-        <label>Publicación<select value={postId} disabled={busy} onChange={e => { setPostId(e.target.value); setOffset(0); setTheme(''); setNotice(''); }}><option value="">Todas las publicaciones</option>{posts.map(p => <option key={p.id} value={p.id}>{p.context_ready ? '' : '⚠ '}{p.title}</option>)}</select></label>
+        <label>Publicación<select value={postId} disabled={busy} onChange={e => { setPostId(e.target.value); setOffset(0); setTheme(''); setNotice(''); }}><option value="">Todas las publicaciones</option>{posts.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></label>
         <label>Buscar comentario<div className={styles.search}><Search size={16} /><input value={search} maxLength={200} onChange={e => setSearch(e.target.value)} placeholder="Ej. solo critica, robos, vías…" /></div></label>
       </section>
 
@@ -227,7 +273,7 @@ function OpinionContent() {
           {data?.themes.map(t => <button type="button" key={`${t.topic}|${t.narrative}`} className={styles.theme} aria-pressed={theme === `${t.topic}|${t.narrative}`} onClick={() => { setTheme(`${t.topic}|${t.narrative}`); setOffset(0); }}><span>{t.label}<small>{t.topic}</small></span><strong>{t.count}</strong></button>)}
           {!loading && !data?.themes.length && <p className={styles.empty}>Los temas aparecerán al analizar comentarios con contexto suficiente.</p>}
           </div>
-          <div className={styles.coverage}><BookOpen size={18} /><strong>{summary?.posts_missing_context ?? 0} publicaciones sin contexto suficiente</strong><p>Selecciona una publicación para aportar lo que dice Johan en el video.</p></div>
+          <div className={styles.coverage}><BookOpen size={18} /><strong>{summary?.posts_missing_context ?? 0} publicaciones sin resumen o transcripción</strong><p>Sus comentarios también se analizan. Aportar contexto ayuda a resolver referencias o ironías que dependen del video.</p></div>
         </aside>
 
         <div className={styles.main}>
@@ -238,7 +284,7 @@ function OpinionContent() {
             {context.caption && <details className={styles.original}><summary>Ver texto original de la publicación</summary><p>{context.caption}</p></details>}
             <label className={styles.field}>Resumen del contenido<textarea disabled={busy || contextLoading} maxLength={6000} rows={3} value={context.summary} onChange={e => setContext({ ...context, summary: e.target.value })} placeholder="Johan denuncia los robos en Neiva y pide…" /></label>
             <details className={styles.original}><summary>Aportar transcripción del video</summary><label className={styles.field}>Transcripción (hasta 24.000 caracteres)<textarea disabled={busy || contextLoading} rows={6} maxLength={24000} value={context.transcript} onChange={e => setContext({ ...context, transcript: e.target.value })} /></label></details>
-            <button className="btn-primary" type="button" disabled={busy || contextLoading || (!context.summary.trim() && !context.transcript.trim())} onClick={saveContext}>{busy ? 'Procesando…' : 'Guardar resumen y contexto'}</button>
+            <button className="btn-primary" type="button" disabled={busy || contextLoading || Boolean(analysisRunning) || (!context.summary.trim() && !context.transcript.trim())} onClick={saveContext}>{busy ? 'Procesando…' : 'Guardar resumen y contexto'}</button>
             {contextDirty && <p role="status">Guarda los cambios de contexto antes de analizar.</p>}
           </section> : <section className={styles.contextHint}><BookOpen size={20} /><p>Selecciona una publicación para consultar o completar el contexto que utiliza el análisis.</p></section>}
 
