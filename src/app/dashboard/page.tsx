@@ -33,8 +33,8 @@ export default function DashboardPage() {
       <SnapshotStatus data={data} />
       <h2 className={styles.sectionHeading}>Estado de los expedientes</h2><CaseMetrics data={data} />
       <div className={styles.cards}>
-        <MetricCard title="Prioridad alta o crítica pendiente" value={data.cases.critical_open} detail="Expedientes abiertos cuya prioridad registrada es Alta o Crítica." href="/cases?view=cases" />
-        <MetricCard title="Prioridad especial abierta" value={data.cases.priority_open} detail="Marca de prioridad institucional guardada en expedientes abiertos." href="/cases?view=cases&priority_only=true" />
+        <MetricCard title="Prioridad alta o crítica pendiente" value={data.cases.critical_open} detail="Expedientes abiertos cuya prioridad registrada es Alta o Crítica." href="/cases?view=cases" accent="red" />
+        <MetricCard title="Prioridad especial abierta" value={data.cases.priority_open} detail="Marca de prioridad institucional guardada en expedientes abiertos." href="/cases?view=cases&priority_only=true" accent="yellow" />
         <MetricCard title="Origen pendiente de verificar" value={data.cases.source_needs_review} detail="Registros señalados en la auditoría de procedencia. El resto del histórico también puede requerir revisión." href="/cases?view=cases&provenance=needs_review" />
       </div>
       <h2 className={styles.sectionHeading}>Captura de redes sociales</h2><CaptureMetrics data={data} />

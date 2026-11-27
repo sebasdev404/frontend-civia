@@ -15,6 +15,14 @@ import styles from './opinion.module.scss';
 const sourceLabels: Record<string, string> = { transcript: 'Transcripción aportada', summary: 'Resumen aportado', post_text: 'Texto de la publicación', missing: 'Falta contexto del video' };
 const emptyContext: PublicationContext = { title: '', caption: '', summary: '', transcript: '', ready: false, is_video: false, source: 'missing' };
 
+function analysisStatus(data: ConversationOverview) {
+  if (!data.ai_available) return 'La IA no está disponible.';
+  if (!data.automatic_analysis) return 'El análisis automático está desactivado.';
+  if (data.analysis_status === 'running' || data.analysis_status === 'queued') return 'Análisis automático en curso.';
+  if (['failed', 'partial', 'interrupted'].includes(data.analysis_status)) return 'El último lote automático quedó incompleto. CIVIA volverá a intentarlo.';
+  return 'Análisis automático activo.';
+}
+
 function OpinionContent() {
   const query = useSearchParams();
   const router = useRouter();
@@ -46,6 +54,8 @@ function OpinionContent() {
   const contextDirty = Boolean(postId && (context.summary !== savedContext.summary || context.transcript !== savedContext.transcript));
   const hasFilters = Boolean(postId || month !== 'all' || stance || theme || search);
   const selectedPost = posts.find(post => post.id === postId);
+  const automatic = data?.automatic_analysis && data.ai_available;
+  const automaticRunning = automatic && (data.analysis_status === 'queued' || data.analysis_status === 'running');
 
   function clearFilters() {
     setPostId(''); setMonth('all'); setStance(''); setTheme(''); setSearch(''); setDebouncedSearch(''); setOffset(0); setNotice('');
@@ -84,6 +94,14 @@ function OpinionContent() {
   useEffect(() => {
     API.meta.getMonths().then(setMonths).catch(() => setMonths([{ key: 'all', label: 'Todos los meses' }]));
   }, []);
+
+  useEffect(() => {
+    if (!automatic || busy) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') setRevision(value => value + 1);
+    }, 30_000);
+    return () => clearInterval(timer);
+  }, [automatic, busy]);
 
   const params = useCallback(() => {
     const value = new URLSearchParams({ month, offset: String(offset), limit: String(pageSize) });
@@ -130,7 +148,9 @@ function OpinionContent() {
     try {
       const saved = await API.conversation.saveContext(postId, { summary: context.summary, transcript: context.transcript });
       setContext(saved); setSavedContext(saved);
-      setNotice('Contexto guardado. Los análisis anteriores de esta publicación quedan pendientes si cambió el contenido. Pulsa Analizar pendientes para actualizarlos.');
+      setNotice(automatic
+        ? 'Contexto guardado. El análisis automático retomará los comentarios pendientes de esta publicación.'
+        : 'Contexto guardado. Pulsa Analizar comentarios pendientes para actualizar los resultados.');
       setRevision(r => r + 1);
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo guardar el contexto.'); }
     finally { setBusy(false); }
@@ -148,10 +168,13 @@ function OpinionContent() {
   }
 
   const summary = data?.summary;
+  const readyToAnalyze = summary?.pending_with_context ?? 0;
+  const waitingForContext = (summary?.pending ?? 0) - readyToAnalyze;
+  const hasAnalyses = Boolean(summary?.analyzed);
   const cards = [
     { title: 'Comentarios capturados', value: summary?.captured, detail: 'Comentarios disponibles en CIVIA', filter: '', kind: '' },
-    { title: 'A favor de Johan', value: summary?.stances.support || 0, detail: `${summary?.anger_in_support || 0} expresan rabia y respaldan su postura`, filter: 'support', kind: 'support' },
-    { title: 'Críticas a Johan', value: summary?.stances.criticism || 0, detail: 'Cuestionan a Johan o su argumento', filter: 'criticism', kind: 'criticism' },
+    { title: 'A favor de Johan', value: hasAnalyses ? summary?.stances.support ?? 0 : undefined, detail: hasAnalyses ? `${summary?.anger_in_support ?? 0} expresan rabia y respaldan su postura` : 'Pendiente de análisis', filter: 'support', kind: 'support' },
+    { title: 'Críticas a Johan', value: hasAnalyses ? summary?.stances.criticism ?? 0 : undefined, detail: hasAnalyses ? 'Cuestionan a Johan o su argumento' : 'Pendiente de análisis', filter: 'criticism', kind: 'criticism' },
     { title: 'Por revisar', value: summary?.review, detail: 'Falta contexto, análisis o hay ambigüedad', filter: 'review', kind: 'review' },
   ];
 
@@ -162,15 +185,18 @@ function OpinionContent() {
           <p>Todos los comentarios, apoyos, críticas y temas sobre Johan, en un solo lugar.</p><span className={styles.source}>Fuente actual: Facebook</span></div>
         <div className={styles.actions}>
           <button className="btn-secondary" type="button" disabled={busy || loading} onClick={() => setRevision(r => r + 1)}><RefreshCw size={16} /> Actualizar</button>
-          <button className="btn-primary" type="button" disabled={busy || loading || contextLoading || contextDirty || !data?.ai_available || !summary?.pending} onClick={analyze}><Sparkles size={18} /> {busy ? 'Procesando comentarios…' : 'Analizar comentarios pendientes'}</button>
+          <button className="btn-primary" type="button" disabled={busy || loading || contextLoading || contextDirty || !data?.ai_available || !readyToAnalyze || automaticRunning} onClick={analyze}><Sparkles size={18} /> {busy || automaticRunning ? 'Procesando comentarios…' : 'Analizar comentarios pendientes'}</button>
         </div>
       </header>
 
-      <div className={styles.actionHint} role="status">{busy ? 'El análisis está en curso. Puedes esperar aquí; al terminar se actualizarán los resultados.' : contextDirty ? 'Guarda el contexto que estás editando antes de analizar.' : postId && !contextLoading && !context.ready ? 'Este video necesita un resumen o una transcripción para poder analizar sus comentarios.' : 'El análisis procesa hasta 20 pendientes por vez dentro del período y la publicación seleccionados.'}</div>
+      {data && <div className={styles.actionHint} role="status">
+        <strong>{analysisStatus(data)}</strong>{' '}
+        {readyToAnalyze.toLocaleString('es-CO')} listos para analizar · {waitingForContext.toLocaleString('es-CO')} esperan contexto.
+        {contextDirty && <p>Guarda el contexto que estás editando antes de analizar.</p>}
+      </div>}
 
       {error && <div className={styles.error} role="alert">{error}</div>}
       {notice && <div className={styles.notice} role="status">{notice}</div>}
-      {data && !data.ai_available && <div className={styles.notice}>La IA no está disponible. Puedes guardar el contexto; los comentarios sin analizar permanecerán pendientes.</div>}
 
       <section className={styles.filters} id="opinion-filters" aria-label="Filtrar opinión sobre Johan">
         <label>Período<select value={month} disabled={busy} onChange={e => { setMonth(e.target.value); setPostId(''); setOffset(0); setTheme(''); }}><option value="all">Todos los meses</option>{months.filter(m => m.key !== 'all').map(m => <option key={m.key} value={m.key}>{m.label}</option>)}</select></label>

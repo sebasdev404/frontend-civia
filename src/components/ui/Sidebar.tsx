@@ -1,9 +1,11 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowUpRight, X } from 'lucide-react';
+import logo from '../../../public/logo.png';
 import styles from './Sidebar.module.scss';
 import { getNavigationItem, navigationItems } from '@/lib/navigation';
 
@@ -22,9 +24,9 @@ export function Sidebar({ isMobileOpen = false, desktopCollapsed = false, isHidd
   return (
     <aside id="civia-sidebar" aria-label="Navegación principal" aria-hidden={isHidden} inert={isHidden} className={[styles.sidebar, isMobileOpen ? styles['mobile-open'] : '', desktopCollapsed ? styles['desktop-collapsed'] : ''].join(' ').trim()}>
       <div className={styles['sidebar-header']}>
-        <Link href="/dashboard" onClick={onClose} className={styles['sidebar-logo']} aria-label="CIVIA, ir al inicio">
-          <div className={styles['logo-icon']}>C</div>
-          <div><span>CIVIA</span><small>Escucha y gestión ciudadana</small></div>
+        <Link href="/dashboard" onClick={onClose} className={styles['sidebar-logo']} aria-label={'"Ordenemos a Neiva", ir al inicio'}>
+          <Image src={logo} alt="" width={48} loading="eager" className={styles['logo-icon']} />
+          <span>{'"Ordenemos a Neiva"'}</span>
         </Link>
         {onClose && (
           <button 

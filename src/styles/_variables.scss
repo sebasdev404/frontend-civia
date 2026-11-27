@@ -5,48 +5,61 @@
 :root {
   color-scheme: light;
   --color-scheme: light;
-  --action-primary: #2563eb;
+  --action-primary: #207946;
+  --action-primary-hover: #196335;
   --action-danger: #b91c1c;
   --action-warning: #92400e;
   --action-success: #047857;
+  --accent-surface: #eeeeee;
+  --accent-border: #d6d6d6;
+  --accent-focus: #626262;
+  --accent-halo: rgba(80, 80, 80, 0.18);
+  --accent-strong: #145432;
+  --brand-gold: #f3cc52;
+  --flag-red: #c93d48;
+  --flag-green: #23834f;
+  --flag-yellow: #ad7e07;
   --assistant-bg: #f5f3ff;
   --assistant-text: #6d28d9;
   --assistant-border: #8b5cf6;
   --assistant-hover: #ede9fe;
-  --border-hover: #94a3b8;
+  --border-hover: #858585;
   --sidebar-width: 264px;
   --page-gutter: clamp(16px, 1.5vw, 40px);
-  --text-link: #1d4ed8;
+  --text-link: #424242;
   // Fondos
-  --bg-app:       #f1f5f9;
+  --bg-app:       #f5f5f5;
   --bg-card:      #ffffff;
-  --bg-sidebar:   #0f172a;
-  --bg-hover:     #f8fafc;
-  --bg-muted:     #f8fafc;
+  --bg-sidebar:   #171717;
+  --bg-hover:     #ececec;
+  --bg-muted:     #f2f2f2;
   --bg-input:     #ffffff;
   
   // Aliases for compatibility
-  --surface:      #ffffff;
-  --background:   #f1f5f9;
-  --primary:      #2563eb;
+  --surface:      var(--bg-card);
+  --background:   var(--bg-app);
+  --primary:      var(--action-primary);
 
   // Bordes
-  --border:       #e2e8f0;
-  --border-input: #7c8ba1;
+  --border:       #dddddd;
+  --border-input: #838383;
 
   // Texto
-  --text-primary:   #0f172a;
-  --text-secondary: #475569;
-  --text-muted:     #526176;
-  --text-sidebar:   #cbd5e1;
+  --text-primary:   #222222;
+  --text-secondary: #4b4b4b;
+  --text-muted:     #595959;
+  --text-sidebar:   #ededed;
+  --text-sidebar-muted: #bdbdbd;
   --text-white:     #ffffff;
 
-  // Acento (Azul)
-  --blue-50:  #eff6ff;
-  --blue-100: #dbeafe;
-  --blue-500: #3b82f6;
-  --blue-600: #2563eb;
-  --blue-700: #1d4ed8;
+  // Compatibilidad con las vistas que usaban azul como acento general.
+  --blue-50:  var(--accent-surface);
+  --blue-100: var(--accent-border);
+  --blue-400: var(--accent-focus);
+  --blue-500: var(--accent-focus);
+  --blue-600: var(--text-link);
+  --blue-700: var(--action-primary-hover);
+  --blue-800: var(--accent-strong);
 
   // Alertas
   --red-50:     #fef2f2;
@@ -88,35 +101,47 @@
 // ─── Modo Oscuro ────────────────────────────────────────────
 :root.dark, html.dark, body.dark, [data-theme='dark'], html[data-theme='dark'] {
   --color-scheme: dark;
+  --action-primary: #22804d;
+  --action-primary-hover: #1f7645;
+  --accent-surface: #1c1c1c;
+  --accent-border: #3a3a3a;
+  --accent-focus: #bdbdbd;
+  --accent-halo: rgba(190, 190, 190, 0.18);
+  --flag-red: #ef626c;
+  --flag-green: #58c783;
+  --flag-yellow: var(--brand-gold);
   --assistant-bg: #2e1065;
   --assistant-text: #ddd6fe;
   --assistant-border: #a78bfa;
   --assistant-hover: #4c1d95;
-  --border-hover: #64748b;
-  --text-link: #93c5fd;
+  --border-hover: #717171;
+  --text-link: #dddddd;
   color-scheme: dark;
-  --bg-app:       #020617;
-  --bg-card:      #0f172a;
-  --bg-sidebar:   #090d16;
-  --bg-hover:     rgba(255,255,255,0.05);
-  --bg-muted:     #131c31;
-  --bg-input:     #1e293b;
+  --bg-app:       #0b0b0b;
+  --bg-card:      #151515;
+  --bg-sidebar:   #0e0e0e;
+  --bg-hover:     #202020;
+  --bg-muted:     #212121;
+  --bg-input:     #202020;
   
-  --surface:      #0f172a;
-  --background:   #020617;
-  --primary:      #3b82f6;
+  --surface:      var(--bg-card);
+  --background:   var(--bg-app);
+  --primary:      var(--action-primary);
 
-  --border:       #1e293b;
-  --border-input: #71829a;
+  --border:       #353535;
+  --border-input: #767676;
 
-  --text-primary:   #f1f5f9;
-  --text-secondary: #b2bfd2;
-  --text-muted:     #94a3b8;
-  --text-sidebar:   #cbd5e1;
+  --text-primary:   #f4f4f4;
+  --text-secondary: #c6c6c6;
+  --text-muted:     #aaaaaa;
 
-  --blue-50:  rgba(59, 130, 246, 0.15);
-  --blue-100: rgba(59, 130, 246, 0.25);
-  --blue-600: #93c5fd;
+  --blue-50:  var(--accent-surface);
+  --blue-100: var(--accent-border);
+  --blue-400: var(--accent-focus);
+  --blue-500: var(--accent-focus);
+  --blue-600: var(--text-link);
+  --blue-700: var(--action-primary-hover);
+  --blue-800: var(--accent-strong);
 
   --red-50:     rgba(127, 29, 29, 0.25);
   --red-100:    rgba(127, 29, 29, 0.35);

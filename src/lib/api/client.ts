@@ -149,13 +149,15 @@ export interface PublicationContext {
   source: string; ready: boolean; is_video: boolean;
 }
 export interface ConversationOverview {
-  summary: { captured: number; analyzed: number; pending: number; review: number;
+  summary: { captured: number; analyzed: number; pending: number; pending_with_context: number; review: number;
     stances: Partial<Record<ConversationStance, number>>; anger_in_support: number;
     reported: number; posts_missing_context: number };
   themes: { topic: string; narrative: string; label: string; count: number }[];
   posts: { id: string; title: string; month: string | null; captured: number; reported: number;
     context_ready: boolean; context_source: string; is_video: boolean }[];
   items: ConversationComment[]; total: number; has_more: boolean; ai_available: boolean;
+  automatic_analysis: boolean;
+  analysis_status: MetaSyncJob['status'];
 }
 
 export interface MetaSyncJob {

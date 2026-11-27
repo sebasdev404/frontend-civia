@@ -107,7 +107,7 @@
 .btn-ghost     { min-height: 44px; @include btn-ghost; }
 
 :where(a, button, input, select, textarea, summary):focus-visible {
-  outline: 2px solid var(--blue-500);
+  outline: 2px solid var(--accent-focus);
   outline-offset: 3px;
 }
 
@@ -118,7 +118,7 @@ button:disabled { cursor: not-allowed; }
 .page :where(input:not([type='checkbox']):not([type='radio']), select, textarea) { min-height: 44px; }
 .page :where(th, td) { line-height: 1.6; }
 
-.section-help { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 20px; background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: 10px; margin: 0 0 20px; font-size: .9375rem; color: var(--text-primary);
+.section-help { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 20px; background: var(--accent-surface); border: 1px solid var(--accent-border); border-radius: 10px; margin: 0 0 20px; font-size: .9375rem; color: var(--text-primary);
   p { margin-top: 4px; color: var(--text-secondary); font-size: .875rem; line-height: 1.6; }
   a { display: inline-flex; align-items: center; gap: 6px; color: var(--text-link); font-weight: 600; min-height: 40px; }
 }
@@ -140,12 +140,12 @@ html[data-theme='dark'] option,
 [data-theme='dark'] select,
 [data-theme='dark'] option {
   color-scheme: dark !important;
-  background-color: #0f172a !important;
-  color: #f1f5f9 !important;
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
 }
 
 html.dark select option:hover,
 html[data-theme='dark'] select option:hover {
-  background-color: #1e293b !important;
+  background-color: var(--bg-hover) !important;
 }
 

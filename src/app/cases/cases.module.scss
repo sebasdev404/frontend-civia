@@ -136,7 +136,7 @@
     &:focus {
       border-color: var(--blue-500) !important;
       background-color: var(--bg-card) !important;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+      box-shadow: 0 0 0 3px var(--accent-halo);
     }
 
     option {
@@ -149,8 +149,7 @@
 
   &.active select {
     border-color: var(--blue-500) !important;
-    background-color: rgba(59, 130, 246, 0.12) !important;
-    background: rgba(59, 130, 246, 0.12) !important;
+    background: var(--accent-surface) !important;
     color: var(--text-link) !important;
     font-weight: 600;
 
@@ -185,7 +184,7 @@
   &:hover {
     color: var(--blue-400);
     border-color: var(--blue-500);
-    background: rgba(59, 130, 246, 0.1);
+    background: var(--accent-surface);
   }
 
   &.active {
@@ -840,9 +839,9 @@
   }
 
   &.active {
-    background: rgba(59, 130, 246, 0.12);
+    background: var(--accent-surface);
     color: var(--text-link);
-    border-color: rgba(59, 130, 246, 0.3);
+    border-color: var(--accent-border);
     font-weight: 700;
   }
 }
@@ -873,7 +872,7 @@
 
   &.expanded {
     border-color: var(--blue-600);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+    box-shadow: 0 0 0 2px var(--accent-halo);
   }
 }
 
@@ -999,7 +998,7 @@
 
   &:hover {
     border-color: var(--blue-500);
-    background: rgba(59, 130, 246, 0.08);
+    background: var(--accent-surface);
   }
 }
 
@@ -1107,12 +1106,12 @@
   cursor: pointer;
   white-space: nowrap;
   transition: all 150ms ease;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 2px 8px var(--accent-halo);
 
   &:hover:not(:disabled) {
-    background: var(--blue-700);
+    background: var(--action-primary-hover);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    box-shadow: 0 4px 12px var(--accent-halo);
   }
 
   &:disabled {
@@ -1261,7 +1260,7 @@
 
   &.selected {
     border-color: var(--blue-500);
-    background: rgba(59, 130, 246, 0.04);
+    background: var(--accent-surface);
   }
 }
 

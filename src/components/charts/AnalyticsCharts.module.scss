@@ -1,0 +1,101 @@
+.bars,
+.legend {
+  display: grid;
+  list-style: none;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+
+  strong {
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.bars {
+  gap: 12px;
+}
+
+.barLabel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.barTrack {
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--bg-muted);
+  overflow: hidden;
+
+  span {
+    display: block;
+    height: 100%;
+    background: var(--flag-green);
+    border-radius: inherit;
+  }
+}
+
+.details {
+  margin-top: 14px;
+  font-size: 0.8125rem;
+
+  summary {
+    cursor: pointer;
+    color: var(--text-link);
+    padding: 4px 0;
+  }
+}
+
+.donutChart {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.donut {
+  display: grid;
+  place-items: center;
+  width: 132px;
+  aspect-ratio: 1;
+  margin-inline: auto;
+  border-radius: 50%;
+}
+
+.donutCenter {
+  display: grid;
+  align-content: center;
+  width: 74%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--bg-card);
+  text-align: center;
+
+  strong { font-size: 1.25rem; line-height: 1.2; }
+  span { color: var(--text-secondary); font-size: 0.6875rem; }
+}
+
+.legend {
+  flex: 1 1 165px;
+  gap: 6px;
+  min-width: 0;
+
+  li {
+    display: grid;
+    grid-template-columns: 8px minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 7px;
+  }
+}
+
+.legendSwatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.empty {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}

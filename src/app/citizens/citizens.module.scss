@@ -313,7 +313,7 @@
   &:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 3px; }
 }
 
-.table-body tr.selected-row { background: rgba(59, 130, 246, .1); }
+.table-body tr.selected-row { background: var(--accent-surface); }
 
 .citizen-avatar {
   width: 40px;

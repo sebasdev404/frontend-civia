@@ -63,12 +63,12 @@
 
   &:hover {
     background: var(--bg-hover);
-    color: var(--blue-600);
+    color: var(--text-link);
     border-color: var(--border-hover);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--blue-600);
+    outline: 2px solid var(--accent-focus);
     outline-offset: 3px;
   }
 }
@@ -93,7 +93,7 @@
   transition: all 150ms ease;
 
   &:hover {
-    background: var(--bg-card-hover);
+    background: var(--bg-hover);
     border-color: var(--border-hover);
   }
 }
@@ -125,7 +125,7 @@
 .user-role-badge {
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--blue-600);
+  color: var(--text-link);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -188,8 +188,8 @@
   }
 
   &.active {
-    background: rgba(59, 130, 246, 0.12);
-    color: var(--blue-600);
+    background: var(--accent-surface);
+    color: var(--text-link);
     font-weight: 700;
   }
 }
@@ -251,9 +251,9 @@
   }
 
   &.active {
-    background: rgba(59, 130, 246, 0.1);
-    color: var(--blue-600);
-    border-color: var(--blue-500);
+    background: var(--accent-surface);
+    color: var(--text-link);
+    border-color: var(--accent-focus);
   }
 }
 
@@ -393,11 +393,10 @@
   a {
     font-size: 0.75rem;
     font-weight: 700;
-    color: var(--blue-600);
+    color: var(--text-link);
     text-decoration: none;
 
     &:hover {
-      color: var(--blue-700);
       text-decoration: underline;
     }
   }

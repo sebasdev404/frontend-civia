@@ -412,7 +412,7 @@
   box-sizing: border-box;
   padding: 14px 14px 10px 14px;
   background: var(--bg-card);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  border: 1px solid var(--accent-border);
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
@@ -444,11 +444,11 @@
 
   &:hover {
     border-color: var(--blue-500);
-    background: rgba(59, 130, 246, 0.08);
+    background: var(--bg-hover);
   }
 
   &.active {
     border-color: var(--blue-600);
-    background: rgba(59, 130, 246, 0.15);
+    background: var(--accent-surface);
   }
 }

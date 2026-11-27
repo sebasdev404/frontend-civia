@@ -21,14 +21,42 @@ export default function AnalyticsPage() {
     {error && <div className={styles.error} role="alert"><strong>No se pudieron cargar los indicadores</strong><p>{error}</p><button className="btn-secondary" onClick={() => void refresh()}>Reintentar</button></div>}
     {data && <>
       <SnapshotStatus data={data} />
+      <div className={`${styles.grid} ${styles.chartGrid}`}>
+        <section className={styles.panel} data-accent="green">
+          <h2>Expedientes por categoría</h2>
+          <p>Categorías de los {metric(data.cases.total)} expedientes en bandeja. Se excluyen los duplicados consolidados.</p>
+          <CategoryChart values={data.cases.categories} />
+        </section>
+        <section className={styles.panel} data-accent="yellow">
+          <h2>Emociones registradas</h2>
+          <p>Etiquetas guardadas en los expedientes. La postura frente a Johan se consulta en Opinión.</p>
+          <SentimentChart values={data.cases.emotions} />
+        </section>
+      </div>
       <h2 className={styles.sectionHeading}>Publicaciones y comentarios</h2><CaptureMetrics data={data} />
-      <div className={styles.grid}><section className={styles.panel}><h2>Captura por red social</h2><p>Los comentarios se cuentan por ID dentro de su publicación. Una publicación compartida en dos redes conserva sus registros independientes.</p>
-        <ul className={styles.rows}>{data.capture.channels.map(row => <li key={row.source}><span>{row.source}</span><strong>{metric(row.captured_comments)} capturados</strong><small>{metric(row.posts)} publicaciones · {metric(row.reported_comments)} comentarios reportados guardados</small></li>)}</ul>
-      </section><ContextMetrics data={data} /></div>
+      <div className={styles.grid}>
+        <section className={styles.panel} data-accent="red">
+          <h2>Captura por red social</h2>
+          <p>Los comentarios se cuentan por ID dentro de cada publicación. Las barras muestran qué parte de la captura total aporta cada red.</p>
+          {data.capture.channels.length ? (
+            <ul className={styles.rows}>
+              {data.capture.channels.map(row => (
+                <li key={row.source}>
+                  <span>{row.source}</span>
+                  <strong>{metric(row.captured_comments)} capturados</strong>
+                  {data.capture.captured_comments > 0 && (
+                    <progress aria-hidden="true" max={data.capture.captured_comments} value={row.captured_comments} />
+                  )}
+                  <small>{metric(row.posts)} publicaciones · {metric(row.reported_comments)} comentarios reportados guardados</small>
+                </li>
+              ))}
+            </ul>
+          ) : <p>No hay publicaciones guardadas por red social.</p>}
+        </section>
+        <ContextMetrics data={data} />
+      </div>
       <h2 className={styles.sectionHeading}>Expedientes y clasificación guardada</h2><CaseMetrics data={data} />
       <div className={styles.grid}>
-        <section className={styles.panel}><h2>Categorías de los expedientes</h2><p>Distribución de los {metric(data.cases.total)} expedientes de la bandeja, excluidos los duplicados consolidados. Una categoría no acredita una necesidad confirmada.</p><CategoryChart values={data.cases.categories} /></section>
-        <section className={styles.panel}><h2>Emociones registradas</h2><p>Se conservan las etiquetas del histórico. La emoción no se interpreta como apoyo o crítica a Johan.</p><SentimentChart values={data.cases.emotions} /></section>
         <section className={styles.panel}><h2>Estados registrados</h2><Distribution values={data.cases.statuses} /></section>
         <section className={styles.panel}><h2>Dependencia registrada</h2><p>Incluye asignaciones históricas sujetas a verificación; no demuestra actuaciones realizadas.</p><Distribution values={data.cases.departments} /></section>
       </div>

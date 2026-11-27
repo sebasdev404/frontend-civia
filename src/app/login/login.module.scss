@@ -18,21 +18,9 @@
     width: 650px;
     height: 650px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0) 70%);
+    background: radial-gradient(circle, var(--bg-hover), transparent 70%);
     top: -150px;
     right: -150px;
-    pointer-events: none;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    width: 500px;
-    height: 500px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0) 70%);
-    bottom: -150px;
-    left: -150px;
     pointer-events: none;
   }
 }
@@ -49,6 +37,15 @@
   z-index: 10;
   backdrop-filter: blur(12px);
 
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 var(--radius-xl) auto;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: linear-gradient(90deg, var(--flag-red) 0 33.33%, var(--flag-green) 33.33% 66.67%, var(--flag-yellow) 66.67% 100%);
+  }
+
   @media (max-width: 480px) {
     padding: 1.5rem;
   }
@@ -59,19 +56,10 @@
   margin-bottom: 2rem;
 }
 
-.logo-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 54px;
-  height: 54px;
+.brand-logo {
+  display: block;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--action-primary), var(--blue-700));
-  color: #fff;
-  font-size: 1.5rem;
-  font-weight: 800;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
-  margin-bottom: 1rem;
+  margin: 0 auto 1rem;
 }
 
 .brand-title {
@@ -82,10 +70,13 @@
   margin-bottom: 0.35rem;
 }
 
-.brand-subtitle {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  line-height: 1.4;
+.brand-motto {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.15rem, 4vw, 1.45rem);
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-link);
 }
 
 .login-form {
@@ -124,15 +115,15 @@
     font-size: 0.875rem;
     border-radius: var(--radius-md);
     background: var(--bg-muted);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-input);
     color: var(--text-primary);
     transition: all var(--transition);
     outline: none;
 
     &:focus {
-      border-color: var(--blue-500);
+      border-color: var(--accent-focus);
       background: var(--bg-card);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+      box-shadow: 0 0 0 3px var(--accent-halo);
     }
   }
 
@@ -172,7 +163,7 @@
   width: 100%;
   padding: 12px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--action-primary), var(--blue-700));
+  background: linear-gradient(135deg, var(--action-primary), var(--action-primary-hover));
   color: #fff;
   border: none;
   font-size: 0.9375rem;
@@ -183,12 +174,12 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 12px var(--accent-halo);
 
   &:hover {
-    background: linear-gradient(135deg, var(--blue-700), var(--blue-800));
+    background: linear-gradient(135deg, var(--action-primary-hover), var(--accent-strong));
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 6px 16px var(--accent-halo);
   }
 
   &:disabled {
@@ -312,14 +303,11 @@
   background: none;
   border: none;
   font-size: 0.8125rem;
-  color: var(--blue-600);
+  color: var(--text-link);
   font-weight: 600;
   cursor: pointer;
   padding: 0;
-  transition: color var(--transition);
-
   &:hover {
-    color: var(--blue-700);
     text-decoration: underline;
   }
 }
@@ -357,9 +345,9 @@
 .info-banner {
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
-  background: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.25);
-  color: var(--blue-600);
+  background: var(--accent-surface);
+  border: 1px solid var(--accent-border);
+  color: var(--text-link);
   font-size: 0.8125rem;
   display: flex;
   align-items: flex-start;

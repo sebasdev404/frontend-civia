@@ -1,10 +1,12 @@
 "use client";
 
 import React, { Suspense, useState } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { API } from '@/lib/api/client';
 import { safeReturnTo } from '@/lib/session';
+import logo from '../../../public/logo.png';
 import styles from './login.module.scss';
 import {
   Mail,
@@ -173,11 +175,9 @@ function LoginContent() {
       <div className={styles['login-card']}>
         {/* Cabecera de Marca */}
         <div className={styles['brand-header']}>
-          <div className={styles['logo-badge']}>C</div>
-          <h1 className={styles['brand-title']}>CIVIA</h1>
-          <p className={styles['brand-subtitle']}>
-            Plataforma de Inteligencia Ciudadana y Gestión Estratégica
-          </p>
+          <Image src={logo} alt="CIVIA" width={112} loading="eager" className={styles['brand-logo']} />
+          {/* <h1 className={styles['brand-title']}>CIVIA</h1> */}
+          <p className={styles['brand-motto']}>{'"Ordenemos a Neiva"'}</p>
         </div>
 
         {searchParams.get('reason') === 'expired' && <div className={styles['info-banner']} role="status">Tu sesión terminó. Inicia sesión para continuar donde estabas.</div>}
@@ -276,7 +276,7 @@ function LoginContent() {
         {viewMode === 'forgot_request' && (
           <form onSubmit={handleRequestOtp} className={styles['login-form']}>
             <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
-              <div style={{ display: 'inline-flex', padding: '10px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--blue-600)', marginBottom: '8px' }}>
+              <div style={{ display: 'inline-flex', padding: '10px', borderRadius: '12px', background: 'var(--accent-surface)', color: 'var(--text-link)', marginBottom: '8px' }}>
                 <KeyRound size={28} />
               </div>
               <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Recuperar Contraseña</h3>
@@ -454,7 +454,7 @@ function LoginContent() {
             <p className={styles['success-desc']}>
               Tu contraseña se actualizó y los accesos anteriores quedaron invalidados. Entrando a CIVIA…
             </p>
-            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--blue-600)', fontWeight: 600, fontSize: '0.875rem' }}>
+            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-link)', fontWeight: 600, fontSize: '0.875rem' }}>
               <Loader2 size={18} className="animate-spin" />
               <span>Redirigiendo al Dashboard...</span>
             </div>

@@ -85,15 +85,13 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--blue-600);
+  color: var(--text-link);
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none;
   margin-bottom: 0.75rem;
-  transition: color var(--transition);
-
   &:hover {
-    color: var(--blue-700);
+    text-decoration: underline;
   }
 }
 

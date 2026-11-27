@@ -201,7 +201,7 @@
 
   &.active {
     color: var(--text-link);
-    background: rgba(59, 130, 246, 0.1);
+    background: var(--accent-surface);
     font-weight: 700;
   }
 }

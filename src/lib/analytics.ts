@@ -31,6 +31,11 @@ export function metric(value: number | null | undefined) {
   return value == null ? '—' : value.toLocaleString('es-CO');
 }
 
+export function rankedCounts(values: Record<string, number>) {
+  return Object.entries(values).sort(([labelA, countA], [labelB, countB]) =>
+    countB - countA || labelA.localeCompare(labelB, 'es-CO'));
+}
+
 export function snapshotDate(value: string | null | undefined) {
   if (!value || !Number.isFinite(Date.parse(value))) return 'Sin fecha registrada';
   return new Date(value).toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'medium', timeStyle: 'short' });
